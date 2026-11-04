@@ -121,6 +121,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
+  message.textContent = 'Login کا عمل شروع ہوگیا ہے!';
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
 });
