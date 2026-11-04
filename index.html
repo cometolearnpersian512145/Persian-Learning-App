@@ -123,7 +123,25 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   }
 
   message.textContent = 'آپ کامیابی سے Login ہو گئے ہیں۔';
+const { data: adminProfile, error: adminProfileError } = await supabase
+  .from('profiles')
+  .select('role')
+  .eq('id', data.user.id)
+  .single();
 
+if (adminProfileError) {
+  message.textContent = 'اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
+  return;
+}
+
+if (adminProfile.role === 'admin') {
+  document.querySelectorAll('main > .card').forEach(card => {
+    card.style.display = 'none';
+  });
+
+  document.getElementById('adminPanel').style.display = 'block';
+  return;
+}
   document.querySelectorAll('main > .card').forEach(card => {
     card.style.display = 'none';
   });
