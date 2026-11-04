@@ -67,7 +67,6 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const message = document.getElementById('message');
   message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
-  alert('JavaScript چل رہا ہے!');
 document.getElementById('signupBtn').onclick = function() {
 };
 document.getElementById('signupBtn').addEventListener('click', async () => {
@@ -108,7 +107,6 @@ document.getElementById('signupBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('loginBtn').addEventListener('click', async () => {
-  alert('Sign In Button کام کر رہا ہے!');
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
 
@@ -123,7 +121,6 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
-  alert('Sign Out Button کام کر رہا ہے!');
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
 });
