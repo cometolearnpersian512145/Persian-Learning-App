@@ -248,7 +248,28 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     <h3>کورسز کا انتظام</h3>
     <p>نئے کورسز شامل کریں اور موجودہ کورسز میں ترمیم کریں۔</p>
   </div>
+<div class="card">
+  <h3>نیا کورس شامل کریں</h3>
 
+  <input id="courseTitle" type="text" placeholder="کورس کا نام">
+
+  <textarea id="courseDescription" placeholder="کورس کی تفصیل"></textarea>
+
+  <input id="courseDuration" type="text" placeholder="دورانیہ، مثلاً 5 ماہ">
+
+  <input id="courseLevel" type="text" placeholder="لیول، مثلاً Beginner">
+
+  <input id="courseFee" type="number" placeholder="کورس کی فیس">
+
+  <label>
+    <input id="coursePublished" type="checkbox">
+    کورس شائع کریں
+  </label>
+
+  <button id="addCourseBtn">کورس شامل کریں</button>
+
+  <p id="courseMessage"></p>
+</div>
   <div class="card">
     <h3>Chapters اور Lessons</h3>
     <p>نئے ابواب اور اسباق شامل کریں۔</p>
