@@ -1,108 +1,217 @@
-index.html
 
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="ur" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>آؤ فارسی سیکھیں</title>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  direction: rtl;
-  text-align: center;
-  background: #f3f6fa;
-  margin: 0;
-  padding: 20px;
-}
-
-header {
-  background: #14532d;
-  color: white;
-  padding: 25px;
-  border-radius: 15px;
-}
-
-h1 {
-  font-size: 30px;
-}
-
-h2 {
-  color: #14532d;
-}
-
-.card {
-  background: white;
-  padding: 20px;
-  margin: 15px auto;
-  max-width: 500px;
-  border-radius: 15px;
-  box-shadow: 0 3px 10px #ddd;
-}
-
-button {
-  background: #166534;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-footer {
-  margin-top: 30px;
-  color: #555;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#123b32">
+  <title>Come To Learn Persian | آؤ فارسی سیکھیں</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7f4;
+      color: #20332d;
+    }
+    header {
+      background: #123b32;
+      color: white;
+      text-align: center;
+      padding: 28px 15px;
+    }
+    header h1 { margin: 8px 0; font-size: 27px; }
+    header p { margin: 7px 0; }
+    .brand { font-size: 17px; color: #e5d5a5; }
+    nav {
+      background: white;
+      padding: 13px;
+      text-align: center;
+      box-shadow: 0 2px 8px #0001;
+    }
+    nav a {
+      display: inline-block;
+      color: #123b32;
+      text-decoration: none;
+      margin: 5px 9px;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 950px;
+      margin: auto;
+      padding: 20px 14px;
+    }
+    .welcome {
+      background: white;
+      padding: 24px;
+      border-radius: 14px;
+      text-align: center;
+      margin: 15px 0;
+      box-shadow: 0 3px 12px #0000000d;
+    }
+    h2 { color: #174d3e; }
+    .courses {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap: 15px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 13px;
+      box-shadow: 0 3px 12px #0000000d;
+    }
+    .card h3 { color: #174d3e; }
+    button, .whatsapp {
+      background: #176b50;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 17px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 15px;
+    }
+    select {
+      padding: 9px;
+      border-radius: 7px;
+      border: 1px solid #ddd;
+      margin: 5px;
+    }
+    .lesson {
+      background: #edf5ef;
+      padding: 15px;
+      border-radius: 10px;
+      line-height: 2;
+      margin-top: 15px;
+    }
+    footer {
+      background: #123b32;
+      color: white;
+      text-align: center;
+      padding: 22px 10px;
+      margin-top: 25px;
+      line-height: 2;
+    }
+  </style>
 </head>
-
 <body>
 
 <header>
-  <h1>آؤ فارسی سیکھیں</h1>
-  <h3>Come To Learn Persian</h3>
-  <p>فارسی گرامر اور بول چال اردو زبان میں</p>
+  <div class="brand">آؤ فارسی سیکھیں</div>
+  <h1>Come To Learn Persian</h1>
+  <p>Learn Persian Easily & Step by Step</p>
+  <p>فارسی زبان سیکھنے کا ایک بہترین تعلیمی پلیٹ فارم</p>
 </header>
 
-<div class="card">
-  <h2>📚 فارسی گرامر</h2>
-  <p>فارسی زبان کے قواعد آسان اردو میں سیکھیں۔</p>
-  <button onclick="showGrammar()">گرامر شروع کریں</button>
-  <p id="grammar"></p>
+<nav>
+  <a href="#home">ہوم</a>
+  <a href="#courses">کورسز</a>
+  <a href="#lesson">سبق</a>
+  <a href="#contact">رابطہ</a>
+</nav>
+
+<div class="container">
+
+  <section class="welcome" id="home">
+    <h2>خوش آمدید!</h2>
+    <p>
+      ہمارے ساتھ فارسی زبان بولنا، پڑھنا، لکھنا اور سمجھنا سیکھیں۔
+      آسان انداز میں فارسی گرامر اور روزمرہ گفتگو کی تعلیم حاصل کریں۔
+    </p>
+    <p><strong>معلم: قاری محمد آصف اصفہانی</strong></p>
+    <a class="whatsapp"
+       href="https://wa.me/923049788712"
+       target="_blank">واٹس ایپ پر رابطہ کریں</a>
+  </section>
+
+  <section id="courses">
+    <h2>ہمارے کورسز</h2>
+    <div class="courses">
+
+      <div class="card">
+        <h3>فارسی گرامر</h3>
+        <p>فارسی قواعد، افعال، جملوں کی ساخت اور قواعد کی آسان وضاحت۔</p>
+        <button onclick="showMessage('فارسی گرامر')">کورس منتخب کریں</button>
+      </div>
+
+      <div class="card">
+        <h3>فارسی بول چال</h3>
+        <p>روزمرہ گفتگو، مکالمے اور عملی مشق کے ذریعے فارسی سیکھیں۔</p>
+        <button onclick="showMessage('فارسی بول چال')">کورس منتخب کریں</button>
+      </div>
+
+      <div class="card">
+        <h3>گام اول</h3>
+        <p>ابتدائی طلبہ کے لیے فارسی زبان کا بنیادی کورس۔</p>
+        <button onclick="showMessage('گام اول')">کورس منتخب کریں</button>
+      </div>
+
+      <div class="card">
+        <h3>کتاب مینا 3</h3>
+        <p>کتاب مینا کے اسباق، الفاظ، جملے اور مشقیں۔</p>
+        <button onclick="showMessage('کتاب مینا 3')">کورس منتخب کریں</button>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="lesson">
+    <h2>آج کا فارسی سبق</h2>
+    <div class="lesson">
+      <p><strong>سلام</strong> — سلام</p>
+      <p><strong>حال شما چطور است؟</strong> — آپ کا کیا حال ہے؟</p>
+      <p><strong>من خوب هستم</strong> — میں ٹھیک ہوں۔</p>
+      <p><strong>از آشنایی با شما خوشوقتم</strong> — آپ سے مل کر خوشی ہوئی۔</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>زبان منتخب کریں</h2>
+    <select id="language" onchange="changeLanguage()">
+      <option value="ur">اردو</option>
+      <option value="fa">فارسی</option>
+      <option value="en">English</option>
+    </select>
+    <p id="languageMessage">آپ اردو زبان منتخب کیے ہوئے ہیں۔</p>
+  </section>
+
 </div>
 
-<div class="card">
-  <h2>💬 فارسی بول چال</h2>
-  <p>روزمرہ زندگی میں استعمال ہونے والے فارسی جملے۔</p>
-  <button onclick="showConversation()">بول چال شروع کریں</button>
-  <p id="conversation"></p>
-</div>
-
-<div class="card">
-  <h2>📝 آج کا فارسی سبق</h2>
-  <p>سلام = سلام</p>
-  <p>حال شما چطور است؟ = آپ کا کیا حال ہے؟</p>
-  <p>من خوب هستم = میں اچھا ہوں</p>
-</div>
-
-<footer>
+<footer id="contact">
+  <h3>مرکز آموزش زبان فارسی</h3>
   <p>معلم: قاری محمد آصف اصفہانی</p>
   <p>WhatsApp: 00923049788712</p>
-  <p>آؤ فارسی سیکھیں</p>
+  <p>Facebook & Instagram: آؤ فارسی سیکھیں</p>
+  <p>YouTube: Come To Learn Persian</p>
+  <p>© 2026 Come To Learn Persian</p>
 </footer>
 
 <script>
-function showGrammar() {
-  document.getElementById("grammar").innerHTML =
-  "فارسی میں فعلِ حال: من می‌روم = میں جاتا ہوں۔";
-}
+  function showMessage(course) {
+    alert("آپ نے " + course + " منتخب کیا ہے۔ مزید معلومات کے لیے واٹس ایپ پر رابطہ کریں۔");
+  }
 
-function showConversation() {
-  document.getElementById("conversation").innerHTML =
-  "سلام! حال شما چطور است؟<br>سلام! آپ کا کیا حال ہے؟";
-}
+  function changeLanguage() {
+    const language = document.getElementById("language").value;
+    const message = document.getElementById("languageMessage");
+
+    if (language === "ur") {
+      document.documentElement.lang = "ur";
+      document.documentElement.dir = "rtl";
+      message.textContent = "آپ اردو زبان منتخب کیے ہوئے ہیں۔";
+    } else if (language === "fa") {
+      document.documentElement.lang = "fa";
+      document.documentElement.dir = "rtl";
+      message.textContent = "شما زبان فارسی را انتخاب کرده‌اید.";
+    } else {
+      document.documentElement.lang = "en";
+      document.documentElement.dir = "ltr";
+      message.textContent = "You have selected English.";
+    }
+  }
 </script>
 
 </body>
