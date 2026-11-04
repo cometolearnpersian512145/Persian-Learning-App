@@ -2,216 +2,127 @@
 <!DOCTYPE html>
 <html lang="ur" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#123b32">
-  <title>Come To Learn Persian | آؤ فارسی سیکھیں</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f7f4;
-      color: #20332d;
-    }
-    header {
-      background: #123b32;
-      color: white;
-      text-align: center;
-      padding: 28px 15px;
-    }
-    header h1 { margin: 8px 0; font-size: 27px; }
-    header p { margin: 7px 0; }
-    .brand { font-size: 17px; color: #e5d5a5; }
-    nav {
-      background: white;
-      padding: 13px;
-      text-align: center;
-      box-shadow: 0 2px 8px #0001;
-    }
-    nav a {
-      display: inline-block;
-      color: #123b32;
-      text-decoration: none;
-      margin: 5px 9px;
-      font-weight: bold;
-    }
-    .container {
-      max-width: 950px;
-      margin: auto;
-      padding: 20px 14px;
-    }
-    .welcome {
-      background: white;
-      padding: 24px;
-      border-radius: 14px;
-      text-align: center;
-      margin: 15px 0;
-      box-shadow: 0 3px 12px #0000000d;
-    }
-    h2 { color: #174d3e; }
-    .courses {
-      display: grid;
-      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-      gap: 15px;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 13px;
-      box-shadow: 0 3px 12px #0000000d;
-    }
-    .card h3 { color: #174d3e; }
-    button, .whatsapp {
-      background: #176b50;
-      color: white;
-      border: 0;
-      border-radius: 8px;
-      padding: 11px 17px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 8px;
-      font-size: 15px;
-    }
-    select {
-      padding: 9px;
-      border-radius: 7px;
-      border: 1px solid #ddd;
-      margin: 5px;
-    }
-    .lesson {
-      background: #edf5ef;
-      padding: 15px;
-      border-radius: 10px;
-      line-height: 2;
-      margin-top: 15px;
-    }
-    footer {
-      background: #123b32;
-      color: white;
-      text-align: center;
-      padding: 22px 10px;
-      margin-top: 25px;
-      line-height: 2;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Come To Learn Persian</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f6f3;margin:0;color:#173d32}
+header{background:#123b32;color:white;text-align:center;padding:25px}
+main{max-width:480px;margin:25px auto;padding:15px}
+.card{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 12px #0001;margin-bottom:18px}
+input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
+button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;background:#176b50;color:white;font-size:16px}
+.note{text-align:center;line-height:1.8}
+#message{white-space:pre-wrap;text-align:center;margin-top:15px}
+</style>
 </head>
 <body>
 
 <header>
-  <div class="brand">آؤ فارسی سیکھیں</div>
-  <h1>Come To Learn Persian</h1>
-  <p>Learn Persian Easily & Step by Step</p>
-  <p>فارسی زبان سیکھنے کا ایک بہترین تعلیمی پلیٹ فارم</p>
+<h2>آؤ فارسی سیکھیں</h2>
+<h1>Come To Learn Persian</h1>
+<p>Learn Persian Easily & Step by Step</p>
 </header>
 
-<nav>
-  <a href="#home">ہوم</a>
-  <a href="#courses">کورسز</a>
-  <a href="#lesson">سبق</a>
-  <a href="#contact">رابطہ</a>
-</nav>
-
-<div class="container">
-
-  <section class="welcome" id="home">
-    <h2>خوش آمدید!</h2>
-    <p>
-      ہمارے ساتھ فارسی زبان بولنا، پڑھنا، لکھنا اور سمجھنا سیکھیں۔
-      آسان انداز میں فارسی گرامر اور روزمرہ گفتگو کی تعلیم حاصل کریں۔
-    </p>
-    <p><strong>معلم: قاری محمد آصف اصفہانی</strong></p>
-    <a class="whatsapp"
-       href="https://wa.me/923049788712"
-       target="_blank">واٹس ایپ پر رابطہ کریں</a>
-  </section>
-
-  <section id="courses">
-    <h2>ہمارے کورسز</h2>
-    <div class="courses">
-
-      <div class="card">
-        <h3>فارسی گرامر</h3>
-        <p>فارسی قواعد، افعال، جملوں کی ساخت اور قواعد کی آسان وضاحت۔</p>
-        <button onclick="showMessage('فارسی گرامر')">کورس منتخب کریں</button>
-      </div>
-
-      <div class="card">
-        <h3>فارسی بول چال</h3>
-        <p>روزمرہ گفتگو، مکالمے اور عملی مشق کے ذریعے فارسی سیکھیں۔</p>
-        <button onclick="showMessage('فارسی بول چال')">کورس منتخب کریں</button>
-      </div>
-
-      <div class="card">
-        <h3>گام اول</h3>
-        <p>ابتدائی طلبہ کے لیے فارسی زبان کا بنیادی کورس۔</p>
-        <button onclick="showMessage('گام اول')">کورس منتخب کریں</button>
-      </div>
-
-      <div class="card">
-        <h3>کتاب مینا 3</h3>
-        <p>کتاب مینا کے اسباق، الفاظ، جملے اور مشقیں۔</p>
-        <button onclick="showMessage('کتاب مینا 3')">کورس منتخب کریں</button>
-      </div>
-
-    </div>
-  </section>
-
-  <section id="lesson">
-    <h2>آج کا فارسی سبق</h2>
-    <div class="lesson">
-      <p><strong>سلام</strong> — سلام</p>
-      <p><strong>حال شما چطور است؟</strong> — آپ کا کیا حال ہے؟</p>
-      <p><strong>من خوب هستم</strong> — میں ٹھیک ہوں۔</p>
-      <p><strong>از آشنایی با شما خوشوقتم</strong> — آپ سے مل کر خوشی ہوئی۔</p>
-    </div>
-  </section>
-
-  <section>
-    <h2>زبان منتخب کریں</h2>
-    <select id="language" onchange="changeLanguage()">
-      <option value="ur">اردو</option>
-      <option value="fa">فارسی</option>
-      <option value="en">English</option>
-    </select>
-    <p id="languageMessage">آپ اردو زبان منتخب کیے ہوئے ہیں۔</p>
-  </section>
-
+<main>
+<div class="card">
+<h2>نیا اکاؤنٹ بنائیں</h2>
+<input id="name" placeholder="آپ کا مکمل نام">
+<input id="father" placeholder="والد کا نام">
+<input id="whatsapp" placeholder="WhatsApp نمبر">
+<input id="country" placeholder="ملک">
+<input id="city" placeholder="شہر">
+<input id="gender" placeholder="جنس">
+<input id="signupEmail" type="email" placeholder="Email">
+<input id="signupPassword" type="password" placeholder="Password">
+<button id="signupBtn">Sign Up / رجسٹریشن</button>
 </div>
 
-<footer id="contact">
-  <h3>مرکز آموزش زبان فارسی</h3>
-  <p>معلم: قاری محمد آصف اصفہانی</p>
-  <p>WhatsApp: 00923049788712</p>
-  <p>Facebook & Instagram: آؤ فارسی سیکھیں</p>
-  <p>YouTube: Come To Learn Persian</p>
-  <p>© 2026 Come To Learn Persian</p>
-</footer>
+<div class="card">
+<h2>اکاؤنٹ میں داخل ہوں</h2>
+<input id="loginEmail" type="email" placeholder="Email">
+<input id="loginPassword" type="password" placeholder="Password">
+<button id="loginBtn">Login / داخل ہوں</button>
+<button id="logoutBtn">Logout / باہر جائیں</button>
+</div>
 
-<script>
-  function showMessage(course) {
-    alert("آپ نے " + course + " منتخب کیا ہے۔ مزید معلومات کے لیے واٹس ایپ پر رابطہ کریں۔");
+<div class="card note">
+<h3>مرکز آموزش زبان فارسی</h3>
+<p>معلم: قاری محمد آصف اصفہانی</p>
+<p>WhatsApp: 00923049788712</p>
+</div>
+
+<p id="message"></p>
+</main>
+
+<script type="module">
+import { createClient } from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// اپنی Supabase Project URL یہاں لکھیں
+const SUPABASE_URL = 'PASTE_YOUR_PROJECT_URL_HERE';
+
+// اپنی Publishable Key یہاں لکھیں
+const SUPABASE_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY_HERE';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const message = document.getElementById('message');
+
+document.getElementById('signupBtn').addEventListener('click', async () => {
+  const full_name = document.getElementById('name').value.trim();
+  const father_name = document.getElementById('father').value.trim();
+  const whatsapp = document.getElementById('whatsapp').value.trim();
+  const country = document.getElementById('country').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const gender = document.getElementById('gender').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+
+  if (!full_name || !email || !password) {
+    message.textContent = 'نام، Email اور Password لازمی ہیں۔';
+    return;
   }
 
-  function changeLanguage() {
-    const language = document.getElementById("language").value;
-    const message = document.getElementById("languageMessage");
+  message.textContent = 'اکاؤنٹ بنایا جا رہا ہے...';
 
-    if (language === "ur") {
-      document.documentElement.lang = "ur";
-      document.documentElement.dir = "rtl";
-      message.textContent = "آپ اردو زبان منتخب کیے ہوئے ہیں۔";
-    } else if (language === "fa") {
-      document.documentElement.lang = "fa";
-      document.documentElement.dir = "rtl";
-      message.textContent = "شما زبان فارسی را انتخاب کرده‌اید.";
-    } else {
-      document.documentElement.lang = "en";
-      document.documentElement.dir = "ltr";
-      message.textContent = "You have selected English.";
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name,
+        father_name,
+        whatsapp,
+        country,
+        city,
+        gender
+      }
     }
-  }
+  });
+
+  message.textContent = error
+    ? error.message
+    : 'رجسٹریشن کی درخواست کامیاب! اگر Email confirmation فعال ہے تو اپنے Email کی تصدیق کریں۔';
+});
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  message.textContent = 'Login ہو رہا ہے...';
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  message.textContent = error ? error.message : 'آپ کامیابی سے Login ہو گئے ہیں۔';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  const { error } = await supabase.auth.signOut();
+  message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
+});
 </script>
 
 </body>
