@@ -110,24 +110,27 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
 
-  message.textContent = 'Login ہو رہا ہے...';
+  message.textContent = 'Login ہو رہا ہے، انتظار کریں...';
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
   });
 
-if (error) {
-  message.textContent = error.message;
-} else {
+  if (error) {
+    message.textContent = 'Login میں مسئلہ: ' + error.message;
+    return;
+  }
+
   message.textContent = 'آپ کامیابی سے Login ہو گئے ہیں۔';
 
-  document.querySelectorAll('.card').forEach(card => {
+  document.querySelectorAll('main > .card').forEach(card => {
     card.style.display = 'none';
   });
 
   const dashboard = document.createElement('div');
   dashboard.className = 'card';
+
   dashboard.innerHTML = `
     <h2>آؤ فارسی سیکھیں</h2>
     <h3>طالب علم کا ڈیش بورڈ</h3>
@@ -141,10 +144,16 @@ if (error) {
   document.querySelector('main').prepend(dashboard);
 
   document.getElementById('dashboardLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      message.textContent = error.message;
+      return;
+    }
+
     location.reload();
   });
-}
+});
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
