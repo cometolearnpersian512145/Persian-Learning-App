@@ -67,6 +67,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const message = document.getElementById('message');
   message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
+  alert('JavaScript چل رہا ہے!');
 
 document.getElementById('signupBtn').addEventListener('click', async () => {
   const full_name = document.getElementById('name').value.trim();
