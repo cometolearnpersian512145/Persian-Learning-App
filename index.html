@@ -129,6 +129,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   });
 
   const dashboard = document.createElement('div');
+  alert('Dashboard کا کوڈ چل رہا ہے!');
   dashboard.className = 'card';
 
   dashboard.innerHTML = `
@@ -159,6 +160,5 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
 });
 </script>
-
 </body>
 </html>
