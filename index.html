@@ -1,0 +1,109 @@
+index.html
+
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>آؤ فارسی سیکھیں</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  direction: rtl;
+  text-align: center;
+  background: #f3f6fa;
+  margin: 0;
+  padding: 20px;
+}
+
+header {
+  background: #14532d;
+  color: white;
+  padding: 25px;
+  border-radius: 15px;
+}
+
+h1 {
+  font-size: 30px;
+}
+
+h2 {
+  color: #14532d;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  margin: 15px auto;
+  max-width: 500px;
+  border-radius: 15px;
+  box-shadow: 0 3px 10px #ddd;
+}
+
+button {
+  background: #166534;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+footer {
+  margin-top: 30px;
+  color: #555;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>آؤ فارسی سیکھیں</h1>
+  <h3>Come To Learn Persian</h3>
+  <p>فارسی گرامر اور بول چال اردو زبان میں</p>
+</header>
+
+<div class="card">
+  <h2>📚 فارسی گرامر</h2>
+  <p>فارسی زبان کے قواعد آسان اردو میں سیکھیں۔</p>
+  <button onclick="showGrammar()">گرامر شروع کریں</button>
+  <p id="grammar"></p>
+</div>
+
+<div class="card">
+  <h2>💬 فارسی بول چال</h2>
+  <p>روزمرہ زندگی میں استعمال ہونے والے فارسی جملے۔</p>
+  <button onclick="showConversation()">بول چال شروع کریں</button>
+  <p id="conversation"></p>
+</div>
+
+<div class="card">
+  <h2>📝 آج کا فارسی سبق</h2>
+  <p>سلام = سلام</p>
+  <p>حال شما چطور است؟ = آپ کا کیا حال ہے؟</p>
+  <p>من خوب هستم = میں اچھا ہوں</p>
+</div>
+
+<footer>
+  <p>معلم: قاری محمد آصف اصفہانی</p>
+  <p>WhatsApp: 00923049788712</p>
+  <p>آؤ فارسی سیکھیں</p>
+</footer>
+
+<script>
+function showGrammar() {
+  document.getElementById("grammar").innerHTML =
+  "فارسی میں فعلِ حال: من می‌روم = میں جاتا ہوں۔";
+}
+
+function showConversation() {
+  document.getElementById("conversation").innerHTML =
+  "سلام! حال شما چطور است؟<br>سلام! آپ کا کیا حال ہے؟";
+}
+</script>
+
+</body>
+</html>
