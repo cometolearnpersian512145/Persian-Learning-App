@@ -169,7 +169,41 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   <button id="dashboardLogout">Logout / باہر جائیں</button>
 `;
   document.querySelector('main').prepend(dashboard);
+document.getElementById('profileBtn').addEventListener('click', async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
 
+  if (error || !user) {
+    message.textContent = 'پروفائل حاصل نہیں ہو سکا۔ دوبارہ Login کریں۔';
+    return;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('full_name, father_name, whatsapp, country, city, gender')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    message.textContent = 'پروفائل میں مسئلہ: ' + profileError.message;
+    return;
+  }
+
+  dashboard.innerHTML = `
+    <h2>آؤ فارسی سیکھیں</h2>
+    <h3>میرا پروفائل</h3>
+    <p>نام: ${profile.full_name || ''}</p>
+    <p>والد کا نام: ${profile.father_name || ''}</p>
+    <p>WhatsApp: ${profile.whatsapp || ''}</p>
+    <p>ملک: ${profile.country || ''}</p>
+    <p>شہر: ${profile.city || ''}</p>
+    <p>جنس: ${profile.gender || ''}</p>
+    <button id="backDashboard">واپس ڈیش بورڈ</button>
+  `;
+
+  document.getElementById('backDashboard').addEventListener('click', () => {
+    location.reload();
+  });
+});
   document.getElementById('dashboardLogout').addEventListener('click', async () => {
     const { error } = await supabase.auth.signOut();
 
