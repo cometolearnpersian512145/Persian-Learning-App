@@ -131,16 +131,43 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const dashboard = document.createElement('div');
   dashboard.className = 'card';
 
-  dashboard.innerHTML = `
-    <h2>آؤ فارسی سیکھیں</h2>
-    <h3>طالب علم کا ڈیش بورڈ</h3>
-    <p>آپ کامیابی سے Login ہو گئے ہیں۔</p>
-    <p>فارسی گرامر</p>
-    <p>فارسی بول چال</p>
-    <p>مکمل فارسی کورس</p>
-    <button id="dashboardLogout">Logout / باہر جائیں</button>
-  `;
+ dashboard.innerHTML = `
+  <h2>آؤ فارسی سیکھیں</h2>
+  <h3>طالب علم کا ڈیش بورڈ</h3>
 
+  <p>خوش آمدید! آپ کامیابی سے Login ہو گئے ہیں۔</p>
+
+  <hr>
+
+  <h3>📚 میرے کورسز</h3>
+
+  <div class="card">
+    <h3>فارسی گرامر</h3>
+    <p>فارسی قواعد اور بنیادی گرامر سیکھیں۔</p>
+    <button id="grammarBtn">کورس کھولیں</button>
+  </div>
+
+  <div class="card">
+    <h3>فارسی بول چال</h3>
+    <p>روزمرہ گفتگو اور مکالمے سیکھیں۔</p>
+    <button id="conversationBtn">کورس کھولیں</button>
+  </div>
+
+  <div class="card">
+    <h3>مکمل فارسی کورس</h3>
+    <p>ابتدائی سے اعلیٰ سطح تک فارسی سیکھیں۔</p>
+    <button id="completeCourseBtn">کورس کھولیں</button>
+  </div>
+
+  <hr>
+
+  <h3>👤 میرا اکاؤنٹ</h3>
+  <button id="profileBtn">میرا پروفائل</button>
+
+  <hr>
+
+  <button id="dashboardLogout">Logout / باہر جائیں</button>
+`;
   document.querySelector('main').prepend(dashboard);
 
   document.getElementById('dashboardLogout').addEventListener('click', async () => {
