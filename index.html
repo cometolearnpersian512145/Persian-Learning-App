@@ -140,6 +140,7 @@ if (adminProfile.role === 'admin') {
   });
 
   document.getElementById('adminPanel').style.display = 'block';
+  loadCourses();
   return;
 }
   document.querySelectorAll('main > .card').forEach(card => {
@@ -318,7 +319,7 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
   document.getElementById('coursePublished').checked = false;
 });
 </script>
-  <!-- ADMIN PANEL -->
+  <!--  PANEL -->
 <section id="adminPanel" style="display:none; padding:20px;">
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>Admin Panel</h3>
