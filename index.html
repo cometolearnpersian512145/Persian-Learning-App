@@ -352,10 +352,38 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   <p id="courseMessage"></p>
 </div>
-  <div class="card">
-    <h3>Chapters اور Lessons</h3>
-    <p>نئے ابواب اور اسباق شامل کریں۔</p>
-  </div>
+ 
+<div class="card">
+  <h3>Chapters اور Lessons</h3>
+  <p>نئے ابواب اور اسباق شامل کریں۔</p>
+
+  <h4>نیا باب (Chapter) شامل کریں</h4>
+
+  <select id="moduleCourse">
+    <option value="">کورس منتخب کریں</option>
+  </select>
+
+  <input
+    id="moduleTitle"
+    type="text"
+    placeholder="باب کا نام، مثلاً اسم"
+  >
+
+  <input
+    id="moduleOrder"
+    type="number"
+    placeholder="باب نمبر، مثلاً 1"
+    value="1"
+  >
+
+  <button id="addModuleBtn">باب شامل کریں</button>
+
+  <p id="moduleMessage"></p>
+
+  <h4>تمام ابواب</h4>
+  <div id="moduleList"></div>
+</div>
+
 
   <div class="card">
     <h3>Payments</h3>
