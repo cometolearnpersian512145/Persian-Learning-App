@@ -238,6 +238,46 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
 });
   // ADD NEW COURSE
+  // SHOW ALL COURSES
+async function loadCourses() {
+  const courseList = document.getElementById('courseList');
+
+  courseList.innerHTML = 'کورسز لوڈ ہو رہے ہیں...';
+
+  const { data, error } = await supabase
+    .from('courses')
+    .select('id, title, description, duration, level, fee')
+    .order('title');
+
+  if (error) {
+    courseList.textContent = 'کورسز حاصل کرنے میں مسئلہ: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    courseList.textContent = 'ابھی کوئی کورس موجود نہیں۔';
+    return;
+  }
+
+  courseList.innerHTML = '';
+
+  data.forEach(course => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    card.innerHTML = `
+      <h4>${course.title}</h4>
+      <p>${course.description || ''}</p>
+      <p>دورانیہ: ${course.duration || ''}</p>
+      <p>لیول: ${course.level || ''}</p>
+      <p>فیس: ${course.fee}</p>
+    `;
+
+    courseList.appendChild(card);
+  });
+}
+
+loadCourses();
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
   const title = document.getElementById('courseTitle').value.trim();
   const description = document.getElementById('courseDescription').value.trim();
@@ -291,7 +331,8 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
   </div>
 <div class="card">
   <h3>نیا کورس شامل کریں</h3>
-  
+  <h3>تمام کورسز</h3>
+<div id="courseList"></div>
   <input id="courseTitle" type="text" placeholder="کورس کا نام">
 
   <textarea id="courseDescription" placeholder="کورس کی تفصیل"></textarea>
