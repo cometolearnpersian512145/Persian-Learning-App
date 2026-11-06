@@ -740,39 +740,15 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   courseMessage.textContent = 'کورس محفوظ ہو رہا ہے...';
 
-  const lessonData = {
-    module_id,
-    title,
-    persian_text,
-    urdu_explanation,
-    english_explanation,
-    video_url,
-    audio_url,
-    pdf_url,
-    lesson_order,
-    is_free,
-    is_published
-  };
-
-  let result;
-
-  if (editingLessonId) {
-    result = await supabase
-      .from('lessons')
-      .update(lessonData)
-      .eq('id', editingLessonId);
-  } else {
-    result = await supabase
-      .from('lessons')
-      .insert([lessonData]);
-  }
-
-  const { error } = result;
-      title: title,
-      description: description,
-      "duration": duration,
-      level: level,
-      fee: fee,
+  const { error } = await supabase
+    .from('courses')
+    .insert([{
+      title,
+      description,
+      duration,
+      level,
+      fee,
+      published
     }]);
 
   if (error) {
@@ -788,6 +764,8 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
   document.getElementById('courseLevel').value = '';
   document.getElementById('courseFee').value = '';
   document.getElementById('coursePublished').checked = false;
+
+  await loadCourses();
 });
 </script>
   <!--  PANEL -->
