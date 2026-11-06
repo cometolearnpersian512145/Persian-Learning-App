@@ -188,6 +188,109 @@ if (adminProfile.role === 'admin') {
   <button id="dashboardLogout">Logout / باہر جائیں</button>
 `;
   document.querySelector('main').prepend(dashboard);
+  
+// STUDENT COURSE MODULES AND LESSONS
+
+async function showStudentCourse(courseId, courseName) {
+  dashboard.innerHTML = `
+    <h2>آؤ فارسی سیکھیں</h2>
+    <h3>${courseName}</h3>
+    <p id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</p>
+    <div id="studentModuleList"></div>
+    <button id="backToStudentDashboard">واپس ڈیش بورڈ</button>
+  `;
+
+  document.getElementById('backToStudentDashboard').onclick = () => {
+    location.reload();
+  };
+
+  const moduleList = document.getElementById('studentModuleList');
+  const courseMessage = document.getElementById('studentCourseMessage');
+
+  const { data, error } = await supabase
+    .from('modules')
+    .select('id, title, module_order')
+    .eq('course_id', courseId)
+    .order('module_order');
+
+  if (error) {
+    courseMessage.textContent = 'مسئلہ: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    courseMessage.textContent = 'اس کورس میں ابھی کوئی باب موجود نہیں۔';
+    return;
+  }
+
+  courseMessage.textContent = 'تمام ابواب:';
+
+  data.forEach(module => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const heading = document.createElement('h4');
+    heading.textContent = `باب ${module.module_order}: ${module.title}`;
+
+    const lessonArea = document.createElement('div');
+    lessonArea.textContent = 'اسباق دیکھنے کے لیے باب کھولیں۔';
+
+    const button = document.createElement('button');
+    button.textContent = 'باب کھولیں';
+
+    button.onclick = async () => {
+      lessonArea.textContent = 'اسباق لوڈ ہو رہے ہیں...';
+
+      const { data: lessons, error: lessonError } = await supabase
+        .from('lessons')
+        .select('id, title, lesson_order, is_free')
+        .eq('module_id', module.id)
+        .eq('is_published', true)
+        .order('lesson_order');
+
+      if (lessonError) {
+        lessonArea.textContent = 'مسئلہ: ' + lessonError.message;
+        return;
+      }
+
+      lessonArea.innerHTML = '';
+
+      if (!lessons || lessons.length === 0) {
+        lessonArea.textContent = 'ابھی کوئی شائع شدہ سبق موجود نہیں۔';
+        return;
+      }
+
+      lessons.forEach(lesson => {
+        const item = document.createElement('p');
+        item.textContent =
+          `درس ${lesson.lesson_order}: ${lesson.title} — ${lesson.is_free ? 'مفت سبق' : 'Paid سبق 🔒'}`;
+        lessonArea.appendChild(item);
+      });
+    };
+
+    card.appendChild(heading);
+    card.appendChild(button);
+    card.appendChild(lessonArea);
+    moduleList.appendChild(card);
+  });
+}
+
+// Persian Grammar button
+document.getElementById('grammarBtn').onclick = () => {
+  showStudentCourse(
+    'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
+    'فارسی گرامر'
+  );
+};
+
+// Persian Conversation button
+document.getElementById('conversationBtn').onclick = () => {
+  showStudentCourse(
+    '947a9182-8328-4506-b2b0-50ada2b709fa',
+    'فارسی بول چال'
+  );
+};
+
 document.getElementById('profileBtn').addEventListener('click', async () => {
   const { data: { user }, error } = await supabase.auth.getUser();
 
