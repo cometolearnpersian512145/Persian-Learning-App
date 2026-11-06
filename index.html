@@ -687,22 +687,34 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
 
   lessonMessage.textContent = 'سبق محفوظ ہو رہا ہے...';
 
-  const { error } = await supabase
-    .from('lessons')
-    .insert([{
-      module_id,
-      title,
-      persian_text,
-      urdu_explanation,
-      english_explanation,
-      video_url,
-      audio_url,
-      pdf_url,
-      lesson_order,
-      is_free,
-      is_published
-    }]);
+  const lessonData = {
+    module_id,
+    title,
+    persian_text,
+    urdu_explanation,
+    english_explanation,
+    video_url,
+    audio_url,
+    pdf_url,
+    lesson_order,
+    is_free,
+    is_published
+  };
 
+  let result;
+
+  if (editingLessonId) {
+    result = await supabase
+      .from('lessons')
+      .update(lessonData)
+      .eq('id', editingLessonId);
+  } else {
+    result = await supabase
+      .from('lessons')
+      .insert([lessonData]);
+  }
+
+  const { error } = result;
   if (error) {
     lessonMessage.textContent = 'مسئلہ: ' + error.message;
     return;
