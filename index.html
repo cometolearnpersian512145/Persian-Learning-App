@@ -86,8 +86,8 @@ document.getElementById('signupBtn').addEventListener('click', async () => {
 
   message.textContent = 'اکاؤنٹ بنایا جا رہا ہے...';
 
-  { error } = await supabase.auth.signUp({
-    email,
+const { error } = await supabase.auth.signUp({
+  email,
     password,
     options: {
       data: {
