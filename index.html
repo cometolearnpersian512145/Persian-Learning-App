@@ -439,7 +439,46 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
   <h4>تمام ابواب</h4>
   <div id="moduleList"></div>
 </div>
+<hr>
 
+<h4>نیا سبق (Lesson) شامل کریں</h4>
+
+<select id="lessonModule">
+  <option value="">باب منتخب کریں</option>
+</select>
+
+<input id="lessonTitle" type="text" placeholder="سبق کا عنوان">
+
+<textarea id="lessonPersian" placeholder="فارسی عبارت"></textarea>
+
+<textarea id="lessonUrdu" placeholder="اردو تشریح"></textarea>
+
+<textarea id="lessonEnglish" placeholder="English Explanation"></textarea>
+
+<input id="lessonVideo" type="text" placeholder="Video URL">
+
+<input id="lessonAudio" type="text" placeholder="Audio URL">
+
+<input id="lessonPdf" type="text" placeholder="PDF URL">
+
+<input id="lessonOrder" type="number" placeholder="سبق نمبر" value="1">
+
+<label>
+  <input id="lessonFree" type="checkbox">
+  یہ سبق مفت ہے
+</label>
+
+<label>
+  <input id="lessonPublished" type="checkbox">
+  سبق شائع کریں
+</label>
+
+<button id="addLessonBtn">سبق شامل کریں</button>
+
+<p id="lessonMessage"></p>
+
+<h4>تمام اسباق</h4>
+<div id="lessonList"></div>
 
   <div class="card">
     <h3>Payments</h3>
