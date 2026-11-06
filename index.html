@@ -263,6 +263,19 @@ async function loadCourses() {
   courseList.innerHTML = '';
 
   data.forEach(course => {
+      // Chapter form mein courses show karna
+  const moduleCourse = document.getElementById('moduleCourse');
+
+  if (moduleCourse) {
+    moduleCourse.innerHTML = '<option value="">کورس منتخب کریں</option>';
+
+    data.forEach(course => {
+      const option = document.createElement('option');
+      option.value = course.id;
+      option.textContent = course.title;
+      moduleCourse.appendChild(option);
+    });
+  }
     const card = document.createElement('div');
     card.className = 'card';
 
