@@ -613,8 +613,20 @@ async function loadLessons() {
   data.forEach(lesson => {
     const item = document.createElement('div');
     item.className = 'card';
-    item.textContent =
+
+    const title = document.createElement('p');
+    title.textContent =
       `درس ${lesson.lesson_order}: ${lesson.title} | ${lesson.is_free ? 'مفت' : 'Paid'} | ${lesson.is_published ? 'شائع شدہ' : 'غیر شائع شدہ'}`;
+
+    const editButton = document.createElement('button');
+    editButton.textContent = 'سبق میں ترمیم کریں';
+
+    editButton.onclick = () => {
+      editLesson(lesson.id);
+    };
+
+    item.appendChild(title);
+    item.appendChild(editButton);
 
     lessonList.appendChild(item);
   });
