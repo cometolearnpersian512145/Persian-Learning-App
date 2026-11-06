@@ -302,7 +302,7 @@ async function showStudentCourse(courseId, courseName) {
 
           const { data: detail, error: detailError } = await supabase
             .from('lessons')
-            .select('persian_text, urdu_explanation, english_explanation, video_url, audio_url, pdf_url')
+.select('persian_text, urdu_explanation, shenasay, english_explanation, video_url, audio_url, pdf_url')
             .eq('id', lesson.id)
             .single();
 
