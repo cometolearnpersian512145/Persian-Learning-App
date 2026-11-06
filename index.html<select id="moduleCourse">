@@ -260,23 +260,37 @@ async function loadCourses() {
     return;
   }
 
-  courseList.innerHTML = '';
+courseList.innerHTML = '';
+
+// Chapter form mein courses show karna
+const moduleCourse = document.getElementById('moduleCourse');
+
+if (moduleCourse) {
+  moduleCourse.innerHTML = '<option value="">کورس منتخب کریں</option>';
 
   data.forEach(course => {
-      // Chapter form mein courses show karna
-  const moduleCourse = document.getElementById('moduleCourse');
+    const option = document.createElement('option');
+    option.value = course.id;
+    option.textContent = course.title;
+    moduleCourse.appendChild(option);
+  });
+}
 
-  if (moduleCourse) {
-    moduleCourse.innerHTML = '<option value="">کورس منتخب کریں</option>';
+// Courses ki list show karna
+data.forEach(course => {
+  const card = document.createElement('div');
+  card.className = 'card';
 
-    data.forEach(course => {
-      const option = document.createElement('option');
-      option.value = course.id;
-      option.textContent = course.title;
-      moduleCourse.appendChild(option);
-    });
-  }
-    const card = document.createElement('div');
+  card.innerHTML = `
+    <h4>${course.title}</h4>
+    <p>${course.description || ''}</p>
+    <p>دورانیہ: ${course.duration || ''}</p>
+    <p>لیول: ${course.level || ''}</p>
+    <p>فیس: ${course.fee}</p>
+  `;
+
+  courseList.appendChild(card);
+});
     card.className = 'card';
 
     card.innerHTML = `
