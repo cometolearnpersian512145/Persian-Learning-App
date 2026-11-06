@@ -275,7 +275,8 @@ if (moduleCourse) {
     moduleCourse.appendChild(option);
   });
 }
-
+moduleCourse.onchange = loadModules;
+}
 // Courses ki list show karna
 data.forEach(course => {
   const card = document.createElement('div');
