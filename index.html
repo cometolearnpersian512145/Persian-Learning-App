@@ -191,13 +191,22 @@ if (adminProfile.role === 'admin') {
   
 // STUDENT COURSE MODULES AND LESSONS
 
+
 async function showStudentCourse(courseId, courseName) {
   dashboard.innerHTML = `
-    <h2>آؤ فارسی سیکھیں</h2>
-    <h3>${courseName}</h3>
-    <p id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</p>
+    <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
+      <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
+      <h3>${courseName}</h3>
+      <p>فارسی زبان سیکھنے کا اپنا سفر جاری رکھیں۔</p>
+    </div>
+
+    <div id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</div>
     <div id="studentModuleList"></div>
-    <button id="backToStudentDashboard">واپس ڈیش بورڈ</button>
+
+    <button id="backToStudentDashboard"
+      style="margin-top:20px;padding:12px 20px;border-radius:10px;">
+      ← واپس ڈیش بورڈ
+    </button>
   `;
 
   document.getElementById('backToStudentDashboard').onclick = () => {
@@ -223,22 +232,27 @@ async function showStudentCourse(courseId, courseName) {
     return;
   }
 
-  courseMessage.textContent = 'تمام ابواب:';
+  courseMessage.textContent = 'اپنا باب منتخب کریں';
 
   data.forEach(module => {
     const card = document.createElement('div');
     card.className = 'card';
+    card.style.cssText =
+      'padding:18px;margin:15px 0;border-radius:14px;border:1px solid #ddd;';
 
-    const heading = document.createElement('h4');
-    heading.textContent = `باب ${module.module_order}: ${module.title}`;
+    const heading = document.createElement('h3');
+    heading.textContent =
+      `📚 باب ${module.module_order}: ${module.title}`;
 
     const lessonArea = document.createElement('div');
-    lessonArea.textContent = 'اسباق دیکھنے کے لیے باب کھولیں۔';
 
     const button = document.createElement('button');
     button.textContent = 'باب کھولیں';
+    button.style.cssText =
+      'padding:10px 18px;border-radius:9px;margin:10px 0;';
 
     button.onclick = async () => {
+      lessonArea.innerHTML = '';
       lessonArea.textContent = 'اسباق لوڈ ہو رہے ہیں...';
 
       const { data: lessons, error: lessonError } = await supabase
@@ -261,10 +275,112 @@ async function showStudentCourse(courseId, courseName) {
       }
 
       lessons.forEach(lesson => {
-        const item = document.createElement('p');
-        item.textContent =
-          `درس ${lesson.lesson_order}: ${lesson.title} — ${lesson.is_free ? 'مفت سبق' : 'Paid سبق 🔒'}`;
-        lessonArea.appendChild(item);
+        const lessonCard = document.createElement('div');
+        lessonCard.style.cssText =
+          'padding:14px;margin:12px 0;border:1px solid #ddd;border-radius:12px;';
+
+        const title = document.createElement('h4');
+        title.textContent =
+          `درس ${lesson.lesson_order}: ${lesson.title}`;
+
+        const status = document.createElement('p');
+        status.textContent = lesson.is_free ? '🟢 FREE — مفت سبق' : '🔒 PAID — خریداری ضروری ہے';
+
+        const openButton = document.createElement('button');
+        openButton.textContent = lesson.is_free ? 'سبق پڑھیں ←' : '🔒 Paid سبق';
+
+        openButton.disabled = !lesson.is_free;
+
+        if (!lesson.is_free) {
+          openButton.title = 'یہ سبق خریداری کے بعد دستیاب ہوگا۔';
+        }
+
+        openButton.onclick = async () => {
+          if (!lesson.is_free) return;
+
+          openButton.disabled = true;
+          openButton.textContent = 'سبق کھل رہا ہے...';
+
+          const { data: detail, error: detailError } = await supabase
+            .from('lessons')
+            .select('persian_text, urdu_explanation, english_explanation, video_url, audio_url, pdf_url')
+            .eq('id', lesson.id)
+            .single();
+
+          openButton.disabled = false;
+          openButton.textContent = 'سبق پڑھیں ←';
+
+          if (detailError) {
+            alert('سبق حاصل کرنے میں مسئلہ: ' + detailError.message);
+            return;
+          }
+
+          const content = document.createElement('div');
+          content.style.cssText =
+            'margin-top:15px;padding:15px;background:#f4f6f9;color:#172B4D;border-radius:12px;';
+
+          function addSection(headingText, value) {
+            if (!value) return;
+
+            const section = document.createElement('div');
+            section.style.cssText = 'margin:15px 0;';
+
+            const heading = document.createElement('h4');
+            heading.textContent = headingText;
+
+            const paragraph = document.createElement('p');
+            paragraph.textContent = value;
+            paragraph.style.whiteSpace = 'pre-wrap';
+            paragraph.style.lineHeight = '1.9';
+
+            section.appendChild(heading);
+            section.appendChild(paragraph);
+            content.appendChild(section);
+          }
+
+          addSection('🇮🇷 فارسی عبارت', detail.persian_text);
+          addSection('🇵🇰 اردو تشریح', detail.urdu_explanation);
+          addSection('🇬🇧 English Explanation', detail.english_explanation);
+
+          function addMediaLink(label, url) {
+            if (!url) return;
+
+            try {
+              const safeUrl = new URL(url);
+
+              if (!['http:', 'https:'].includes(safeUrl.protocol)) return;
+
+              const link = document.createElement('a');
+              link.href = safeUrl.href;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.textContent = label;
+              link.style.cssText = 'display:block;margin:12px 0;';
+              content.appendChild(link);
+            } catch {
+              return;
+            }
+          }
+
+          addMediaLink('🎬 ویڈیو دیکھیں', detail.video_url);
+          addMediaLink('🎧 آڈیو سنیں', detail.audio_url);
+          addMediaLink('📄 PDF کھولیں', detail.pdf_url);
+
+          if (!content.hasChildNodes()) {
+            content.textContent = 'اس سبق کا مواد ابھی شامل نہیں کیا گیا۔';
+          }
+
+          const oldContent = lessonCard.querySelector('.lessonContent');
+          if (oldContent) oldContent.remove();
+
+          content.className = 'lessonContent';
+          lessonCard.appendChild(content);
+        };
+
+        lessonCard.appendChild(title);
+        lessonCard.appendChild(status);
+        lessonCard.appendChild(openButton);
+        lessonArea.appendChild(lessonCard);
       });
     };
 
@@ -274,8 +390,6 @@ async function showStudentCourse(courseId, courseName) {
     moduleList.appendChild(card);
   });
 }
-
-// Persian Grammar button
 document.getElementById('grammarBtn').onclick = () => {
   showStudentCourse(
     'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
