@@ -719,7 +719,9 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideo').value = '';
   document.getElementById('lessonAudio').value = '';
   document.getElementById('lessonPdf').value = '';
-
+  editingLessonId = null;
+  document.getElementById('addLessonBtn').textContent = 'سبق شامل کریں';
+  document.getElementById('lessonModule').value = module_id;
   await loadLessons();
 });
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
