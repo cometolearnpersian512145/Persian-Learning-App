@@ -59,25 +59,25 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 import { createClient } from
 'https://esm.sh/@supabase/supabase-js@2';
 // اپنی Supabase Project URL یہاں لکھیں
-const SUPABASE_URL = 'https://ywffwyxnmigjgtywbpil.supabase.co';
+SUPABASE_URL = 'https://ywffwyxnmigjgtywbpil.supabase.co';
 
 // اپنی Publishable Key یہاں لکھیں
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3ZmZ3eXhubWlnamd0eXdicGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NjgxMDEsImV4cCI6MjEwOTM0NDEwMX0.dU9AUEEE78zbrzPlDNGpBrSDYcw03ry7stUlAE7FX90';
+SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3ZmZ3eXhubWlnamd0eXdicGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NjgxMDEsImV4cCI6MjEwOTM0NDEwMX0.dU9AUEEE78zbrzPlDNGpBrSDYcw03ry7stUlAE7FX90';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const message = document.getElementById('message');
+supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+message = document.getElementById('message');
   message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
 document.getElementById('signupBtn').onclick = function() {
 };
 document.getElementById('signupBtn').addEventListener('click', async () => {
-  const full_name = document.getElementById('name').value.trim();
-  const father_name = document.getElementById('father').value.trim();
-  const whatsapp = document.getElementById('whatsapp').value.trim();
-  const country = document.getElementById('country').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const gender = document.getElementById('gender').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const password = document.getElementById('signupPassword').value;
+  full_name = document.getElementById('name').value.trim();
+  father_name = document.getElementById('father').value.trim();
+  whatsapp = document.getElementById('whatsapp').value.trim();
+  country = document.getElementById('country').value.trim();
+  city = document.getElementById('city').value.trim();
+  gender = document.getElementById('gender').value.trim();
+  email = document.getElementById('signupEmail').value.trim();
+  password = document.getElementById('signupPassword').value;
 
   if (!full_name || !email || !password) {
     message.textContent = 'نام، Email اور Password لازمی ہیں۔';
@@ -86,7 +86,7 @@ document.getElementById('signupBtn').addEventListener('click', async () => {
 
   message.textContent = 'اکاؤنٹ بنایا جا رہا ہے...';
 
-  const { error } = await supabase.auth.signUp({
+  { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -737,9 +737,34 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   courseMessage.textContent = 'کورس محفوظ ہو رہا ہے...';
 
-  const { error } = await supabase
-    .from('courses')
-    .insert([{
+  const lessonData = {
+    module_id,
+    title,
+    persian_text,
+    urdu_explanation,
+    english_explanation,
+    video_url,
+    audio_url,
+    pdf_url,
+    lesson_order,
+    is_free,
+    is_published
+  };
+
+  let result;
+
+  if (editingLessonId) {
+    result = await supabase
+      .from('lessons')
+      .update(lessonData)
+      .eq('id', editingLessonId);
+  } else {
+    result = await supabase
+      .from('lessons')
+      .insert([lessonData]);
+  }
+
+  const { error } = result;
       title: title,
       description: description,
       "duration": duration,
