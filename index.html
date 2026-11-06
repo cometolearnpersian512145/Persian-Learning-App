@@ -294,9 +294,11 @@ data.forEach(course => {
   courseList.appendChild(card);
 });
 }
+
 async function loadModules() {
   const moduleList = document.getElementById('moduleList');
   const moduleCourse = document.getElementById('moduleCourse');
+  const lessonModule = document.getElementById('lessonModule');
 
   if (!moduleList || !moduleCourse) return;
 
@@ -304,25 +306,15 @@ async function loadModules() {
 
   if (!courseId) {
     moduleList.textContent = 'براہ کرم پہلے کورس منتخب کریں۔';
+
+    if (lessonModule) {
+      lessonModule.innerHTML = '<option value="">باب منتخب کریں</option>';
+    }
     return;
   }
 
   moduleList.innerHTML = 'ابواب لوڈ ہو رہے ہیں...';
-// Lessons form mein chapters show karna
-const lessonModule = document.getElementById('lessonModule');
 
-if (lessonModule) {
-  lessonModule.innerHTML = '<option value="">باب منتخب کریں</option>';
-
-  data.forEach(module => {
-    const option = document.createElement('option');
-    option.value = module.id;
-    option.textContent = `باب ${module.module_order}: ${module.title}`;
-    lessonModule.appendChild(option);
-  });
-
-  lessonModule.onchange = loadLessons;
-}
   const { data, error } = await supabase
     .from('modules')
     .select('id, title, module_order')
@@ -336,11 +328,30 @@ if (lessonModule) {
 
   if (!data || data.length === 0) {
     moduleList.textContent = 'اس کورس میں ابھی کوئی باب موجود نہیں۔';
+
+    if (lessonModule) {
+      lessonModule.innerHTML = '<option value="">باب منتخب کریں</option>';
+    }
     return;
   }
 
   moduleList.innerHTML = '';
 
+  // سبق والے خانے میں تمام ابواب دکھانا
+  if (lessonModule) {
+    lessonModule.innerHTML = '<option value="">باب منتخب کریں</option>';
+
+    data.forEach(module => {
+      const option = document.createElement('option');
+      option.value = module.id;
+      option.textContent = `باب ${module.module_order}: ${module.title}`;
+      lessonModule.appendChild(option);
+    });
+
+    lessonModule.onchange = loadLessons;
+  }
+
+  // تمام ابواب کی فہرست دکھانا
   data.forEach(module => {
     const item = document.createElement('div');
     item.className = 'card';
@@ -348,7 +359,7 @@ if (lessonModule) {
     moduleList.appendChild(item);
   });
 }
-  // SHOW LESSONS OF SELECTED MODULE
+
 async function loadLessons() {
   const lessonList = document.getElementById('lessonList');
   const lessonModule = document.getElementById('lessonModule');
