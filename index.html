@@ -334,6 +334,49 @@ async function loadModules() {
     moduleList.appendChild(item);
   });
 }
+  // SHOW LESSONS OF SELECTED MODULE
+async function loadLessons() {
+  const lessonList = document.getElementById('lessonList');
+  const lessonModule = document.getElementById('lessonModule');
+
+  if (!lessonList || !lessonModule) return;
+
+  const moduleId = lessonModule.value;
+
+  if (!moduleId) {
+    lessonList.textContent = 'براہ کرم پہلے باب منتخب کریں۔';
+    return;
+  }
+
+  lessonList.innerHTML = 'اسباق لوڈ ہو رہے ہیں...';
+
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title, lesson_order, is_free, is_published')
+    .eq('module_id', moduleId)
+    .order('lesson_order');
+
+  if (error) {
+    lessonList.textContent = 'اسباق حاصل کرنے میں مسئلہ: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    lessonList.textContent = 'اس باب میں ابھی کوئی سبق موجود نہیں۔';
+    return;
+  }
+
+  lessonList.innerHTML = '';
+
+  data.forEach(lesson => {
+    const item = document.createElement('div');
+    item.className = 'card';
+    item.textContent =
+      `درس ${lesson.lesson_order}: ${lesson.title} | ${lesson.is_free ? 'مفت' : 'Paid'} | ${lesson.is_published ? 'شائع شدہ' : 'غیر شائع شدہ'}`;
+
+    lessonList.appendChild(item);
+  });
+}
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
   const title = document.getElementById('courseTitle').value.trim();
   const description = document.getElementById('courseDescription').value.trim();
