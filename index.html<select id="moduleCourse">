@@ -291,7 +291,47 @@ data.forEach(course => {
 
   courseList.appendChild(card);
 });
+}
+async function loadModules() {
+  const moduleList = document.getElementById('moduleList');
+  const moduleCourse = document.getElementById('moduleCourse');
 
+  if (!moduleList || !moduleCourse) return;
+
+  const courseId = moduleCourse.value;
+
+  if (!courseId) {
+    moduleList.textContent = 'براہ کرم پہلے کورس منتخب کریں۔';
+    return;
+  }
+
+  moduleList.innerHTML = 'ابواب لوڈ ہو رہے ہیں...';
+
+  const { data, error } = await supabase
+    .from('modules')
+    .select('id, title, module_order')
+    .eq('course_id', courseId)
+    .order('module_order');
+
+  if (error) {
+    moduleList.textContent = 'ابواب حاصل کرنے میں مسئلہ: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    moduleList.textContent = 'اس کورس میں ابھی کوئی باب موجود نہیں۔';
+    return;
+  }
+
+  moduleList.innerHTML = '';
+
+  data.forEach(module => {
+    const item = document.createElement('div');
+    item.className = 'card';
+    item.textContent = `باب ${module.module_order}: ${module.title}`;
+    moduleList.appendChild(item);
+  });
+}
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
   const title = document.getElementById('courseTitle').value.trim();
   const description = document.getElementById('courseDescription').value.trim();
