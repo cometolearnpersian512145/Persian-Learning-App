@@ -291,19 +291,6 @@ data.forEach(course => {
 
   courseList.appendChild(card);
 });
-    card.className = 'card';
-
-    card.innerHTML = `
-      <h4>${course.title}</h4>
-      <p>${course.description || ''}</p>
-      <p>دورانیہ: ${course.duration || ''}</p>
-      <p>لیول: ${course.level || ''}</p>
-      <p>فیس: ${course.fee}</p>
-    `;
-
-    courseList.appendChild(card);
-  });
-}
 
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
   const title = document.getElementById('courseTitle').value.trim();
