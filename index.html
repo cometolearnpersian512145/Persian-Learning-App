@@ -631,6 +631,41 @@ async function loadLessons() {
     lessonList.appendChild(item);
   });
 }
+  let editingLessonId = null;
+
+async function editLesson(lessonId) {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('*')
+    .eq('id', lessonId)
+    .single();
+
+  if (error) {
+    alert('سبق حاصل کرنے میں مسئلہ: ' + error.message);
+    return;
+  }
+
+  editingLessonId = lessonId;
+
+  document.getElementById('lessonModule').value = data.module_id;
+  document.getElementById('lessonTitle').value = data.title || '';
+  document.getElementById('lessonPersian').value = data.persian_text || '';
+  document.getElementById('lessonUrdu').value = data.urdu_explanation || '';
+  document.getElementById('lessonEnglish').value = data.english_explanation || '';
+  document.getElementById('lessonVideo').value = data.video_url || '';
+  document.getElementById('lessonAudio').value = data.audio_url || '';
+  document.getElementById('lessonPdf').value = data.pdf_url || '';
+  document.getElementById('lessonOrder').value = data.lesson_order || 1;
+  document.getElementById('lessonFree').checked = data.is_free;
+  document.getElementById('lessonPublished').checked = data.is_published;
+
+  document.getElementById('addLessonBtn').textContent = 'تبدیلی محفوظ کریں';
+
+  document.getElementById('lessonMessage').textContent =
+    'سبق کا موجودہ مواد فارم میں آ گیا ہے۔ اب آپ اس میں ترمیم کر سکتے ہیں۔';
+
+  document.getElementById('lessonTitle').focus();
+}
   // ADD NEW LESSON
 document.getElementById('addLessonBtn').addEventListener('click', async () => {
   const module_id = document.getElementById('lessonModule').value;
