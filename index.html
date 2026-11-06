@@ -336,10 +336,43 @@ async function showStudentCourse(courseId, courseName) {
             section.appendChild(paragraph);
             content.appendChild(section);
           }
+const persianWords = (detail.persian_text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+const urduWords = (detail.urdu_explanation || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+const shenasayWords = (detail.shenasay || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 
-          addSection('🇮🇷 فارسی عبارت', detail.persian_text);
-          addSection('🇵🇰 اردو تشریح', detail.urdu_explanation);
-          addSection('شناسه', detail.shenasay);
+const wordTable = document.createElement('table');
+wordTable.dir = 'rtl';
+wordTable.style.cssText = 'width:100%;border-collapse:collapse;text-align:center;margin:15px 0;background:white;color:#172B4D;';
+
+const headerRow = document.createElement('tr');
+
+['فارسی ضمائر', 'اردو ترجمہ', 'شناسه'].forEach(text => {
+  const th = document.createElement('th');
+  th.textContent = text;
+  th.style.cssText = 'border:1px solid #aaa;padding:10px;background:#172B4D;color:white;';
+  headerRow.appendChild(th);
+});
+
+wordTable.appendChild(headerRow);
+
+const totalRows = Math.max(persianWords.length, urduWords.length, shenasayWords.length);
+
+for (let i = 0; i < totalRows; i++) {
+  const row = document.createElement('tr');
+
+  [persianWords[i], urduWords[i], shenasayWords[i]].forEach(value => {
+    const cell = document.createElement('td');
+    cell.textContent = value || '—';
+    cell.style.cssText = 'border:1px solid #aaa;padding:10px;font-size:16px;';
+    row.appendChild(cell);
+  });
+
+  wordTable.appendChild(row);
+}
+
+if (totalRows > 0) {
+  content.appendChild(wordTable);
+}
           addSection('🇬🇧 English Explanation', detail.english_explanation);
 
           function addMediaLink(label, url) {
