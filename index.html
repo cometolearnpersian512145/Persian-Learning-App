@@ -391,6 +391,61 @@ async function loadLessons() {
     lessonList.appendChild(item);
   });
 }
+  // ADD NEW LESSON
+document.getElementById('addLessonBtn').addEventListener('click', async () => {
+  const module_id = document.getElementById('lessonModule').value;
+  const title = document.getElementById('lessonTitle').value.trim();
+  const persian_text = document.getElementById('lessonPersian').value.trim();
+  const urdu_explanation = document.getElementById('lessonUrdu').value.trim();
+  const english_explanation = document.getElementById('lessonEnglish').value.trim();
+  const video_url = document.getElementById('lessonVideo').value.trim();
+  const audio_url = document.getElementById('lessonAudio').value.trim();
+  const pdf_url = document.getElementById('lessonPdf').value.trim();
+  const lesson_order = Number(document.getElementById('lessonOrder').value);
+  const is_free = document.getElementById('lessonFree').checked;
+  const is_published = document.getElementById('lessonPublished').checked;
+  const lessonMessage = document.getElementById('lessonMessage');
+
+  if (!module_id || !title || !lesson_order) {
+    lessonMessage.textContent = 'براہ کرم باب، سبق کا عنوان اور سبق نمبر درج کریں۔';
+    return;
+  }
+
+  lessonMessage.textContent = 'سبق محفوظ ہو رہا ہے...';
+
+  const { error } = await supabase
+    .from('lessons')
+    .insert([{
+      module_id,
+      title,
+      persian_text,
+      urdu_explanation,
+      english_explanation,
+      video_url,
+      audio_url,
+      pdf_url,
+      lesson_order,
+      is_free,
+      is_published
+    }]);
+
+  if (error) {
+    lessonMessage.textContent = 'مسئلہ: ' + error.message;
+    return;
+  }
+
+  lessonMessage.textContent = 'سبق کامیابی سے محفوظ ہوگیا۔';
+
+  document.getElementById('lessonTitle').value = '';
+  document.getElementById('lessonPersian').value = '';
+  document.getElementById('lessonUrdu').value = '';
+  document.getElementById('lessonEnglish').value = '';
+  document.getElementById('lessonVideo').value = '';
+  document.getElementById('lessonAudio').value = '';
+  document.getElementById('lessonPdf').value = '';
+
+  await loadLessons();
+});
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
   const title = document.getElementById('courseTitle').value.trim();
   const description = document.getElementById('courseDescription').value.trim();
