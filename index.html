@@ -308,7 +308,21 @@ async function loadModules() {
   }
 
   moduleList.innerHTML = 'ابواب لوڈ ہو رہے ہیں...';
+// Lessons form mein chapters show karna
+const lessonModule = document.getElementById('lessonModule');
 
+if (lessonModule) {
+  lessonModule.innerHTML = '<option value="">باب منتخب کریں</option>';
+
+  data.forEach(module => {
+    const option = document.createElement('option');
+    option.value = module.id;
+    option.textContent = `باب ${module.module_order}: ${module.title}`;
+    lessonModule.appendChild(option);
+  });
+
+  lessonModule.onchange = loadLessons;
+}
   const { data, error } = await supabase
     .from('modules')
     .select('id, title, module_order')
