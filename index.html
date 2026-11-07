@@ -558,6 +558,7 @@ document.getElementById('profileBtn').addEventListener('click', async () => {
     location.reload();
   });
 });
+  document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
@@ -888,6 +889,20 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   await loadCourses();
 });
+  // RESTORE LOGIN SESSION AFTER PAGE REFRESH
+(async function restoreLoginSession() {
+  const { data: { session }, error } =
+    await supabase.auth.getSession();
+
+  if (error) {
+    message.textContent = 'Session بحال کرنے میں مسئلہ: ' + error.message;
+    return;
+  }
+
+  if (session && session.user) {
+    await handleLogin(session.user);
+  }
+})();
 </script>
   <!--  PANEL -->
 <section id="adminPanel" style="display:none; padding:20px;">
