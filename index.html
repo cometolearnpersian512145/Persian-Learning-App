@@ -555,14 +555,16 @@ document.getElementById('profileBtn').addEventListener('click', async () => {
       return;
     }
 
-    location.reload();
+     location.reload();
   });
-});
-  document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
+}
+
+document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
+
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
-}
+});
   // ADD NEW COURSE
   // SHOW ALL COURSES
 async function loadCourses() {
