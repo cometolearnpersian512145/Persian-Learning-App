@@ -553,17 +553,6 @@ document.getElementById('backDashboard').addEventListener('click', async () => {
     await handleLogin(session.user);
   }
 });
-  document.getElementById('dashboardLogout').addEventListener('click', async () => {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      message.textContent = error.message;
-      return;
-    }
-
-     location.reload();
-  });
-}
 
 document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
 
