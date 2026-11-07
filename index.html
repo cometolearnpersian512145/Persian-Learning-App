@@ -232,7 +232,73 @@ async function showStudentCourse(courseId, courseName) {
   }
 
   courseMessage.textContent = 'اپنا باب منتخب کریں';
+// کتاب کا تعارف — ابتدائی صفحات
+const bookIntro = document.createElement('div');
+bookIntro.style.cssText =
+  'padding:18px;margin:20px 0;border:1px solid #ddd;border-radius:14px;background:#fff;';
 
+const bookTitle = document.createElement('h3');
+bookTitle.textContent = '📖 کتاب کا تعارف و مقدمہ';
+bookIntro.appendChild(bookTitle);
+
+const pageImage = document.createElement('img');
+pageImage.style.cssText =
+  'width:100%;max-width:700px;display:block;margin:15px auto;border-radius:8px;';
+
+const pageNumber = document.createElement('p');
+pageNumber.style.textAlign = 'center';
+
+let currentPage = 1;
+const pageFiles = ['01.jpg', '02.jpg', '03.jpg'];
+
+async function showBookPage() {
+  pageImage.style.display = 'none';
+  pageNumber.textContent = 'صفحہ لوڈ ہو رہا ہے...';
+
+  const { data: imageData, error: imageError } =
+    await supabase.storage
+      .from('persian-book-free')
+      .createSignedUrl(pageFiles[currentPage - 1], 3600);
+
+  if (imageError || !imageData) {
+    pageNumber.textContent = 'صفحہ کھولنے میں مسئلہ پیش آیا۔';
+    return;
+  }
+
+  pageImage.src = imageData.signedUrl;
+  pageImage.style.display = 'block';
+  pageNumber.textContent = `صفحہ ${currentPage} از 3`;
+}
+
+const previousPage = document.createElement('button');
+previousPage.textContent = 'پچھلا صفحہ';
+
+const nextPage = document.createElement('button');
+nextPage.textContent = 'اگلا صفحہ';
+
+previousPage.onclick = () => {
+  if (currentPage > 1) {
+    currentPage--;
+    showBookPage();
+  }
+};
+
+nextPage.onclick = () => {
+  if (currentPage < 3) {
+    currentPage++;
+    showBookPage();
+  }
+};
+
+bookIntro.appendChild(pageImage);
+bookIntro.appendChild(pageNumber);
+bookIntro.appendChild(previousPage);
+bookIntro.appendChild(nextPage);
+
+moduleList.appendChild(bookIntro);
+
+showBookPage();
+  
   data.forEach(module => {
     const card = document.createElement('div');
     card.className = 'card';
