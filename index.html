@@ -256,7 +256,7 @@ async function showBookPage() {
 
   const { data: imageData, error: imageError } =
     await supabase.storage
-      .from('persian-book-free')
+      .from('persian book free')
       .createSignedUrl(pageFiles[currentPage - 1], 3600);
 
   if (imageError || !imageData) {
