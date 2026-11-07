@@ -546,9 +546,12 @@ document.getElementById('profileBtn').addEventListener('click', async () => {
     <button id="backDashboard">واپس ڈیش بورڈ</button>
   `;
 
-  document.getElementById('backDashboard').addEventListener('click', () => {
-    location.reload();
-  });
+document.getElementById('backDashboard').addEventListener('click', async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session && session.user) {
+    await handleLogin(session.user);
+  }
 });
   document.getElementById('dashboardLogout').addEventListener('click', async () => {
     const { error } = await supabase.auth.signOut();
