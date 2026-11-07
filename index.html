@@ -217,10 +217,13 @@ async function showStudentCourse(courseId, courseName) {
     </button>
   `;
 
-  document.getElementById('backToStudentDashboard').onclick = () => {
-    location.reload();
-  };
+document.getElementById('backToStudentDashboard').onclick = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
 
+  if (session && session.user) {
+    await handleLogin(session.user);
+  }
+};
   const moduleList = document.getElementById('studentModuleList');
   const courseMessage = document.getElementById('studentCourseMessage');
 
