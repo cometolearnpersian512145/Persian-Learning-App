@@ -561,7 +561,7 @@ document.getElementById('profileBtn').addEventListener('click', async () => {
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
-});
+}
   // ADD NEW COURSE
   // SHOW ALL COURSES
 async function loadCourses() {
