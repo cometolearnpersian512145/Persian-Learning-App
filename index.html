@@ -374,8 +374,26 @@ bookIntro.appendChild(nextPage);
 
 moduleList.appendChild(bookIntro);
 
-showBookPage();
-  
+const prefaceButton = document.createElement('button');
+prefaceButton.textContent = 'کتاب کا تعارف و مقدمہ پڑھیں — مفت';
+prefaceButton.style.cssText =
+  'display:block;margin:15px auto;padding:12px 20px;cursor:pointer;';
+
+bookIntro.insertBefore(prefaceButton, pageImage);
+
+pageImage.style.display = 'none';
+pageNumber.style.display = 'none';
+previousPage.style.display = 'none';
+nextPage.style.display = 'none';
+
+prefaceButton.onclick = () => {
+  prefaceButton.style.display = 'none';
+  pageImage.style.display = 'block';
+  pageNumber.style.display = 'block';
+  previousPage.style.display = 'inline-block';
+  nextPage.style.display = 'inline-block';
+  showBookPage();
+};  
   data.forEach(module => {
     const card = document.createElement('div');
     card.className = 'card';
