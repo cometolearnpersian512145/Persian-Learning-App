@@ -896,6 +896,16 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   await loadCourses();
 });
+  document.getElementById('adminLogout').addEventListener('click', async () => {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    message.textContent = 'Logout میں مسئلہ: ' + error.message;
+    return;
+  }
+
+  location.reload();
+});
   // RESTORE LOGIN SESSION AFTER PAGE REFRESH
 (async function restoreLoginSession() {
   const { data: { session }, error } =
@@ -915,6 +925,7 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 <section id="adminPanel" style="display:none; padding:20px;">
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>Admin Panel</h3>
+  <button id="adminLogout">Logout / باہر جائیں</button>
   <p>خوش آمدید، آپ ایپ کے منتظم ہیں۔</p>
 
   <div class="card">
