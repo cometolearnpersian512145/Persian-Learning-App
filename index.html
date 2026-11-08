@@ -383,10 +383,12 @@ showBookPage();
     card.style.cssText =
       'padding:18px;margin:15px 0;border-radius:14px;border:1px solid #ddd;';
 
-    const heading = document.createElement('h3');
-    heading.textContent =
-      `📚 باب ${module.module_order}: ${module.title}`;
+   const heading = document.createElement('h3');
+const chapterInfo = bookChapters[module.module_order - 1];
 
+heading.textContent = chapterInfo
+  ? chapterInfo.title
+  : `📚 باب ${module.module_order}: ${module.title}`;
     const lessonArea = document.createElement('div');
 
     const button = document.createElement('button');
