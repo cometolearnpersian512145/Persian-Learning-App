@@ -460,8 +460,15 @@ heading.textContent = chapterInfo
         }
 
      openButton.onclick = async () => {
-  if (!lesson.is_free || !lessonInfo) return;
+  if (!lesson.is_free) {
+    alert('یہ سبق Paid ہے۔');
+    return;
+  }
 
+  if (!lessonInfo) {
+    alert('کتاب کے سبق کی معلومات نہیں مل رہیں۔');
+    return;
+  }
   const oldContent = lessonCard.querySelector('.lessonContent');
   if (oldContent) oldContent.remove();
 
