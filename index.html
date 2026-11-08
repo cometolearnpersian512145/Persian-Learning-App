@@ -270,8 +270,18 @@ const pageNumber = document.createElement('p');
 pageNumber.style.textAlign = 'center';
 
 let currentPage = 1;
-const pageFiles = ['01.jpeg', '02.jpeg', '03.jpeg'];
-async function showBookPage() {
+const pageFiles = [
+  '01.jpeg',
+  '02.jpeg',
+  '03.jpeg',
+  '04.jpeg',
+  '05.jpeg',
+  '06.jpeg',
+  '07.jpeg',
+  '08.jpeg',
+  '09.jpeg'
+];
+  async function showBookPage() {
   pageImage.style.display = 'none';
   pageNumber.textContent = 'صفحہ لوڈ ہو رہا ہے...';
 
@@ -287,8 +297,8 @@ return;
 
   pageImage.src = imageData.signedUrl;
   pageImage.style.display = 'block';
-  pageNumber.textContent = `صفحہ ${currentPage} از 3`;
-}
+pageNumber.textContent = `صفحہ ${currentPage} از ${pageFiles.length}`;
+  }
 
 const previousPage = document.createElement('button');
 previousPage.textContent = 'پچھلا صفحہ';
@@ -304,7 +314,7 @@ previousPage.onclick = () => {
 };
 
 nextPage.onclick = () => {
-  if (currentPage < 3) {
+  if (currentPage < pageFiles.length) {
     currentPage++;
     showBookPage();
   }
