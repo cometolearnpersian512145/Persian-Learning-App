@@ -440,121 +440,78 @@ heading.textContent = chapterInfo
           openButton.title = 'یہ سبق خریداری کے بعد دستیاب ہوگا۔';
         }
 
-        openButton.onclick = async () => {
-          if (!lesson.is_free) return;
+     openButton.onclick = async () => {
+  if (!lesson.is_free || !lessonInfo) return;
 
-          openButton.disabled = true;
-          openButton.textContent = 'سبق کھل رہا ہے...';
+  const oldContent = lessonCard.querySelector('.lessonContent');
+  if (oldContent) oldContent.remove();
 
-          const { data: detail, error: detailError } = await supabase
-            .from('lessons')
-.select('persian_text, urdu_explanation, shenasay, english_explanation, video_url, audio_url, pdf_url')
-            .eq('id', lesson.id)
-            .single();
+  const content = document.createElement('div');
+  content.className = 'lessonContent';
+  content.style.cssText =
+    'margin-top:15px;padding:15px;background:#f4f6f9;border-radius:12px;';
 
-          openButton.disabled = false;
-          openButton.textContent = 'سبق پڑھیں ←';
+  const image = document.createElement('img');
+  image.style.cssText =
+    'width:100%;max-width:700px;display:block;margin:15px auto;border-radius:8px;';
 
-          if (detailError) {
-            alert('سبق حاصل کرنے میں مسئلہ: ' + detailError.message);
-            return;
-          }
+  const pageText = document.createElement('p');
+  pageText.style.textAlign = 'center';
 
-          const content = document.createElement('div');
-          content.style.cssText =
-            'margin-top:15px;padding:15px;background:#f4f6f9;color:#172B4D;border-radius:12px;';
+  const prev = document.createElement('button');
+  prev.textContent = 'پچھلا صفحہ';
 
-          function addSection(headingText, value) {
-            if (!value) return;
+  const next = document.createElement('button');
+  next.textContent = 'اگلا صفحہ';
 
-            const section = document.createElement('div');
-            section.style.cssText = 'margin:15px 0;';
+  let currentLessonPage = lessonInfo.start;
 
-            const heading = document.createElement('h4');
-            heading.textContent = headingText;
+  async function loadLessonPage() {
+    image.style.display = 'none';
+    pageText.textContent = 'صفحہ لوڈ ہو رہا ہے...';
 
-            const paragraph = document.createElement('p');
-            paragraph.textContent = value;
-            paragraph.style.whiteSpace = 'pre-wrap';
-            paragraph.style.lineHeight = '1.9';
+    const fileName =
+      String(currentLessonPage).padStart(2, '0') + '.jpeg';
 
-            section.appendChild(heading);
-            section.appendChild(paragraph);
-            content.appendChild(section);
-          }
-const persianWords = (detail.persian_text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-const urduWords = (detail.urdu_explanation || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-const shenasayWords = (detail.shenasay || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    const { data: imageData, error } = await supabase.storage
+      .from('persian book free')
+      .createSignedUrl(fileName, 3600);
 
-const wordTable = document.createElement('table');
-wordTable.dir = 'rtl';
-wordTable.style.cssText = 'width:100%;border-collapse:collapse;text-align:center;margin:15px 0;background:white;color:#172B4D;';
+    if (error || !imageData) {
+      pageText.textContent =
+        `صفحہ ${currentLessonPage} ابھی اپ لوڈ نہیں ہوا۔`;
+      return;
+    }
 
-const headerRow = document.createElement('tr');
+    image.src = imageData.signedUrl;
+    image.style.display = 'block';
+    pageText.textContent =
+      `صفحہ ${currentLessonPage} از ${lessonInfo.end}`;
+  }
 
-['فارسی ضمائر', 'اردو ترجمہ', 'شناسه'].forEach(text => {
-  const th = document.createElement('th');
-  th.textContent = text;
-  th.style.cssText = 'border:1px solid #aaa;padding:10px;background:#172B4D;color:white;';
-  headerRow.appendChild(th);
-});
+  prev.onclick = () => {
+    if (currentLessonPage > lessonInfo.start) {
+      currentLessonPage--;
+      loadLessonPage();
+    }
+  };
 
-wordTable.appendChild(headerRow);
+  next.onclick = () => {
+    if (currentLessonPage < lessonInfo.end) {
+      currentLessonPage++;
+      loadLessonPage();
+    }
+  };
 
-const totalRows = Math.max(persianWords.length, urduWords.length, shenasayWords.length);
+  content.appendChild(image);
+  content.appendChild(pageText);
+  content.appendChild(prev);
+  content.appendChild(next);
 
-for (let i = 0; i < totalRows; i++) {
-  const row = document.createElement('tr');
+  lessonCard.appendChild(content);
 
-  [persianWords[i], urduWords[i], shenasayWords[i]].forEach(value => {
-    const cell = document.createElement('td');
-    cell.textContent = value || '—';
-    cell.style.cssText = 'border:1px solid #aaa;padding:10px;font-size:16px;';
-    row.appendChild(cell);
-  });
-
-  wordTable.appendChild(row);
-}
-
-if (totalRows > 0) {
-  content.appendChild(wordTable);
-}
-          addSection('🇬🇧 English Explanation', detail.english_explanation);
-
-          function addMediaLink(label, url) {
-            if (!url) return;
-
-            try {
-              const safeUrl = new URL(url);
-
-              if (!['http:', 'https:'].includes(safeUrl.protocol)) return;
-
-              const link = document.createElement('a');
-              link.href = safeUrl.href;
-              link.target = '_blank';
-              link.rel = 'noopener noreferrer';
-              link.textContent = label;
-              link.style.cssText = 'display:block;margin:12px 0;';
-              content.appendChild(link);
-            } catch {
-              return;
-            }
-          }
-
-          addMediaLink('🎬 ویڈیو دیکھیں', detail.video_url);
-          addMediaLink('🎧 آڈیو سنیں', detail.audio_url);
-          addMediaLink('📄 PDF کھولیں', detail.pdf_url);
-
-          if (!content.hasChildNodes()) {
-            content.textContent = 'اس سبق کا مواد ابھی شامل نہیں کیا گیا۔';
-          }
-
-          const oldContent = lessonCard.querySelector('.lessonContent');
-          if (oldContent) oldContent.remove();
-
-          content.className = 'lessonContent';
-          lessonCard.appendChild(content);
-        };
+  loadLessonPage();
+};
 
         lessonCard.appendChild(title);
         lessonCard.appendChild(status);
