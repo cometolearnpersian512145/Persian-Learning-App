@@ -461,8 +461,8 @@ heading.textContent = chapterInfo
 
      openButton.onclick = async () => {
 alert('سبق شروع ہو گیا ہے۔ صفحات کی معلومات چیک ہو رہی ہیں۔');
-    alert('دوسرا ٹیسٹ کامیاب');
-  if (!lesson.is_free) {
+alert('سبق نمبر: ' + lesson.lesson_order);
+       if (!lesson.is_free) {
     alert('یہ سبق Paid ہے۔');
     return;
   }
