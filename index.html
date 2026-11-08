@@ -281,6 +281,54 @@ const pageFiles = [
   '08.jpeg',
   '09.jpeg'
 ];
+  // فارسی گرامر کی مکمل کتاب کی ترتیب
+const bookChapters = [
+  {
+    title: 'باب اول: مقدماتی',
+    lessons: [
+      { title: 'فارسی ضمائر، مذکر و مؤنث، اسم اشارہ، سوالیہ جملے، فعل لازم و متعدی', start: 9, end: 18 },
+      { title: 'حروف اضافہ، مرکب اضافی، مثبت و منفی، صفت تفصیلی و عالی، مفرد و جمع، ضمائر ملکی', start: 19, end: 28 }
+    ]
+  },
+  {
+    title: 'باب دوم: ماضی',
+    lessons: [
+      { title: 'فعل ماضی مطلق (ماضی ساده)', start: 29, end: 36 },
+      { title: 'فعل ماضی قریب (ماضی نقلی)', start: 37, end: 41 },
+      { title: 'فعل ماضی بعید', start: 42, end: 47 },
+      { title: 'فعل ماضی احتمالی', start: 48, end: 52 },
+      { title: 'فعل ماضی استمراری', start: 53, end: 57 },
+      { title: 'فعل ماضی شرطی و تمنائی', start: 58, end: 62 }
+    ]
+  },
+  {
+    title: 'باب سوم: حال',
+    lessons: [
+      { title: 'فعل امر و نہی', start: 63, end: 68 },
+      { title: 'فعل مضارع اخباری', start: 69, end: 73 },
+      { title: 'فعل مضارع التزامی', start: 74, end: 79 },
+      { title: 'فعل مضارع ملموس', start: 80, end: 85 }
+    ]
+  },
+  {
+    title: 'باب چہارم: مستقبل',
+    lessons: [
+      { title: 'فعل مستقبل', start: 86, end: 91 }
+    ]
+  },
+  {
+    title: 'باب پنجم: مجہول',
+    lessons: [
+      { title: 'فعل مجہول', start: 92, end: 99 }
+    ]
+  },
+  {
+    title: 'باب ششم: مصادر',
+    lessons: [
+      { title: 'بن ماضی، بن مضارع بمع ترجمہ', start: 100, end: 102 }
+    ]
+  }
+];
   async function showBookPage() {
   pageImage.style.display = 'none';
   pageNumber.textContent = 'صفحہ لوڈ ہو رہا ہے...';
