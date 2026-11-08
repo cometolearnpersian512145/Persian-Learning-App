@@ -796,8 +796,7 @@ const lessonInfo = chapterInfo
 
 title.textContent = lessonInfo
   ? `درس ${lesson.lesson_order}: ${lessonInfo.title} (صفحہ ${lessonInfo.start} تا ${lessonInfo.end})`
-  : `درس ${lesson.lesson_order}: ${lesson.title}`; | ${lesson.is_free ? 'مفت' : 'Paid'} | ${lesson.is_published ? 'شائع شدہ' : 'غیر شائع شدہ'}`;
-
+  : `درس ${lesson.lesson_order}: ${lesson.title}`;
     const editButton = document.createElement('button');
     editButton.textContent = 'سبق میں ترمیم کریں';
 
