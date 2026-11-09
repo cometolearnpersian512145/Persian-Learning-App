@@ -459,10 +459,8 @@ heading.textContent = chapterInfo
           openButton.title = 'یہ سبق خریداری کے بعد دستیاب ہوگا۔';
         }
 
-     openButton.onclick = async () => {
-alert('سبق شروع ہو گیا ہے۔ صفحات کی معلومات چیک ہو رہی ہیں۔');
-alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات موجود نہیں'));
-       if (!lesson.is_free) {
+openButton.onclick = async () => {
+  if (!lesson.is_free) {
     alert('یہ سبق Paid ہے۔');
     return;
   }
@@ -471,6 +469,7 @@ alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات �
     alert('کتاب کے سبق کی معلومات نہیں مل رہیں۔');
     return;
   }
+
   const oldContent = lessonCard.querySelector('.lessonContent');
   if (oldContent) oldContent.remove();
 
@@ -487,9 +486,11 @@ alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات �
   pageText.style.textAlign = 'center';
 
   const prev = document.createElement('button');
+  prev.type = 'button';
   prev.textContent = 'پچھلا صفحہ';
 
   const next = document.createElement('button');
+  next.type = 'button';
   next.textContent = 'اگلا صفحہ';
 
   let currentLessonPage = lessonInfo.start;
@@ -498,8 +499,7 @@ alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات �
     image.style.display = 'none';
     pageText.textContent = 'صفحہ لوڈ ہو رہا ہے...';
 
-    const fileName =
-      String(currentLessonPage).padStart(2, '0') + '.jpeg';
+    const fileName = currentLessonPage + '.jpeg';
 
     const { data: imageData, error } = await supabase.storage
       .from('persian book free')
@@ -508,13 +508,19 @@ alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات �
     if (error || !imageData) {
       pageText.textContent =
         `صفحہ ${currentLessonPage} ابھی اپ لوڈ نہیں ہوا۔`;
+
+      console.error('Page loading error:', error);
       return;
     }
 
     image.src = imageData.signedUrl;
     image.style.display = 'block';
+
     pageText.textContent =
       `صفحہ ${currentLessonPage} از ${lessonInfo.end}`;
+
+    prev.disabled = currentLessonPage <= lessonInfo.start;
+    next.disabled = currentLessonPage >= lessonInfo.end;
   }
 
   prev.onclick = () => {
@@ -537,6 +543,9 @@ alert('صفحہ شروع: ' + (lessonInfo ? lessonInfo.start : 'معلومات �
   content.appendChild(next);
 
   lessonCard.appendChild(content);
+
+  loadLessonPage();
+};
 
   loadLessonPage();
 };
