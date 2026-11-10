@@ -746,14 +746,8 @@ async function loadLessons() {
     const item = document.createElement('div');
     item.className = 'card';
 
-    const title = document.createElement('p');
-const lessonInfo = chapterInfo
-  ? chapterInfo.lessons[lesson.lesson_order - 1]
-  : null;
-
-title.textContent = lessonInfo
-  ? `درس ${lesson.lesson_order}: ${lessonInfo.title} (صفحہ ${lessonInfo.start} تا ${lessonInfo.end})`
-  : `درس ${lesson.lesson_order}: ${lesson.title}`;
+ const title = document.createElement('p');
+title.textContent = `درس ${lesson.lesson_order}: ${lesson.title}`;
     const editButton = document.createElement('button');
     editButton.textContent = 'سبق میں ترمیم کریں';
 
