@@ -156,6 +156,7 @@ if (adminProfile.role === 'admin') {
   });
 
   const dashboard = document.createElement('div');
+  dashboard.id = 'studentDashboard';
   dashboard.className = 'card';
 
  dashboard.innerHTML = `
@@ -196,6 +197,19 @@ if (adminProfile.role === 'admin') {
   <button id="dashboardLogout">Logout / باہر جائیں</button>
 `;
   document.querySelector('main').prepend(dashboard);
+  dashboard.querySelector('#grammarBtn').addEventListener('click', () => {
+  showStudentCourse(
+    'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
+    'فارسی گرامر'
+  );
+});
+
+dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
+  showStudentCourse(
+    '947a9182-8328-4506-b2b0-50ada2b709fa',
+    'فارسی بول چال'
+  );
+});
 document.getElementById('dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
