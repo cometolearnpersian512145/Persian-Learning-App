@@ -226,6 +226,8 @@ document.getElementById('dashboardLogout').addEventListener('click', async () =>
 // STUDENT COURSE MODULES AND LESSONS
 
 async function showStudentCourse(courseId, courseName) {
+  const dashboard = document.querySelector('main > .card');
+  
   dashboard.innerHTML = `
     <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
       <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
