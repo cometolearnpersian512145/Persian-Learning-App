@@ -562,64 +562,7 @@ openButton.onclick = async () => {
     moduleList.appendChild(card);
   });
 }
-document.getElementById('grammarBtn').onclick = () => {
-  showStudentCourse(
-    'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
-    'فارسی گرامر'
-  );
-};
-
-// Persian Conversation button
-document.getElementById('conversationBtn').onclick = () => {
-  showStudentCourse(
-    '947a9182-8328-4506-b2b0-50ada2b709fa',
-    'فارسی بول چال'
-  );
-};
-
-document.getElementById('profileBtn').addEventListener('click', async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    message.textContent = 'پروفائل حاصل نہیں ہو سکا۔ دوبارہ Login کریں۔';
-    return;
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('full_name, father_name, whatsapp, country, city, gender')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError) {
-    message.textContent = 'پروفائل میں مسئلہ: ' + profileError.message;
-    return;
-  }
-
-  dashboard.innerHTML = `
-    <h2>آؤ فارسی سیکھیں</h2>
-    <h3>میرا پروفائل</h3>
-    <p>نام: ${profile.full_name || ''}</p>
-    <p>والد کا نام: ${profile.father_name || ''}</p>
-    <p>WhatsApp: ${profile.whatsapp || ''}</p>
-    <p>ملک: ${profile.country || ''}</p>
-    <p>شہر: ${profile.city || ''}</p>
-    <p>جنس: ${profile.gender || ''}</p>
-    <button id="backDashboard">واپس ڈیش بورڈ</button>
-  `;
-
-document.getElementById('backDashboard').addEventListener('click', async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session && session.user) {
-    await handleLogin(session.user);
-  }
-});
-
-  });
-  
 document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
-
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
   message.textContent = error ? error.message : 'آپ Logout ہو گئے ہیں۔';
