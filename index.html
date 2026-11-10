@@ -457,6 +457,10 @@ heading.textContent = chapterInfo
       }
 
       lessons.forEach(lesson => {
+        const lessonInfo = chapterInfo
+  ? chapterInfo.lessons[lesson.lesson_order - 1]
+  : null;
+        
         const lessonCard = document.createElement('div');
         lessonCard.style.cssText =
           'padding:14px;margin:12px 0;border:1px solid #ddd;border-radius:12px;';
