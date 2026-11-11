@@ -709,6 +709,7 @@ async function loadModules() {
   });
 }
 
+
 async function loadLessons() {
   const lessonList = document.getElementById('lessonList');
   const lessonModule = document.getElementById('lessonModule');
@@ -746,8 +747,13 @@ async function loadLessons() {
     const item = document.createElement('div');
     item.className = 'card';
 
- const title = document.createElement('p');
-title.textContent = `درس ${lesson.lesson_order}: ${lesson.title}`;
+    const title = document.createElement('p');
+    title.textContent = `درس ${lesson.lesson_order}: ${lesson.title}`;
+
+    const status = document.createElement('p');
+    status.textContent =
+      `${lesson.is_published ? '🟢 Published' : '🔴 Unpublished'} — ${lesson.is_free ? 'Free' : 'Paid'}`;
+
     const editButton = document.createElement('button');
     editButton.textContent = 'سبق میں ترمیم کریں';
 
@@ -755,12 +761,39 @@ title.textContent = `درس ${lesson.lesson_order}: ${lesson.title}`;
       editLesson(lesson.id);
     };
 
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'سبق حذف کریں';
+    deleteButton.style.backgroundColor = '#c62828';
+    deleteButton.style.color = 'white';
+
+    deleteButton.onclick = async () => {
+      if (!confirm(
+        `کیا آپ واقعی یہ سبق حذف کرنا چاہتے ہیں؟\n${lesson.title}`
+      )) return;
+
+      const { error } = await supabase
+        .from('lessons')
+        .delete()
+        .eq('id', lesson.id);
+
+      if (error) {
+        alert('سبق حذف نہیں ہو سکا: ' + error.message);
+        return;
+      }
+
+      alert('سبق کامیابی سے حذف ہوگیا۔');
+      await loadLessons();
+    };
+
     item.appendChild(title);
+    item.appendChild(status);
     item.appendChild(editButton);
+    item.appendChild(deleteButton);
 
     lessonList.appendChild(item);
   });
 }
+
   let editingLessonId = null;
 
 async function editLesson(lessonId) {
