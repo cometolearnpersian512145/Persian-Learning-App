@@ -1042,18 +1042,25 @@ async function loadLessons() {
         `کیا آپ واقعی یہ سبق حذف کرنا چاہتے ہیں؟\n${lesson.title}`
       )) return;
 
-      const { error } = await supabase
+      const { data: deletedRows, error } = await supabase
         .from('lessons')
         .delete()
-        .eq('id', lesson.id);
+        .eq('id', lesson.id)
+        .select('id');
 
       if (error) {
         alert('سبق حذف نہیں ہو سکا: ' + error.message);
         return;
       }
 
-      alert('سبق کامیابی سے حذف ہوگیا۔');
+      if (!deletedRows || deletedRows.length === 0) {
+        alert('سبق حذف نہیں ہوا۔ غالباً Supabase میں Admin کو Delete کی اجازت نہیں ملی۔ پہلے Supabase SQL Editor میں Admin Delete Policy چلائیں، پھر دوبارہ کوشش کریں۔');
+        return;
+      }
+
+      alert('سبق واقعی ڈیٹابیس سے حذف ہوگیا۔');
       await loadLessons();
+      await loadAllLessonAccess();
     };
 
     item.appendChild(title);
