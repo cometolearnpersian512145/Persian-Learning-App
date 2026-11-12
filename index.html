@@ -123,6 +123,146 @@ const { error } = await supabase.auth.signUp({
 let loginRenderToken = 0;
 let activeStudentId = null;
 
+function escapePaymentText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
+async function showPaymentForm({ accessType, targetId, targetTitle }) {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard || !activeStudentId) return;
+
+  dashboard.innerHTML = `
+    <div class="card">
+      <h2>💳 ادائیگی کی درخواست</h2>
+      <p><strong>آپ کی خریداری:</strong> ${escapePaymentText(targetTitle)}</p>
+      <label>اپنا ملک منتخب کریں</label>
+      <select id="paymentCountry" style="width:100%;padding:12px;margin:8px 0;">
+        <option value="Pakistan">پاکستان</option>
+        <option value="India">India</option>
+      </select>
+      <label>ادائیگی کا طریقہ</label>
+      <select id="paymentMethod" style="width:100%;padding:12px;margin:8px 0;"></select>
+      <div id="paymentAccountDetails" class="card" style="background:#f4f7f5;line-height:1.9;"></div>
+      <p id="paymentAmountText"><strong>قیمت:</strong> ابھی مقرر نہیں کی گئی۔</p>
+      <input id="paymentReference" type="text" placeholder="Transaction ID / حوالہ نمبر (اگر موجود ہو)">
+      <label>ادائیگی کی رسید یا Screenshot اپ لوڈ کریں</label>
+      <input id="paymentReceipt" type="file" accept="image/*,application/pdf">
+      <button id="submitPaymentRequestBtn" type="button">ادائیگی کی درخواست جمع کریں</button>
+      <p id="paymentFormMessage"></p>
+      <button id="paymentBackBtn" type="button" style="background:#555;">واپس ڈیش بورڈ</button>
+    </div>
+  `;
+
+  const countrySelect = document.getElementById('paymentCountry');
+  const methodSelect = document.getElementById('paymentMethod');
+  const details = document.getElementById('paymentAccountDetails');
+  const amountText = document.getElementById('paymentAmountText');
+  const formMessage = document.getElementById('paymentFormMessage');
+  let currentPrice = null;
+  let currentCurrency = null;
+
+  const { data: pricing, error: pricingError } = await supabase
+    .from('payment_pricing')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
+
+  function updatePaymentMethods() {
+    const country = countrySelect.value;
+    if (country === 'India') {
+      methodSelect.innerHTML = '<option value="Google Pay">Google Pay</option>';
+      details.innerHTML = '<strong>Google Pay نمبر:</strong> 9897400499<br><strong>اکاؤنٹ ہولڈر:</strong> Ali Jaffar Hashmi<br><small>ادائیگی سے پہلے وصول کنندہ کا نام ضرور چیک کریں۔</small>';
+      currentPrice = pricing ? (accessType === 'course' ? pricing.course_price_inr : pricing.lesson_price_inr) : null;
+      currentCurrency = 'INR';
+    } else {
+      methodSelect.innerHTML = '<option value="JazzCash">JazzCash</option><option value="Easypaisa">Easypaisa</option><option value="Meezan Bank">Meezan Bank</option>';
+      showPakistanDetails();
+      currentPrice = pricing ? (accessType === 'course' ? pricing.course_price_pkr : pricing.lesson_price_pkr) : null;
+      currentCurrency = 'PKR';
+    }
+    amountText.innerHTML = currentPrice !== null && currentPrice !== ''
+      ? `<strong>قیمت:</strong> ${Number(currentPrice).toLocaleString()} ${currentCurrency}`
+      : '<strong>قیمت:</strong> ابھی مقرر نہیں کی گئی۔ ادائیگی کی درخواست فی الحال جمع نہیں ہو سکتی۔';
+  }
+
+  function showPakistanDetails() {
+    const method = methodSelect.value;
+    if (method === 'JazzCash') {
+      details.innerHTML = '<strong>JazzCash نمبر:</strong> 03049788712<br><strong>اکاؤنٹ ہولڈر:</strong> Muhammad ASIF';
+    } else if (method === 'Easypaisa') {
+      details.innerHTML = '<strong>Easypaisa نمبر:</strong> 03027432861<br><strong>اکاؤنٹ ہولڈر:</strong> Muhammad ASIF';
+    } else {
+      details.innerHTML = '<strong>بینک:</strong> Meezan Bank Limited<br><strong>اکاؤنٹ نمبر:</strong> 01840109328879<br><strong>IBAN:</strong> PK08MEZN0001840109328879<br><strong>اکاؤنٹ ہولڈر:</strong> Muhammad ASIF';
+    }
+  }
+
+  countrySelect.addEventListener('change', updatePaymentMethods);
+  methodSelect.addEventListener('change', () => {
+    if (countrySelect.value === 'Pakistan') showPakistanDetails();
+  });
+  updatePaymentMethods();
+
+  document.getElementById('paymentBackBtn').onclick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await handleLogin(session.user);
+  };
+
+  document.getElementById('submitPaymentRequestBtn').onclick = async () => {
+    const submitButton = document.getElementById('submitPaymentRequestBtn');
+    const receipt = document.getElementById('paymentReceipt').files[0];
+    if (pricingError) {
+      formMessage.textContent = 'قیمتوں کی معلومات حاصل نہیں ہو سکیں: ' + pricingError.message;
+      return;
+    }
+    if (currentPrice === null || currentPrice === '' || Number(currentPrice) <= 0) {
+      formMessage.textContent = 'اس خریداری کی قیمت ابھی Admin Panel سے مقرر نہیں کی گئی۔';
+      return;
+    }
+    if (!receipt) {
+      formMessage.textContent = 'براہ کرم ادائیگی کی رسید یا Screenshot اپ لوڈ کریں۔';
+      return;
+    }
+    if (receipt.size > 5 * 1024 * 1024) {
+      formMessage.textContent = 'فائل کا سائز 5 MB سے کم ہونا چاہیے۔';
+      return;
+    }
+    submitButton.disabled = true;
+    formMessage.textContent = 'رسید اپ لوڈ ہو رہی ہے...';
+    const safeName = receipt.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const receiptPath = `${activeStudentId}/${crypto.randomUUID()}_${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from('payment-receipts')
+      .upload(receiptPath, receipt, { upsert: false, contentType: receipt.type || 'application/octet-stream' });
+    if (uploadError) {
+      formMessage.textContent = 'رسید اپ لوڈ نہیں ہو سکی: ' + uploadError.message;
+      submitButton.disabled = false;
+      return;
+    }
+    const { error: requestError } = await supabase
+      .from('payment_requests')
+      .insert({
+        student_id: activeStudentId,
+        country: countrySelect.value,
+        payment_method: methodSelect.value,
+        amount: Number(currentPrice),
+        currency: currentCurrency,
+        transaction_reference: document.getElementById('paymentReference').value.trim() || null,
+        receipt_path: receiptPath,
+        access_type: accessType,
+        target_id: targetId
+      });
+    if (requestError) {
+      formMessage.textContent = 'درخواست محفوظ نہیں ہوئی: ' + requestError.message + ' — رسید اپ لوڈ ہو چکی ہے۔ Admin سے رابطہ کریں۔';
+      submitButton.disabled = false;
+      return;
+    }
+    formMessage.textContent = 'آپ کی درخواست کامیابی سے جمع ہو گئی ہے۔ منظوری کے بعد خریدی گئی سہولت کھل جائے گی۔';
+    submitButton.textContent = 'درخواست جمع ہوگئی';
+  };
+}
+
 async function handleLogin(existingUser = null) {
   const currentRenderToken = ++loginRenderToken;
   let data;
@@ -171,6 +311,7 @@ if (adminProfile.role === 'admin') {
 
   document.getElementById('adminPanel').style.display = 'block';
   loadCourses();
+  loadPaymentAdmin();
   return;
 }
   document.querySelectorAll('main > .card').forEach(card => {
@@ -213,6 +354,12 @@ if (adminProfile.role === 'admin') {
     <button id="completeCourseBtn">کورس کھولیں</button>
   </div>
 
+  <div class="card">
+    <h3>💳 فارسی گرامر کورس خریدیں</h3>
+    <p>مکمل کورس یا اپنی پسند کا الگ Paid سبق خریدنے کے لیے یہاں جائیں۔</p>
+    <button id="buyGrammarCourseBtn" type="button">مکمل گرامر کورس خریدیں</button>
+  </div>
+
   <hr>
 
   <h3>👤 میرا اکاؤنٹ</h3>
@@ -239,6 +386,13 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
     '947a9182-8328-4506-b2b0-50ada2b709fa',
     'فارسی بول چال'
   );
+});
+dashboard.querySelector('#buyGrammarCourseBtn').addEventListener('click', () => {
+  showPaymentForm({
+    accessType: 'course',
+    targetId: 'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
+    targetTitle: 'مکمل فارسی گرامر کورس'
+  });
 });
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
@@ -302,6 +456,18 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
   }
 
   courseMessage.textContent = 'اپنا باب منتخب کریں';
+
+  // Approved purchases: a course grant unlocks every paid lesson in that course.
+  const { data: accessRows, error: accessError } = await supabase
+    .from('student_access_grants')
+    .select('access_type, target_id')
+    .eq('student_id', activeStudentId);
+  if (accessError) {
+    courseMessage.textContent = 'خریداری کی معلومات حاصل نہیں ہو سکیں: ' + accessError.message;
+  }
+  const grantedLessonIds = new Set((accessRows || []).filter(row => row.access_type === 'lesson').map(row => row.target_id));
+  const grantedCourseIds = new Set((accessRows || []).filter(row => row.access_type === 'course').map(row => row.target_id));
+  const courseGrantActive = grantedCourseIds.has(courseId);
 
   // Student learning progress for all published lessons in this course
   const moduleIds = data.map(module => module.id);
@@ -598,17 +764,16 @@ heading.textContent = chapterInfo
         title.textContent =
           `درس ${lesson.lesson_order}: ${lesson.title}`;
 
+        const lessonHasAccess = lesson.is_free || courseGrantActive || grantedLessonIds.has(lesson.id);
         const status = document.createElement('p');
-        status.textContent = lesson.is_free ? '🟢 FREE — مفت سبق' : '🔒 PAID — خریداری ضروری ہے';
+        status.textContent = lesson.is_free
+          ? '🟢 FREE — مفت سبق'
+          : (lessonHasAccess ? '🟢 PAID — خریداری منظور شدہ' : '🔒 PAID — خریداری ضروری ہے');
 
         const openButton = document.createElement('button');
-        openButton.textContent = lesson.is_free ? 'سبق پڑھیں ←' : '🔒 Paid سبق';
-
-        openButton.disabled = !lesson.is_free;
-
-        if (!lesson.is_free) {
-          openButton.title = 'یہ سبق خریداری کے بعد دستیاب ہوگا۔';
-        }
+        openButton.textContent = lessonHasAccess ? 'سبق پڑھیں ←' : '💳 یہ سبق خریدیں';
+        openButton.disabled = false;
+        if (!lessonHasAccess) openButton.title = 'ادائیگی کی درخواست جمع کرنے کے لیے کلک کریں۔';
 
         const progressLabel = document.createElement('p');
         progressLabel.textContent = completedLessonIds.has(lesson.id)
@@ -620,7 +785,7 @@ heading.textContent = chapterInfo
         completeButton.textContent = completedLessonIds.has(lesson.id)
           ? 'سبق مکمل ہو گیا'
           : 'سبق مکمل نشان زد کریں';
-        completeButton.disabled = completedLessonIds.has(lesson.id) || !lesson.is_free;
+        completeButton.disabled = completedLessonIds.has(lesson.id) || !lessonHasAccess;
         completeButton.style.background = '#28734f';
         completeButton.onclick = async () => {
           if (!activeStudentId) {
@@ -652,8 +817,12 @@ heading.textContent = chapterInfo
         };
 
 openButton.onclick = async () => {
-  if (!lesson.is_free) {
-    alert('یہ سبق Paid ہے۔');
+  if (!lessonHasAccess) {
+    await showPaymentForm({
+      accessType: 'lesson',
+      targetId: lesson.id,
+      targetTitle: `درس ${lesson.lesson_order}: ${lesson.title}`
+    });
     return;
   }
 
@@ -1277,6 +1446,155 @@ async function loadStudentProgressAdmin() {
 
 document.getElementById('loadStudentProgressAdminBtn').addEventListener('click', loadStudentProgressAdmin);
 
+async function loadPaymentAdmin() {
+  const list = document.getElementById('adminPaymentRequestsList');
+  const status = document.getElementById('adminPaymentMessage');
+  if (!list || !status) return;
+  status.textContent = 'ادائیگیوں اور قیمتوں کی معلومات لوڈ ہو رہی ہیں...';
+
+  const { data: pricing, error: pricingError } = await supabase
+    .from('payment_pricing').select('*').eq('id', 1).maybeSingle();
+  if (pricingError) {
+    status.textContent = 'قیمتوں کی معلومات حاصل نہیں ہو سکیں: ' + pricingError.message;
+    return;
+  }
+  if (pricing) {
+    document.getElementById('priceCoursePKR').value = pricing.course_price_pkr ?? '';
+    document.getElementById('priceLessonPKR').value = pricing.lesson_price_pkr ?? '';
+    document.getElementById('priceCourseINR').value = pricing.course_price_inr ?? '';
+    document.getElementById('priceLessonINR').value = pricing.lesson_price_inr ?? '';
+  }
+
+  const { data: requests, error } = await supabase
+    .from('payment_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    status.textContent = 'ادائیگیوں کی فہرست حاصل نہیں ہو سکی: ' + error.message;
+    return;
+  }
+  if (!requests || requests.length === 0) {
+    list.textContent = 'ابھی کوئی ادائیگی کی درخواست موجود نہیں۔';
+    status.textContent = 'قیمتیں محفوظ ہیں۔ ابھی کوئی درخواست نہیں آئی۔';
+    return;
+  }
+
+  const studentIds = [...new Set(requests.map(row => row.student_id))];
+  const { data: profiles } = await supabase
+    .from('profiles').select('id, full_name, email, whatsapp').in('id', studentIds);
+  const profileMap = new Map((profiles || []).map(profile => [profile.id, profile]));
+  list.innerHTML = '';
+
+  for (const request of requests) {
+    const profile = profileMap.get(request.student_id);
+    const card = document.createElement('div');
+    card.className = 'card';
+    const heading = document.createElement('h4');
+    heading.textContent = profile?.full_name || profile?.email || request.student_id;
+    const info = document.createElement('p');
+    const targetLabel = request.access_type === 'course' ? 'مکمل کورس' : 'الگ سبق';
+    info.textContent = `${targetLabel} — ${request.country} — ${request.payment_method} — ${request.amount ?? ''} ${request.currency ?? ''} — ${request.status} — ${new Date(request.created_at).toLocaleString()}`;
+    const reference = document.createElement('p');
+    reference.textContent = 'Transaction Reference: ' + (request.transaction_reference || 'درج نہیں');
+    card.append(heading, info, reference);
+
+    if (request.receipt_path) {
+      const { data: signed, error: signedError } = await supabase.storage
+        .from('payment-receipts').createSignedUrl(request.receipt_path, 600);
+      if (!signedError && signed?.signedUrl) {
+        const receiptLink = document.createElement('a');
+        receiptLink.href = signed.signedUrl;
+        receiptLink.target = '_blank';
+        receiptLink.rel = 'noopener';
+        receiptLink.textContent = 'رسید دیکھیں (10 منٹ کے لیے محفوظ لنک)';
+        card.appendChild(receiptLink);
+      } else {
+        const receiptError = document.createElement('p');
+        receiptError.textContent = 'رسید نہیں کھل سکی: ' + (signedError?.message || 'نامعلوم مسئلہ');
+        card.appendChild(receiptError);
+      }
+    }
+
+    if (request.status === 'pending') {
+      const approve = document.createElement('button');
+      approve.type = 'button';
+      approve.textContent = 'منظور کریں اور رسائی کھولیں';
+      approve.onclick = async () => {
+        approve.disabled = true;
+        const { error: grantError } = await supabase
+          .from('student_access_grants')
+          .upsert({
+            student_id: request.student_id,
+            access_type: request.access_type,
+            target_id: request.target_id,
+            payment_request_id: request.id
+          }, { onConflict: 'student_id,access_type,target_id' });
+        if (grantError) {
+          alert('رسائی نہیں کھل سکی: ' + grantError.message);
+          approve.disabled = false;
+          return;
+        }
+        const { error: updateError } = await supabase
+          .from('payment_requests')
+          .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+          .eq('id', request.id);
+        if (updateError) {
+          alert('رسائی محفوظ ہو گئی، لیکن درخواست کا Status تبدیل نہیں ہوا: ' + updateError.message);
+          approve.disabled = false;
+          return;
+        }
+        alert('ادائیگی منظور ہوگئی اور رسائی دے دی گئی۔');
+        loadPaymentAdmin();
+      };
+      const reject = document.createElement('button');
+      reject.type = 'button';
+      reject.textContent = 'مسترد کریں';
+      reject.style.background = '#9b3030';
+      reject.onclick = async () => {
+        const note = prompt('مسترد کرنے کی وجہ (اختیاری):') || null;
+        reject.disabled = true;
+        const { error: rejectError } = await supabase
+          .from('payment_requests')
+          .update({ status: 'rejected', admin_note: note, reviewed_at: new Date().toISOString() })
+          .eq('id', request.id);
+        if (rejectError) {
+          alert('درخواست مسترد نہیں ہو سکی: ' + rejectError.message);
+          reject.disabled = false;
+          return;
+        }
+        loadPaymentAdmin();
+      };
+      card.append(approve, reject);
+    }
+    list.appendChild(card);
+  }
+  status.textContent = `کل ادائیگی درخواستیں: ${requests.length}`;
+}
+
+const savePaymentPricingBtn = document.getElementById('savePaymentPricingBtn');
+if (savePaymentPricingBtn) {
+  savePaymentPricingBtn.addEventListener('click', async () => {
+    const values = {
+      course_price_pkr: document.getElementById('priceCoursePKR').value === '' ? null : Number(document.getElementById('priceCoursePKR').value),
+      lesson_price_pkr: document.getElementById('priceLessonPKR').value === '' ? null : Number(document.getElementById('priceLessonPKR').value),
+      course_price_inr: document.getElementById('priceCourseINR').value === '' ? null : Number(document.getElementById('priceCourseINR').value),
+      lesson_price_inr: document.getElementById('priceLessonINR').value === '' ? null : Number(document.getElementById('priceLessonINR').value),
+      updated_at: new Date().toISOString()
+    };
+    if (Object.values(values).some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
+      alert('قیمت صفر یا اس سے زیادہ درست عدد میں درج کریں۔');
+      return;
+    }
+    savePaymentPricingBtn.disabled = true;
+    const { error } = await supabase.from('payment_pricing').update(values).eq('id', 1);
+    if (error) alert('قیمتیں محفوظ نہیں ہو سکیں: ' + error.message);
+    else alert('قیمتیں کامیابی سے محفوظ ہوگئیں۔');
+    savePaymentPricingBtn.disabled = false;
+  });
+}
+
+document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', loadPaymentAdmin);
+
   // RESTORE LOGIN SESSION AFTER PAGE REFRESH
 (async function restoreLoginSession() {
   const { data: { session }, error } =
@@ -1417,8 +1735,22 @@ document.getElementById('loadStudentProgressAdminBtn').addEventListener('click',
   </div>
 
   <div class="card">
-    <h3>Payments</h3>
-    <p>طلبہ کی ادائیگیوں کی درخواستیں دیکھیں۔</p>
+    <h3>💳 ادائیگیوں کا انتظام (Payments)</h3>
+    <p>پاکستان اور بھارت کے لیے مکمل کورس اور الگ سبق کی قیمتیں یہاں مقرر یا تبدیل کریں۔ خالی قیمت مقرر نہ ہونے کا مطلب ہے۔</p>
+    <label>پاکستان — مکمل گرامر کورس (PKR)</label>
+    <input id="priceCoursePKR" type="number" min="0" step="1" placeholder="بعد میں قیمت مقرر کریں">
+    <label>پاکستان — ایک الگ سبق (PKR)</label>
+    <input id="priceLessonPKR" type="number" min="0" step="1" placeholder="بعد میں قیمت مقرر کریں">
+    <label>بھارت — مکمل گرامر کورس (INR)</label>
+    <input id="priceCourseINR" type="number" min="0" step="1" placeholder="بعد میں قیمت مقرر کریں">
+    <label>بھارت — ایک الگ سبق (INR)</label>
+    <input id="priceLessonINR" type="number" min="0" step="1" placeholder="بعد میں قیمت مقرر کریں">
+    <button id="savePaymentPricingBtn" type="button">قیمتیں محفوظ کریں</button>
+    <hr>
+    <h4>طلبہ کی ادائیگیوں کی درخواستیں</h4>
+    <button id="refreshPaymentRequestsBtn" type="button">درخواستیں تازہ کریں</button>
+    <p id="adminPaymentMessage"></p>
+    <div id="adminPaymentRequestsList"></div>
   </div>
 <!-- CONVERSATION TOPICS -->
 <div class="card">
@@ -1539,6 +1871,22 @@ document.getElementById('loadStudentProgressAdminBtn').addEventListener('click',
     "سبق حذف کریں": "Delete Lesson",
     "Payments": "Payments",
     "طلبہ کی ادائیگیوں کی درخواستیں دیکھیں۔": "View students' payment requests.",
+    "💳 فارسی گرامر کورس خریدیں": "💳 Buy Persian Grammar Course",
+    "مکمل گرامر کورس خریدیں": "Buy Full Grammar Course",
+    "💳 ادائیگی کی درخواست": "💳 Payment Request",
+    "اپنا ملک منتخب کریں": "Select your country",
+    "ادائیگی کا طریقہ": "Payment method",
+    "ادائیگی کی رسید یا Screenshot اپ لوڈ کریں": "Upload payment receipt or screenshot",
+    "ادائیگی کی درخواست جمع کریں": "Submit Payment Request",
+    "واپس ڈیش بورڈ": "Back to Dashboard",
+    "💳 ادائیگیوں کا انتظام (Payments)": "💳 Payment Management",
+    "پاکستان — مکمل گرامر کورس (PKR)": "Pakistan — Full Grammar Course (PKR)",
+    "پاکستان — ایک الگ سبق (PKR)": "Pakistan — Single Lesson (PKR)",
+    "بھارت — مکمل گرامر کورس (INR)": "India — Full Grammar Course (INR)",
+    "بھارت — ایک الگ سبق (INR)": "India — Single Lesson (INR)",
+    "قیمتیں محفوظ کریں": "Save Prices",
+    "طلبہ کی ادائیگیوں کی درخواستیں": "Student Payment Requests",
+    "درخواستیں تازہ کریں": "Refresh Requests",
     "فارسی گفتگو کے موضوعات": "Persian Conversation Topics",
     "فارسی اور اردو جملوں کے ذریعے گفتگو کے اسباق کا انتظام کریں۔": "Manage conversation lessons using Persian and Urdu sentences.",
     "موضوع کا نام": "Topic Name",
