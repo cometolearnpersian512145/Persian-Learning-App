@@ -882,6 +882,105 @@ async function loadModules() {
 }
 
 
+async function loadAllLessonAccess() {
+  const list = document.getElementById('allLessonAccessList');
+  const summary = document.getElementById('allLessonAccessSummary');
+  if (!list || !summary) return;
+
+  list.textContent = 'تمام اسباق لوڈ ہو رہے ہیں...';
+  summary.textContent = '';
+
+  const { data: modules, error: modulesError } = await supabase
+    .from('modules')
+    .select('id, title, module_order')
+    .order('module_order');
+
+  if (modulesError) {
+    list.textContent = 'ابواب حاصل کرنے میں مسئلہ: ' + modulesError.message;
+    return;
+  }
+
+  if (!modules || modules.length === 0) {
+    list.textContent = 'ابھی کوئی باب موجود نہیں۔';
+    return;
+  }
+
+  const moduleMap = new Map(modules.map(module => [module.id, module]));
+  const { data: lessons, error: lessonsError } = await supabase
+    .from('lessons')
+    .select('id, module_id, title, lesson_order, is_free, is_published');
+
+  if (lessonsError) {
+    list.textContent = 'اسباق حاصل کرنے میں مسئلہ: ' + lessonsError.message;
+    return;
+  }
+
+  const orderedLessons = (lessons || []).filter(lesson => moduleMap.has(lesson.module_id));
+  orderedLessons.sort((a, b) => {
+    const ma = moduleMap.get(a.module_id);
+    const mb = moduleMap.get(b.module_id);
+    return (ma.module_order - mb.module_order) || (a.lesson_order - b.lesson_order);
+  });
+
+  if (orderedLessons.length === 0) {
+    list.textContent = 'ابھی کوئی سبق موجود نہیں۔';
+    return;
+  }
+
+  list.innerHTML = '';
+  const freeCount = orderedLessons.filter(lesson => lesson.is_free).length;
+  const paidCount = orderedLessons.length - freeCount;
+  summary.textContent = `کل اسباق: ${orderedLessons.length} — مفت: ${freeCount} — پیڈ: ${paidCount}`;
+
+  orderedLessons.forEach(lesson => {
+    const module = moduleMap.get(lesson.module_id);
+    const item = document.createElement('div');
+    item.className = 'card';
+    item.style.padding = '14px';
+
+    const heading = document.createElement('p');
+    heading.style.fontWeight = 'bold';
+    heading.textContent = `باب ${module.module_order}: ${module.title} — درس ${lesson.lesson_order}: ${lesson.title}`;
+
+    const published = document.createElement('p');
+    published.textContent = lesson.is_published ? '🟢 شائع شدہ' : '🔴 غیر شائع شدہ';
+
+    const accessLabel = document.createElement('label');
+    accessLabel.textContent = 'سبق کی فیس کی حیثیت: ';
+    const accessSelect = document.createElement('select');
+    accessSelect.style.width = '100%';
+    accessSelect.style.padding = '10px';
+    accessSelect.style.marginTop = '8px';
+    accessSelect.innerHTML = '<option value="free">مفت (Free)</option><option value="paid">پیڈ (Paid)</option>';
+    accessSelect.value = lesson.is_free ? 'free' : 'paid';
+
+    accessSelect.addEventListener('change', async () => {
+      const newIsFree = accessSelect.value === 'free';
+      accessSelect.disabled = true;
+      const { error } = await supabase
+        .from('lessons')
+        .update({ is_free: newIsFree })
+        .eq('id', lesson.id);
+
+      if (error) {
+        alert('سبق کی حیثیت تبدیل نہیں ہو سکی: ' + error.message);
+        accessSelect.value = lesson.is_free ? 'free' : 'paid';
+      } else {
+        lesson.is_free = newIsFree;
+        const updatedFree = orderedLessons.filter(item => item.is_free).length;
+        summary.textContent = `کل اسباق: ${orderedLessons.length} — مفت: ${updatedFree} — پیڈ: ${orderedLessons.length - updatedFree}`;
+      }
+      accessSelect.disabled = false;
+    });
+
+    accessLabel.appendChild(accessSelect);
+    item.appendChild(heading);
+    item.appendChild(published);
+    item.appendChild(accessLabel);
+    list.appendChild(item);
+  });
+}
+
 async function loadLessons() {
   const lessonList = document.getElementById('lessonList');
   const lessonModule = document.getElementById('lessonModule');
@@ -1003,6 +1102,8 @@ async function editLesson(lessonId) {
   document.getElementById('lessonTitle').focus();
 }
   // ADD NEW LESSON
+document.getElementById('loadAllLessonAccessBtn').addEventListener('click', loadAllLessonAccess);
+
 document.getElementById('addLessonBtn').addEventListener('click', async () => {
   const module_id = document.getElementById('lessonModule').value;
   const title = document.getElementById('lessonTitle').value.trim();
@@ -1249,6 +1350,16 @@ document.getElementById('loadStudentProgressAdminBtn').addEventListener('click',
   <div id="moduleList"></div>
 </div>
 <hr>
+
+<div class="card">
+  <h3>تمام اسباق کی Free / Paid فہرست</h3>
+  <p>ہر سبق کے سامنے اس کی موجودہ حیثیت دیکھیں اور اسی فہرست سے مفت یا پیڈ تبدیل کریں۔ تبدیلی فوراً محفوظ ہوگی۔</p>
+  <p>کتاب کا مقدمہ اور تعارف (صفحات 1 تا 9) — مفت</p>
+  <p>ادارے کا تعارف (صفحہ 103) — مفت</p>
+  <button id="loadAllLessonAccessBtn" type="button">تمام اسباق کی فہرست دیکھیں</button>
+  <p id="allLessonAccessSummary"></p>
+  <div id="allLessonAccessList"></div>
+</div>
 
 <h4>نیا سبق (Lesson) شامل کریں</h4>
 
