@@ -472,8 +472,11 @@ nextPage.onclick = () => {
 
 bookIntro.appendChild(pageImage);
 bookIntro.appendChild(pageNumber);
-bookIntro.appendChild(previousPage);
+// کتاب کے مقدمے میں بھی پہلے اگلا صفحہ، پھر پچھلا صفحہ دکھائیں۔
+nextPage.style.cssText = 'display:block;width:100%;margin:8px 0;padding:10px;';
+previousPage.style.cssText = 'display:block;width:100%;margin:8px 0;padding:10px;';
 bookIntro.appendChild(nextPage);
+bookIntro.appendChild(previousPage);
 
 moduleList.appendChild(bookIntro);
 // ادارے کا تعارف — صفحہ 103
@@ -665,7 +668,7 @@ openButton.onclick = async () => {
   const content = document.createElement('div');
   content.className = 'lessonContent';
   content.style.cssText =
-    'margin-top:15px;padding:15px;background:#f4f6f9;border-radius:12px;';
+    'margin-top:15px;padding:15px;background:#f4f6f9;border-radius:12px;display:flex;flex-direction:column;';
 
   const image = document.createElement('img');
   image.style.cssText =
@@ -677,10 +680,12 @@ openButton.onclick = async () => {
   const prev = document.createElement('button');
   prev.type = 'button';
   prev.textContent = 'پچھلا صفحہ';
+  prev.style.cssText = 'display:block;order:2;width:100%;';
 
   const next = document.createElement('button');
   next.type = 'button';
   next.textContent = 'اگلا صفحہ';
+  next.style.cssText = 'display:block;order:1;width:100%;';
 
   let currentLessonPage = lessonInfo.start;
 
@@ -728,7 +733,7 @@ openButton.onclick = async () => {
 
   content.appendChild(image);
   content.appendChild(pageText);
-  // Show Next first, then Previous underneath.
+  // Force Next above Previous, regardless of RTL or other page styles.
   content.appendChild(next);
   content.appendChild(prev);
 
