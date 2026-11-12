@@ -437,7 +437,6 @@ instituteIntro.appendChild(instituteButton);
 instituteIntro.appendChild(instituteImage);
 instituteIntro.appendChild(institutePageNumber);
 
-moduleList.appendChild(instituteIntro);
 const prefaceButton = document.createElement('button');
 prefaceButton.textContent = 'کتاب کا تعارف و مقدمہ پڑھیں — مفت';
 prefaceButton.style.cssText =
@@ -625,6 +624,7 @@ openButton.onclick = async () => {
     card.appendChild(lessonArea);
     moduleList.appendChild(card);
   });
+    moduleList.appendChild(instituteIntro);
 }
 document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
 document.getElementById('logoutBtn').addEventListener('click', async () => {
