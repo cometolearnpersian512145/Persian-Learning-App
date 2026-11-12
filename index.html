@@ -14,9 +14,20 @@ input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px soli
 button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;background:#176b50;color:white;font-size:16px}
 .note{text-align:center;line-height:1.8}
 #message{white-space:pre-wrap;text-align:center;margin-top:15px}
+
+/* Language switcher */
+#languageSwitcher{position:sticky;top:0;z-index:999;background:#ffffff;padding:10px 14px;
+display:flex;justify-content:center;align-items:center;gap:8px;border-bottom:1px solid #ddd}
+#languageSwitcher button{width:auto;min-width:92px;margin:0;padding:9px 16px;font-size:14px;cursor:pointer}
+#languageSwitcher button.active{background:#123b32;outline:2px solid #d5b66a}
 </style>
 </head>
-<body>
+<body>\n
+<div id="languageSwitcher" aria-label="Language selector">
+  <button type="button" id="langUr" class="active">اردو</button>
+  <button type="button" id="langEn">English</button>
+</div>
+
 
 <header>
 <h2>آؤ فارسی سیکھیں</h2>
@@ -1147,6 +1158,235 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
   <button id="adminLogout">Logout / باہر جائیں</button>
 </div>
 <!-- ADMIN PANEL END -->
+
+<script>
+(function () {
+  const translations = {
+    "آؤ فارسی سیکھیں": "Come To Learn Persian",
+    "Learn Persian Easily & Step by Step": "Learn Persian Easily & Step by Step",
+    "نیا اکاؤنٹ بنائیں": "Create a New Account",
+    "آپ کا مکمل نام": "Your Full Name",
+    "والد کا نام": "Father's Name",
+    "ملک": "Country",
+    "شہر": "City",
+    "جنس": "Gender",
+    "Sign Up / رجسٹریشن": "Sign Up",
+    "اکاؤنٹ میں داخل ہوں": "Log In to Your Account",
+    "داخل ہوں": "Log In",
+    "باہر جائیں": "Log Out",
+    "Login / داخل ہوں": "Login",
+    "مرکز آموزش زبان فارسی": "Persian Language Learning Center",
+    "معلم: قاری محمد آصف اصفہانی": "Teacher: Qari Muhammad Asif Isfahani",
+    "طالب علم کا ڈیش بورڈ": "Student Dashboard",
+    "خوش آمدید! آپ کامیابی سے Login ہو گئے ہیں۔": "Welcome! You have logged in successfully.",
+    "📚 میرے کورسز": "📚 My Courses",
+    "فارسی قواعد اور بنیادی گرامر سیکھیں۔": "Learn Persian rules and basic grammar.",
+    "روزمرہ گفتگو اور مکالمے سیکھیں۔": "Learn everyday conversation and dialogues.",
+    "ابتدائی سے اعلیٰ سطح تک فارسی سیکھیں۔": "Learn Persian from beginner to advanced level.",
+    "کورس کھولیں": "Open Course",
+    "👤 میرا اکاؤنٹ": "👤 My Account",
+    "میرا پروفائل": "My Profile",
+    "فارسی زبان سیکھنے کا اپنا سفر جاری رکھیں۔": "Continue your Persian learning journey.",
+    "ابواب لوڈ ہو رہے ہیں...": "Loading chapters...",
+    "← واپس ڈیش بورڈ": "← Back to Dashboard",
+    "مسئلہ: ": "Error: ",
+    "اس کورس میں ابھی کوئی باب موجود نہیں۔": "There are no chapters in this course yet.",
+    "اپنا باب منتخب کریں": "Select a chapter",
+    "📖 کتاب کا تعارف و مقدمہ": "📖 Book Introduction and Preface",
+    "پچھلا صفحہ": "Previous Page",
+    "اگلا صفحہ": "Next Page",
+    "صفحہ لوڈ ہو رہا ہے...": "Loading page...",
+    "ادارے کا تعارف پڑھیں — مفت": "Read Institute Introduction — Free",
+    "🏛️ ہمارے ادارے کا تعارف": "🏛️ About Our Institute",
+    "صفحہ 103 ابھی اپ لوڈ نہیں ہوا۔": "Page 103 has not been uploaded yet.",
+    "دوبارہ کوشش کریں": "Try Again",
+    "صفحہ 103": "Page 103",
+    "کتاب کا تعارف و مقدمہ پڑھیں — مفت": "Read Book Introduction and Preface — Free",
+    "باب کھولیں": "Open Chapter",
+    "اسباق لوڈ ہو رہے ہیں...": "Loading lessons...",
+    "ابھی کوئی شائع شدہ سبق موجود نہیں۔": "There are no published lessons yet.",
+    "🟢 FREE — مفت سبق": "🟢 FREE — Free Lesson",
+    "🔒 PAID — خریداری ضروری ہے": "🔒 PAID — Purchase Required",
+    "سبق پڑھیں ←": "Read Lesson →",
+    "🔒 Paid سبق": "🔒 Paid Lesson",
+    "یہ سبق خریداری کے بعد دستیاب ہوگا۔": "This lesson will be available after purchase.",
+    "یہ سبق Paid ہے۔": "This is a paid lesson.",
+    "کتاب کے سبق کی معلومات نہیں مل رہیں۔": "Lesson information could not be found.",
+    "صفحہ ابھی اپ لوڈ نہیں ہوا۔": "This page has not been uploaded yet.",
+    "Admin Panel": "Admin Panel",
+    "خوش آمدید، آپ ایپ کے منتظم ہیں۔": "Welcome, you are the app administrator.",
+    "کورسز کا انتظام": "Course Management",
+    "نئے کورسز شامل کریں اور موجودہ کورسز میں ترمیم کریں۔": "Add new courses and edit existing courses.",
+    "نیا کورس شامل کریں": "Add a New Course",
+    "تمام کورسز": "All Courses",
+    "کورس کا نام": "Course Name",
+    "کورس کی تفصیل": "Course Description",
+    "دورانیہ، مثلاً 5 ماہ": "Duration, e.g. 5 months",
+    "لیول، مثلاً Beginner": "Level, e.g. Beginner",
+    "کورس کی فیس": "Course Fee",
+    "کورس شائع کریں": "Publish Course",
+    "کورس شامل کریں": "Add Course",
+    "Chapters اور Lessons": "Chapters and Lessons",
+    "نئے ابواب اور اسباق شامل کریں۔": "Add new chapters and lessons.",
+    "نیا باب (Chapter) شامل کریں": "Add a New Chapter",
+    "کورس منتخب کریں": "Select a Course",
+    "باب کا نام، مثلاً اسم": "Chapter Name, e.g. Noun",
+    "باب نمبر، مثلاً 1": "Chapter Number, e.g. 1",
+    "باب شامل کریں": "Add Chapter",
+    "تمام ابواب": "All Chapters",
+    "نیا سبق (Lesson) شامل کریں": "Add a New Lesson",
+    "باب منتخب کریں": "Select a Chapter",
+    "سبق کا عنوان": "Lesson Title",
+    "فارسی عبارت": "Persian Text",
+    "اردو تشریح": "Urdu Explanation",
+    "شناسه": "Identifier",
+    "Video URL": "Video URL",
+    "Audio URL": "Audio URL",
+    "PDF URL": "PDF URL",
+    "سبق نمبر": "Lesson Number",
+    "یہ سبق مفت ہے": "This lesson is free",
+    "سبق شائع کریں": "Publish Lesson",
+    "سبق شامل کریں": "Add Lesson",
+    "تمام اسباق": "All Lessons",
+    "سبق میں ترمیم کریں": "Edit Lesson",
+    "سبق حذف کریں": "Delete Lesson",
+    "Payments": "Payments",
+    "طلبہ کی ادائیگیوں کی درخواستیں دیکھیں۔": "View students' payment requests.",
+    "فارسی گفتگو کے موضوعات": "Persian Conversation Topics",
+    "فارسی اور اردو جملوں کے ذریعے گفتگو کے اسباق کا انتظام کریں۔": "Manage conversation lessons using Persian and Urdu sentences.",
+    "موضوع کا نام": "Topic Name",
+    "موضوع کی مختصر تفصیل": "Short Topic Description",
+    "نیا موضوع شامل کریں": "Add New Topic",
+    "Bundles": "Bundles",
+    "مکمل کورس پیکج اور رعایت کا انتظام کریں۔": "Manage complete course packages and discounts.",
+    "کورسز لوڈ ہو رہے ہیں...": "Loading courses...",
+    "کورسز حاصل کرنے میں مسئلہ: ": "Problem loading courses: ",
+    "ابھی کوئی کورس موجود نہیں۔": "There are no courses yet.",
+    "دورانیہ: ": "Duration: ",
+    "لیول: ": "Level: ",
+    "فیس: ": "Fee: ",
+    "براہ کرم پہلے کورس منتخب کریں۔": "Please select a course first.",
+    "ابواب حاصل کرنے میں مسئلہ: ": "Problem loading chapters: ",
+    "براہ کرم پہلے باب منتخب کریں۔": "Please select a chapter first.",
+    "اسباق حاصل کرنے میں مسئلہ: ": "Problem loading lessons: ",
+    "اس باب میں ابھی کوئی سبق موجود نہیں۔": "There are no lessons in this chapter yet.",
+    "سبق میں تبدیلی محفوظ کریں": "Save Lesson Changes",
+    "تبدیلی محفوظ کریں": "Save Changes",
+    "سبق کا موجودہ مواد فارم میں آ گیا ہے۔ اب آپ اس میں ترمیم کر سکتے ہیں۔": "The current lesson content is loaded. You can now edit it.",
+    "براہ کرم باب، سبق کا عنوان اور سبق نمبر درج کریں۔": "Please enter a chapter, lesson title, and lesson number.",
+    "سبق محفوظ ہو رہا ہے...": "Saving lesson...",
+    "مسئلہ: ": "Error: ",
+    "سبق میں تبدیلی کامیابی سے محفوظ ہوگئی۔": "Lesson changes saved successfully.",
+    "سبق کامیابی سے محفوظ ہوگیا۔": "Lesson saved successfully.",
+    "براہ کرم تمام ضروری معلومات درج کریں۔": "Please enter all required information.",
+    "کورس محفوظ ہو رہا ہے...": "Saving course...",
+    "کورس کامیابی سے شامل ہوگیا۔": "Course added successfully.",
+    "آپ Logout ہو گئے ہیں۔": "You have logged out.",
+    "Login ہو رہا ہے، انتظار کریں...": "Logging in, please wait...",
+    "Login میں مسئلہ: ": "Login problem: ",
+    "آپ کامیابی سے Login ہو گئے ہیں۔": "You have logged in successfully.",
+    "اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ": "Could not retrieve account information: ",
+    "نام، Email اور Password لازمی ہیں۔": "Name, email, and password are required.",
+    "اکاؤنٹ بنایا جا رہا ہے...": "Creating account...",
+    "رجسٹریشن کی درخواست کامیاب! اگر Email confirmation فعال ہے تو اپنے Email کی تصدیق کریں۔": "Registration request successful! If email confirmation is enabled, please confirm your email.",
+    "صفحہ ": "Page ",
+    " از ": " of ",
+    "درس ": "Lesson ",
+    "باب ": "Chapter "
+  };
+
+  let currentLanguage = "ur";
+
+  function translateValue(value) {
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    if (currentLanguage === "ur") return value;
+    if (Object.prototype.hasOwnProperty.call(translations, trimmed)) {
+      return value.replace(trimmed, translations[trimmed]);
+    }
+    return value;
+  }
+
+  function applyLanguage(language) {
+    currentLanguage = language;
+    const isEnglish = language === "en";
+    document.documentElement.lang = isEnglish ? "en" : "ur";
+    document.documentElement.dir = isEnglish ? "ltr" : "rtl";
+    document.body.dir = isEnglish ? "ltr" : "rtl";
+
+    document.querySelectorAll("#languageSwitcher button").forEach(button => {
+      button.classList.toggle("active",
+        (button.id === "langEn" && isEnglish) ||
+        (button.id === "langUr" && !isEnglish));
+    });
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement && node.parentElement.closest("#languageSwitcher")) continue;
+      if (node.parentElement && ["SCRIPT", "STYLE"].includes(node.parentElement.tagName)) continue;
+      node.nodeValue = translateValue(node.nodeValue);
+    }
+
+    document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el => {
+      if (!el.dataset.originalPlaceholder) el.dataset.originalPlaceholder = el.placeholder;
+      el.placeholder = isEnglish
+        ? (translations[el.dataset.originalPlaceholder] || el.dataset.originalPlaceholder)
+        : el.dataset.originalPlaceholder;
+    });
+  }
+
+  // Preserve original Urdu text nodes so switching back to Urdu is exact.
+  const originalText = new WeakMap();
+  function translateNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (!originalText.has(node)) originalText.set(node, node.nodeValue);
+      const original = originalText.get(node);
+      node.nodeValue = currentLanguage === "en"
+        ? (translations[original.trim()] ? original.replace(original.trim(), translations[original.trim()]) : original)
+        : original;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.closest && node.closest("#languageSwitcher")) return;
+      node.childNodes.forEach(translateNode);
+    }
+  }
+
+  function refreshAll() {
+    translateNode(document.body);
+    const isEnglish = currentLanguage === "en";
+    document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el => {
+      if (!el.dataset.originalPlaceholder) el.dataset.originalPlaceholder = el.placeholder;
+      const original = el.dataset.originalPlaceholder;
+      el.placeholder = isEnglish ? (translations[original] || original) : original;
+    });
+    document.documentElement.lang = isEnglish ? "en" : "ur";
+    document.documentElement.dir = isEnglish ? "ltr" : "rtl";
+    document.body.dir = isEnglish ? "ltr" : "rtl";
+    document.querySelectorAll("#languageSwitcher button").forEach(button => {
+      button.classList.toggle("active", button.id === (isEnglish ? "langEn" : "langUr"));
+    });
+  }
+
+  document.getElementById("langUr").addEventListener("click", () => {
+    currentLanguage = "ur";
+    localStorage.setItem("ctlp-language", "ur");
+    refreshAll();
+  });
+  document.getElementById("langEn").addEventListener("click", () => {
+    currentLanguage = "en";
+    localStorage.setItem("ctlp-language", "en");
+    refreshAll();
+  });
+
+  const observer = new MutationObserver(() => refreshAll());
+  observer.observe(document.body, { childList: true, subtree: true });
+  const savedLanguage = localStorage.getItem("ctlp-language") || "ur";
+  currentLanguage = savedLanguage;
+  refreshAll();
+})();
+</script>
+
 </body>
 </html>
 
