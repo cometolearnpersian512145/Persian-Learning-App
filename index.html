@@ -234,7 +234,7 @@ async function showPaymentForm({ accessType, targetId, targetTitle }) {
     if (method === 'Western Union') {
       details.innerHTML = '<strong>Western Union کے ذریعے ادائیگی</strong><br>وصول کنندہ کی تفصیلات حاصل کرنے کے لیے پہلے WhatsApp پر رابطہ کریں۔ اپنی طرف سے رقم بھیجنے سے پہلے نام اور دیگر تفصیلات کی تصدیق ضرور کریں۔' + whatsappLink(messageText, 'Western Union کی تفصیلات WhatsApp پر حاصل کریں');
     } else {
-      details.innerHTML = '<strong>International Bank Transfer</strong><br>بین الاقوامی ٹرانسفر کے لیے SWIFT اور Foreign Currency اکاؤنٹ کی تصدیق شدہ تفصیلات WhatsApp پر حاصل کریں۔ فی الحال مقامی PKR اکاؤنٹ کو USD وصولی کے لیے استعمال نہ کریں۔' + whatsappLink(messageText, 'بینک ٹرانسفر کی تفصیلات WhatsApp پر حاصل کریں');
+      details.innerHTML = '<strong>International Bank Transfer — Meezan Bank</strong><br><strong>بینک:</strong> Meezan Bank Limited<br><strong>اکاؤنٹ ہولڈر:</strong> Muhammad ASIF<br><strong>اکاؤنٹ نمبر:</strong> 01840109328879<br><strong>IBAN:</strong> PK08MEZN0001840109328879<br><strong>SWIFT/BIC:</strong> MEZNPKKA<br><small>بیرونِ ملک سے بھیجی گئی رقم بینک کے قواعد اور شرحِ تبادلہ کے مطابق PKR میں موصول ہو سکتی ہے۔ رقم بھیجنے سے پہلے اپنے بینک سے SWIFT، فیس اور وصولی کی شرائط کی تصدیق کر لیں۔</small>';
     }
   }
 
