@@ -12,7 +12,7 @@ main{max-width:480px;margin:25px auto;padding:15px}
 .card{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 12px #0001;margin-bottom:18px}
 input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
 button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;background:#176b50;color:white;font-size:16px}
-.logout-button{width:100%;display:block;padding:12px;margin-top:9px;margin-bottom:0;font-size:16px;min-width:0}
+.logout-button{width:calc(100% - 44px);display:block;box-sizing:content-box;padding:12px;margin:9px auto 0;font-size:16px;min-width:0}
 .note{text-align:center;line-height:1.8}
 #message{white-space:pre-wrap;text-align:center;margin-top:15px}
 
@@ -175,8 +175,9 @@ if (adminProfile.role === 'admin') {
     card.style.display = 'none';
   });
 
-  // Remove every previous student dashboard before creating exactly one.
+  // Remove every old student dashboard and any leftover student Logout button.
   document.querySelectorAll('#studentDashboard').forEach(item => item.remove());
+  document.querySelectorAll('#dashboardLogout').forEach(item => item.remove());
 
   const dashboard = document.createElement('div');
   dashboard.id = 'studentDashboard';
@@ -220,6 +221,10 @@ if (adminProfile.role === 'admin') {
   <div style="text-align:center;"><button type="button" id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
 `;
   document.querySelector('main').prepend(dashboard);
+  // Defensive cleanup: exactly one Student Logout button may exist.
+  document.querySelectorAll('#dashboardLogout').forEach((button, index) => {
+    if (index > 0) button.remove();
+  });
   dashboard.querySelector('#grammarBtn').addEventListener('click', () => {
   showStudentCourse(
     'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
@@ -233,7 +238,7 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
     'فارسی بول چال'
   );
 });
-document.getElementById('dashboardLogout').addEventListener('click', async () => {
+dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -249,7 +254,8 @@ document.getElementById('dashboardLogout').addEventListener('click', async () =>
 // STUDENT COURSE MODULES AND LESSONS
 
 async function showStudentCourse(courseId, courseName) {
-  const dashboard = document.querySelector('main > .card');
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard) return;
   
   dashboard.innerHTML = `
     <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
