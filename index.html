@@ -121,6 +121,7 @@ const { error } = await supabase.auth.signUp({
 });
 
 let loginRenderToken = 0;
+let activeStudentId = null;
 
 async function handleLogin(existingUser = null) {
   const currentRenderToken = ++loginRenderToken;
@@ -156,6 +157,7 @@ const { data: adminProfile, error: adminProfileError } = await supabase
   .single();
 
 if (currentRenderToken !== loginRenderToken) return;
+activeStudentId = data.user.id;
 
 if (adminProfileError) {
   message.textContent = 'اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
@@ -300,6 +302,58 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
   }
 
   courseMessage.textContent = 'اپنا باب منتخب کریں';
+
+  // Student learning progress for all published lessons in this course
+  const moduleIds = data.map(module => module.id);
+  const { data: courseLessons, error: courseLessonsError } = await supabase
+    .from('lessons')
+    .select('id')
+    .in('module_id', moduleIds)
+    .eq('is_published', true);
+
+  let completedLessonIds = new Set();
+  let totalCourseLessons = courseLessons ? courseLessons.length : 0;
+
+  if (courseLessonsError) {
+    courseMessage.textContent = 'اسباق کی پیش رفت حاصل نہیں ہو سکی: ' + courseLessonsError.message;
+  } else if (activeStudentId && totalCourseLessons > 0) {
+    const lessonIds = courseLessons.map(lesson => lesson.id);
+    const { data: progressRows, error: progressError } = await supabase
+      .from('lesson_progress')
+      .select('lesson_id')
+      .eq('student_id', activeStudentId)
+      .eq('completed', true)
+      .in('lesson_id', lessonIds);
+
+    if (progressError) {
+      courseMessage.textContent = 'Progress حاصل کرنے میں مسئلہ: ' + progressError.message;
+    } else {
+      completedLessonIds = new Set((progressRows || []).map(row => row.lesson_id));
+    }
+  }
+
+  const progressCard = document.createElement('div');
+  progressCard.className = 'card';
+  progressCard.style.cssText = 'margin:15px 0;padding:18px;border:1px solid #d8e4dc;';
+  progressCard.innerHTML = `
+    <h3>📈 میری تعلیمی پیش رفت</h3>
+    <p id="courseProgressText">مکمل اسباق: ${completedLessonIds.size} / ${totalCourseLessons}</p>
+    <div style="height:12px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
+      <div id="courseProgressBar" style="height:100%;width:${totalCourseLessons ? Math.round(completedLessonIds.size / totalCourseLessons * 100) : 0}%;background:#176b50;"></div>
+    </div>
+    <p id="courseProgressPercent">${totalCourseLessons ? Math.round(completedLessonIds.size / totalCourseLessons * 100) : 0}% مکمل</p>
+  `;
+  moduleList.appendChild(progressCard);
+
+  function refreshCourseProgress() {
+    const completed = completedLessonIds.size;
+    const percent = totalCourseLessons ? Math.round(completed / totalCourseLessons * 100) : 0;
+    progressCard.querySelector('#courseProgressText').textContent =
+      `مکمل اسباق: ${completed} / ${totalCourseLessons}`;
+    progressCard.querySelector('#courseProgressBar').style.width = percent + '%';
+    progressCard.querySelector('#courseProgressPercent').textContent = percent + '% مکمل';
+  }
+
 // کتاب کا تعارف — ابتدائی صفحات
 const bookIntro = document.createElement('div');
 bookIntro.style.cssText =
@@ -553,6 +607,47 @@ heading.textContent = chapterInfo
           openButton.title = 'یہ سبق خریداری کے بعد دستیاب ہوگا۔';
         }
 
+        const progressLabel = document.createElement('p');
+        progressLabel.textContent = completedLessonIds.has(lesson.id)
+          ? '✅ یہ سبق مکمل ہو چکا ہے۔'
+          : 'یہ سبق ابھی مکمل نہیں ہوا۔';
+
+        const completeButton = document.createElement('button');
+        completeButton.type = 'button';
+        completeButton.textContent = completedLessonIds.has(lesson.id)
+          ? 'سبق مکمل ہو گیا'
+          : 'سبق مکمل نشان زد کریں';
+        completeButton.disabled = completedLessonIds.has(lesson.id) || !lesson.is_free;
+        completeButton.style.background = '#28734f';
+        completeButton.onclick = async () => {
+          if (!activeStudentId) {
+            alert('براہ کرم دوبارہ Login کریں۔');
+            return;
+          }
+          completeButton.disabled = true;
+          completeButton.textContent = 'محفوظ ہو رہا ہے...';
+          const { error: saveProgressError } = await supabase
+            .from('lesson_progress')
+            .upsert({
+              student_id: activeStudentId,
+              lesson_id: lesson.id,
+              completed: true,
+              completed_at: new Date().toISOString()
+            }, { onConflict: 'student_id,lesson_id' });
+
+          if (saveProgressError) {
+            alert('پیش رفت محفوظ نہیں ہو سکی: ' + saveProgressError.message);
+            completeButton.disabled = false;
+            completeButton.textContent = 'سبق مکمل نشان زد کریں';
+            return;
+          }
+
+          completedLessonIds.add(lesson.id);
+          progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
+          completeButton.textContent = 'سبق مکمل ہو گیا';
+          refreshCourseProgress();
+        };
+
 openButton.onclick = async () => {
   if (!lesson.is_free) {
     alert('یہ سبق Paid ہے۔');
@@ -644,6 +739,8 @@ openButton.onclick = async () => {
         lessonCard.appendChild(title);
         lessonCard.appendChild(status);
         lessonCard.appendChild(openButton);
+        lessonCard.appendChild(progressLabel);
+        lessonCard.appendChild(completeButton);
         lessonArea.appendChild(lessonCard);
       });
     };
@@ -1023,6 +1120,49 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
   location.reload();
 });
+async function loadStudentProgressAdmin() {
+  const target = document.getElementById('studentProgressAdminList');
+  if (!target) return;
+  target.textContent = 'طلبہ کی پیش رفت لوڈ ہو رہی ہے...';
+
+  const { data: rows, error } = await supabase
+    .from('lesson_progress')
+    .select('student_id, lesson_id, completed_at')
+    .eq('completed', true)
+    .order('completed_at', { ascending: false });
+
+  if (error) {
+    target.textContent = 'پیش رفت حاصل کرنے میں مسئلہ: ' + error.message;
+    return;
+  }
+  if (!rows || rows.length === 0) {
+    target.textContent = 'ابھی کسی طالب علم نے سبق مکمل نشان زد نہیں کیا۔';
+    return;
+  }
+
+  const userIds = [...new Set(rows.map(row => row.student_id))];
+  const lessonIds = [...new Set(rows.map(row => row.lesson_id))];
+  const [{ data: profiles }, { data: lessons }] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, email').in('id', userIds),
+    supabase.from('lessons').select('id, title').in('id', lessonIds)
+  ]);
+
+  const profileMap = new Map((profiles || []).map(item => [item.id, item]));
+  const lessonMap = new Map((lessons || []).map(item => [item.id, item]));
+  target.innerHTML = '';
+  rows.forEach(row => {
+    const profile = profileMap.get(row.student_id);
+    const lesson = lessonMap.get(row.lesson_id);
+    const item = document.createElement('div');
+    item.className = 'card';
+    const date = row.completed_at ? new Date(row.completed_at).toLocaleString() : '';
+    item.textContent = `${profile?.full_name || profile?.email || row.student_id} — ${lesson?.title || 'سبق'} — ${date}`;
+    target.appendChild(item);
+  });
+}
+
+document.getElementById('loadStudentProgressAdminBtn').addEventListener('click', loadStudentProgressAdmin);
+
   // RESTORE LOGIN SESSION AFTER PAGE REFRESH
 (async function restoreLoginSession() {
   const { data: { session }, error } =
@@ -1144,6 +1284,13 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
 
 <h4>تمام اسباق</h4>
 <div id="lessonList"></div>
+
+  <div class="card">
+    <h3>طلبہ کی تعلیمی پیش رفت</h3>
+    <p>طلبہ کے مکمل کیے ہوئے اسباق کی فہرست دیکھیں۔</p>
+    <button id="loadStudentProgressAdminBtn" type="button">طلبہ کی Progress دیکھیں</button>
+    <div id="studentProgressAdminList"></div>
+  </div>
 
   <div class="card">
     <h3>Payments</h3>
