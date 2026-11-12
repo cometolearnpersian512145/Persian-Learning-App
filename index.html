@@ -393,7 +393,51 @@ bookIntro.appendChild(previousPage);
 bookIntro.appendChild(nextPage);
 
 moduleList.appendChild(bookIntro);
+// ادارے کا تعارف — صفحہ 103
+const instituteIntro = document.createElement('div');
+instituteIntro.style.cssText =
+  'padding:18px;margin:20px 0;border:1px solid #ddd;border-radius:14px;background:#fff;';
 
+const instituteTitle = document.createElement('h3');
+instituteTitle.textContent = '🏛️ ہمارے ادارے کا تعارف';
+
+const instituteButton = document.createElement('button');
+instituteButton.textContent = 'ادارے کا تعارف پڑھیں — مفت';
+
+const instituteImage = document.createElement('img');
+instituteImage.style.cssText =
+  'width:100%;max-width:700px;display:none;margin:15px auto;border-radius:8px;';
+
+const institutePageNumber = document.createElement('p');
+institutePageNumber.style.textAlign = 'center';
+
+instituteButton.onclick = async () => {
+  instituteButton.disabled = true;
+  instituteButton.textContent = 'صفحہ لوڈ ہو رہا ہے...';
+
+  const { data, error } = await supabase.storage
+    .from('persian book free')
+    .createSignedUrl('103.jpeg', 3600);
+
+  if (error || !data) {
+    institutePageNumber.textContent = 'صفحہ 103 ابھی اپ لوڈ نہیں ہوا۔';
+    instituteButton.disabled = false;
+    instituteButton.textContent = 'دوبارہ کوشش کریں';
+    return;
+  }
+
+  instituteImage.src = data.signedUrl;
+  instituteImage.style.display = 'block';
+  institutePageNumber.textContent = 'صفحہ 103';
+  instituteButton.style.display = 'none';
+};
+
+instituteIntro.appendChild(instituteTitle);
+instituteIntro.appendChild(instituteButton);
+instituteIntro.appendChild(instituteImage);
+instituteIntro.appendChild(institutePageNumber);
+
+moduleList.appendChild(instituteIntro);
 const prefaceButton = document.createElement('button');
 prefaceButton.textContent = 'کتاب کا تعارف و مقدمہ پڑھیں — مفت';
 prefaceButton.style.cssText =
