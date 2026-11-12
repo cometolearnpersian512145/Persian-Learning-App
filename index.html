@@ -12,7 +12,7 @@ main{max-width:480px;margin:25px auto;padding:15px}
 .card{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 12px #0001;margin-bottom:18px}
 input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
 button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;background:#176b50;color:white;font-size:16px}
-.logout-button{width:auto;display:inline-block;padding:7px 15px;margin:8px 0;font-size:14px;min-width:0}
+.logout-button{width:100%;display:block;padding:12px;margin-top:9px;margin-bottom:0;font-size:16px;min-width:0}
 .note{text-align:center;line-height:1.8}
 #message{white-space:pre-wrap;text-align:center;margin-top:15px}
 
@@ -120,7 +120,10 @@ const { error } = await supabase.auth.signUp({
     : 'رجسٹریشن کی درخواست کامیاب! اگر Email confirmation فعال ہے تو اپنے Email کی تصدیق کریں۔';
 });
 
+let loginRenderToken = 0;
+
 async function handleLogin(existingUser = null) {
+  const currentRenderToken = ++loginRenderToken;
   let data;
 
   if (existingUser) {
@@ -152,6 +155,8 @@ const { data: adminProfile, error: adminProfileError } = await supabase
   .eq('id', data.user.id)
   .single();
 
+if (currentRenderToken !== loginRenderToken) return;
+
 if (adminProfileError) {
   message.textContent = 'اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
   return;
@@ -170,8 +175,8 @@ if (adminProfile.role === 'admin') {
     card.style.display = 'none';
   });
 
-  // Remove an older dashboard first, so repeated login/session restoration never duplicates it.
-  document.getElementById('studentDashboard')?.remove();
+  // Remove every previous student dashboard before creating exactly one.
+  document.querySelectorAll('#studentDashboard').forEach(item => item.remove());
 
   const dashboard = document.createElement('div');
   dashboard.id = 'studentDashboard';
@@ -212,7 +217,7 @@ if (adminProfile.role === 'admin') {
 
   <hr>
 
-  <div style="text-align:center;"><button id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
+  <div style="text-align:center;"><button type="button" id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
 `;
   document.querySelector('main').prepend(dashboard);
   dashboard.querySelector('#grammarBtn').addEventListener('click', () => {
