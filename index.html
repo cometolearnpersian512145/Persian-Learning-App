@@ -728,8 +728,9 @@ openButton.onclick = async () => {
 
   content.appendChild(image);
   content.appendChild(pageText);
-  content.appendChild(prev);
+  // Show Next first, then Previous underneath.
   content.appendChild(next);
+  content.appendChild(prev);
 
   lessonCard.appendChild(content);
 
