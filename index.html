@@ -499,6 +499,30 @@ dashboard.querySelector('#dashboardLogout').addEventListener('click', async () =
 async function showStudentCourse(courseId, courseName) {
   const dashboard = document.getElementById('studentDashboard');
   if (!dashboard) return;
+
+  // Grammar folders and PDF purchase belong only to the Grammar course.
+  // Keep the Conversation course empty until its own lessons are added.
+  if (courseId === '947a9182-8328-4506-b2b0-50ada2b709fa') {
+    dashboard.innerHTML = `
+      <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
+        <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
+        <h3>${courseName}</h3>
+        <p>فارسی زبان سیکھنے کا اپنا سفر جاری رکھیں۔</p>
+      </div>
+      <div class="card" style="padding:22px;margin:18px 0;text-align:center;">
+        <h3>فارسی گفتگو</h3>
+        <p>اس کورس میں ابھی کوئی سبق موجود نہیں۔ اسباق جلد شامل کیے جائیں گے۔</p>
+      </div>
+      <button id="backToStudentDashboard" style="margin-top:20px;padding:12px 20px;border-radius:10px;">
+        ← واپس ڈیش بورڈ
+      </button>
+    `;
+    document.getElementById('backToStudentDashboard').onclick = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) await handleLogin(session.user);
+    };
+    return;
+  }
   
   dashboard.innerHTML = `
     <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
