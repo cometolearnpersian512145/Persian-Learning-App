@@ -129,7 +129,7 @@ function escapePaymentText(value) {
   }[char]));
 }
 
-async function showPaymentForm({ accessType, targetId, targetTitle }) {
+async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumber = null }) {
   const dashboard = document.getElementById('studentDashboard');
   if (!dashboard || !activeStudentId) return;
 
@@ -195,17 +195,20 @@ async function showPaymentForm({ accessType, targetId, targetTitle }) {
 
     if (countryCode === 'PK') {
       methodSelect.innerHTML = '<option value="JazzCash">JazzCash</option><option value="Easypaisa">Easypaisa</option><option value="Meezan Bank">Meezan Bank</option>';
-      currentPrice = pricing ? (accessType === 'course' ? pricing.course_price_pkr : pricing.lesson_price_pkr) : null;
+      const priceField = accessType === 'course' ? 'course_price_pkr' : accessType === 'full_book' ? 'book_price_pkr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_pkr` : 'lesson_price_pkr';
+      currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'PKR';
       showPakistanDetails();
     } else if (countryCode === 'IN') {
       methodSelect.innerHTML = '<option value="Google Pay">Google Pay</option>';
       details.innerHTML = '<strong>Google Pay نمبر:</strong> 9897400499<br><strong>اکاؤنٹ ہولڈر:</strong> Ali Jaffar Hashmi<br><small>ادائیگی سے پہلے وصول کنندہ کا نام ضرور چیک کریں۔</small>';
-      currentPrice = pricing ? (accessType === 'course' ? pricing.course_price_inr : pricing.lesson_price_inr) : null;
+      const priceField = accessType === 'course' ? 'course_price_inr' : accessType === 'full_book' ? 'book_price_inr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_inr` : 'lesson_price_inr';
+      currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'INR';
     } else {
       methodSelect.innerHTML = '<option value="International Bank Transfer">International Bank Transfer</option><option value="Western Union">Western Union</option>';
-      currentPrice = pricing ? (accessType === 'course' ? pricing.course_price_usd : pricing.lesson_price_usd) : null;
+      const priceField = accessType === 'course' ? 'course_price_usd' : accessType === 'full_book' ? 'book_price_usd' : accessType === 'chapter' ? `chapter${chapterNumber}_price_usd` : 'lesson_price_usd';
+      currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'USD';
       showInternationalDetails(countryName);
     }
@@ -399,6 +402,14 @@ if (adminProfile.role === 'admin') {
   </div>
 
   <div class="card">
+    <h3>📕 مکمل فارسی گرامر کتاب (PDF)</h3>
+    <p>مکمل کتاب کے 103 صفحات اور PDF ڈاؤن لوڈ کی سہولت حاصل کریں۔</p>
+    <button id="buyFullBookBtn" type="button">مکمل کتاب خریدیں — PDF ڈاؤن لوڈ</button>
+    <button id="downloadFullBookBtn" type="button" style="display:none;background:#176b50;">مکمل کتاب PDF ڈاؤن لوڈ کریں</button>
+    <p id="fullBookDownloadMessage"></p>
+  </div>
+
+  <div class="card">
     <h3>💳 فارسی گرامر کورس خریدیں</h3>
     <p>مکمل کورس یا اپنی پسند کا الگ Paid سبق خریدنے کے لیے یہاں جائیں۔</p>
     <button id="buyGrammarCourseBtn" type="button">مکمل گرامر کورس خریدیں</button>
@@ -438,6 +449,44 @@ dashboard.querySelector('#buyGrammarCourseBtn').addEventListener('click', () => 
     targetTitle: 'مکمل فارسی گرامر کورس'
   });
 });
+dashboard.querySelector('#buyFullBookBtn').addEventListener('click', () => {
+  showPaymentForm({ accessType: 'full_book', targetId: 'persian-grammar-book', targetTitle: 'مکمل فارسی گرامر کتاب (PDF)' });
+});
+
+// Check whether this student already owns the complete PDF.
+(async () => {
+  const { data: fullBookGrant } = await supabase
+    .from('student_access_grants')
+    .select('id')
+    .eq('student_id', activeStudentId)
+    .eq('access_type', 'full_book')
+    .limit(1);
+  if (fullBookGrant && fullBookGrant.length) {
+    const buyButton = dashboard.querySelector('#buyFullBookBtn');
+    const downloadButton = dashboard.querySelector('#downloadFullBookBtn');
+    if (buyButton) buyButton.style.display = 'none';
+    if (downloadButton) {
+      downloadButton.style.display = 'block';
+      downloadButton.onclick = async () => {
+        downloadButton.disabled = true;
+        const msg = dashboard.querySelector('#fullBookDownloadMessage');
+        msg.textContent = 'محفوظ PDF لنک تیار ہو رہا ہے...';
+        const { data, error } = await supabase.storage
+          .from('paid-book-pdfs')
+          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300, { download: true });
+        if (error || !data?.signedUrl) {
+          msg.textContent = 'PDF ڈاؤن لوڈ لنک نہیں بن سکا: ' + (error?.message || 'نامعلوم مسئلہ');
+          downloadButton.disabled = false;
+          return;
+        }
+        window.open(data.signedUrl, '_blank', 'noopener');
+        msg.textContent = 'PDF ڈاؤن لوڈ لنک 5 منٹ کے لیے فعال ہے۔';
+        downloadButton.disabled = false;
+      };
+    }
+  }
+})();
+
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
@@ -511,6 +560,8 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
   }
   const grantedLessonIds = new Set((accessRows || []).filter(row => row.access_type === 'lesson').map(row => row.target_id));
   const grantedCourseIds = new Set((accessRows || []).filter(row => row.access_type === 'course').map(row => row.target_id));
+  const grantedChapterIds = new Set((accessRows || []).filter(row => row.access_type === 'chapter').map(row => row.target_id));
+  const fullBookGrantActive = (accessRows || []).some(row => row.access_type === 'full_book');
   const courseGrantActive = grantedCourseIds.has(courseId);
 
   // Student learning progress for all published lessons in this course
@@ -772,6 +823,19 @@ heading.textContent = chapterInfo
     button.style.cssText =
       'padding:10px 18px;border-radius:9px;margin:10px 0;';
 
+    const chapterOwned = courseGrantActive || fullBookGrantActive || grantedChapterIds.has(module.id);
+    const chapterBuyButton = document.createElement('button');
+    chapterBuyButton.type = 'button';
+    chapterBuyButton.textContent = chapterOwned ? 'باب کی خریداری منظور شدہ' : `💳 یہ پورا باب خریدیں`;
+    chapterBuyButton.style.cssText = 'padding:10px 18px;border-radius:9px;margin:8px 0;background:#8a5b16;';
+    chapterBuyButton.disabled = chapterOwned;
+    chapterBuyButton.onclick = () => showPaymentForm({
+      accessType: 'chapter',
+      targetId: module.id,
+      chapterNumber: module.module_order,
+      targetTitle: `${chapterInfo?.title || module.title} — مکمل باب`
+    });
+
     button.onclick = async () => {
       lessonArea.innerHTML = '';
       lessonArea.textContent = 'اسباق لوڈ ہو رہے ہیں...';
@@ -808,7 +872,7 @@ heading.textContent = chapterInfo
         title.textContent =
           `درس ${lesson.lesson_order}: ${lesson.title}`;
 
-        const lessonHasAccess = lesson.is_free || courseGrantActive || grantedLessonIds.has(lesson.id);
+        const lessonHasAccess = lesson.is_free || courseGrantActive || fullBookGrantActive || grantedChapterIds.has(module.id) || grantedLessonIds.has(lesson.id);
         const status = document.createElement('p');
         status.textContent = lesson.is_free
           ? '🟢 FREE — مفت سبق'
@@ -966,6 +1030,7 @@ openButton.onclick = async () => {
 
     card.appendChild(heading);
     card.appendChild(button);
+    if (courseId === 'bba71536-3e37-4827-8f6e-f9e8d89aaff3') card.appendChild(chapterBuyButton);
     card.appendChild(lessonArea);
     moduleList.appendChild(card);
   });
@@ -1509,6 +1574,17 @@ async function loadPaymentAdmin() {
     document.getElementById('priceLessonINR').value = pricing.lesson_price_inr ?? '';
     document.getElementById('priceCourseUSD').value = pricing.course_price_usd ?? '';
     document.getElementById('priceLessonUSD').value = pricing.lesson_price_usd ?? '';
+    for (let n = 1; n <= 6; n++) {
+      for (const currency of ['pkr', 'inr', 'usd']) {
+        const field = `chapter${n}_price_${currency}`;
+        const input = document.getElementById('price_' + field);
+        if (input) input.value = pricing[field] ?? '';
+      }
+    }
+    for (const currency of ['pkr', 'inr', 'usd']) {
+      const input = document.getElementById('price_book_price_' + currency);
+      if (input) input.value = pricing['book_price_' + currency] ?? '';
+    }
   }
 
   const { data: requests, error } = await supabase
@@ -1538,7 +1614,7 @@ async function loadPaymentAdmin() {
     const heading = document.createElement('h4');
     heading.textContent = profile?.full_name || profile?.email || request.student_id;
     const info = document.createElement('p');
-    const targetLabel = request.access_type === 'course' ? 'مکمل کورس' : 'الگ سبق';
+    const targetLabel = request.access_type === 'course' ? 'مکمل کورس' : request.access_type === 'chapter' ? 'مکمل باب' : request.access_type === 'full_book' ? 'مکمل کتاب PDF' : 'الگ سبق';
     info.textContent = `${targetLabel} — ${request.country} — ${request.payment_method} — ${request.amount ?? ''} ${request.currency ?? ''} — ${request.status} — ${new Date(request.created_at).toLocaleString()}`;
     const reference = document.createElement('p');
     reference.textContent = 'Transaction Reference: ' + (request.transaction_reference || 'درج نہیں');
@@ -1629,6 +1705,17 @@ if (savePaymentPricingBtn) {
       lesson_price_usd: document.getElementById('priceLessonUSD').value === '' ? null : Number(document.getElementById('priceLessonUSD').value),
       updated_at: new Date().toISOString()
     };
+    for (let n = 1; n <= 6; n++) {
+      for (const currency of ['pkr', 'inr', 'usd']) {
+        const field = `chapter${n}_price_${currency}`;
+        const input = document.getElementById('price_' + field);
+        values[field] = !input || input.value === '' ? null : Number(input.value);
+      }
+    }
+    for (const currency of ['pkr', 'inr', 'usd']) {
+      const input = document.getElementById('price_book_price_' + currency);
+      values['book_price_' + currency] = !input || input.value === '' ? null : Number(input.value);
+    }
     if (Object.values(values).some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
       alert('قیمت صفر یا اس سے زیادہ درست عدد میں درج کریں۔');
       return;
@@ -1797,6 +1884,59 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <input id="priceCourseUSD" type="number" min="0" step="0.01" placeholder="بعد میں قیمت مقرر کریں">
     <label>باقی تمام ممالک — ایک الگ سبق (USD $)</label>
     <input id="priceLessonUSD" type="number" min="0" step="0.01" placeholder="بعد میں قیمت مقرر کریں">
+    <hr>
+    <h4>باب وار قیمتیں</h4>
+    <p>ہر باب کی الگ قیمت پاکستان PKR، بھارت INR اور دیگر ممالک USD میں درج کریں۔</p>
+    <h5>باب 1</h5>
+    <label>باب 1 — PKR</label>
+    <input id="price_chapter1_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 1 — INR</label>
+    <input id="price_chapter1_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 1 — USD</label>
+    <input id="price_chapter1_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <h5>باب 2</h5>
+    <label>باب 2 — PKR</label>
+    <input id="price_chapter2_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 2 — INR</label>
+    <input id="price_chapter2_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 2 — USD</label>
+    <input id="price_chapter2_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <h5>باب 3</h5>
+    <label>باب 3 — PKR</label>
+    <input id="price_chapter3_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 3 — INR</label>
+    <input id="price_chapter3_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 3 — USD</label>
+    <input id="price_chapter3_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <h5>باب 4</h5>
+    <label>باب 4 — PKR</label>
+    <input id="price_chapter4_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 4 — INR</label>
+    <input id="price_chapter4_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 4 — USD</label>
+    <input id="price_chapter4_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <h5>باب 5</h5>
+    <label>باب 5 — PKR</label>
+    <input id="price_chapter5_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 5 — INR</label>
+    <input id="price_chapter5_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 5 — USD</label>
+    <input id="price_chapter5_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <h5>باب 6</h5>
+    <label>باب 6 — PKR</label>
+    <input id="price_chapter6_price_pkr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 6 — INR</label>
+    <input id="price_chapter6_price_inr" type="number" min="0" step="1" placeholder="قیمت درج کریں">
+    <label>باب 6 — USD</label>
+    <input id="price_chapter6_price_usd" type="number" min="0" step="$0.01" placeholder="قیمت درج کریں">
+    <hr>
+    <h4>مکمل کتاب PDF کی قیمت</h4>
+    <label>پاکستان — مکمل کتاب (PKR)</label>
+    <input id="price_book_price_pkr" type="number" min="0" step="1">
+    <label>بھارت — مکمل کتاب (INR)</label>
+    <input id="price_book_price_inr" type="number" min="0" step="1">
+    <label>دیگر ممالک — مکمل کتاب (USD)</label>
+    <input id="price_book_price_usd" type="number" min="0" step="0.01">
     <button id="savePaymentPricingBtn" type="button">قیمتیں محفوظ کریں</button>
     <hr>
     <h4>طلبہ کی ادائیگیوں کی درخواستیں</h4>
