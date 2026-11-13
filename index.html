@@ -449,6 +449,12 @@ if (adminProfile.role === 'admin') {
 
   <hr>
 
+  <h3>💳 میری ادائیگی کی درخواستیں</h3>
+  <p>اپنی تمام خریداری کی درخواستوں اور ان کی منظوری کا Status یہاں دیکھیں۔</p>
+  <button id="myPaymentRequestsBtn" type="button">میری ادائیگی کی درخواستیں دیکھیں</button>
+
+  <hr>
+
   <h3>👤 میرا اکاؤنٹ</h3>
   <button id="profileBtn">میرا پروفائل</button>
 
@@ -474,6 +480,7 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
     'فارسی بول چال'
   );
 });
+dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showMyPaymentRequests);
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
@@ -485,6 +492,93 @@ dashboard.querySelector('#dashboardLogout').addEventListener('click', async () =
   location.reload();
 });
 
+}
+
+// STUDENT PAYMENT REQUEST HISTORY
+async function showMyPaymentRequests() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard || !activeStudentId) return;
+
+  dashboard.innerHTML = `
+    <div class="card">
+      <h2>💳 میری ادائیگی کی درخواستیں</h2>
+      <p>یہاں آپ کی تمام ادائیگی کی درخواستوں کا موجودہ Status دکھایا جائے گا۔</p>
+      <p id="myPaymentRequestsMessage">درخواستیں حاصل کی جا رہی ہیں...</p>
+      <div id="myPaymentRequestsList"></div>
+      <button id="paymentRequestsBackBtn" type="button" style="background:#555;">واپس ڈیش بورڈ</button>
+    </div>
+  `;
+
+  document.getElementById('paymentRequestsBackBtn').onclick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await handleLogin(session.user);
+  };
+
+  const statusMessage = document.getElementById('myPaymentRequestsMessage');
+  const list = document.getElementById('myPaymentRequestsList');
+  const { data: requests, error } = await supabase
+    .from('payment_requests')
+    .select('id, country, payment_method, amount, currency, transaction_reference, receipt_path, access_type, target_id, status, admin_note, created_at, reviewed_at')
+    .eq('student_id', activeStudentId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    statusMessage.textContent = 'درخواستیں حاصل نہیں ہو سکیں: ' + error.message + '۔ اگر یہ مسئلہ برقرار رہے تو Supabase میں طالب علم کو اپنی payment_requests دیکھنے کی اجازت (RLS SELECT policy) چیک کرنا ہوگی۔';
+    return;
+  }
+
+  if (!requests || requests.length === 0) {
+    statusMessage.textContent = 'آپ کی کوئی ادائیگی کی درخواست ابھی موجود نہیں۔';
+    return;
+  }
+
+  statusMessage.textContent = `آپ کی کل درخواستیں: ${requests.length}`;
+  list.innerHTML = '';
+
+  const statusInfo = {
+    pending: { label: 'زیرِ التوا — Admin کی منظوری کا انتظار', color: '#a66a00', background: '#fff4d6' },
+    approved: { label: 'منظور شدہ — خریدی گئی سہولت فعال ہے', color: '#176b50', background: '#e4f5ec' },
+    rejected: { label: 'مسترد — Admin سے رابطہ کریں', color: '#9b3030', background: '#fde8e8' }
+  };
+
+  for (const request of requests) {
+    const targetLabel = request.access_type === 'course' ? 'مکمل فارسی گرامر کورس'
+      : request.access_type === 'chapter' ? 'فارسی گرامر کا باب'
+      : request.access_type === 'full_book' ? 'مکمل فارسی PDF کتاب'
+      : 'الگ سبق';
+    const status = statusInfo[request.status] || { label: request.status || 'Status دستیاب نہیں', color: '#555', background: '#eee' };
+    const created = request.created_at ? new Date(request.created_at).toLocaleString('ur-PK') : 'دستیاب نہیں';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'border:1px solid #e2e8e4;box-shadow:none;margin:12px 0;padding:16px;';
+    card.innerHTML = `
+      <h3>${escapePaymentText(targetLabel)}</h3>
+      <p><strong>رقم:</strong> ${escapePaymentText(request.amount ?? '')} ${escapePaymentText(request.currency ?? '')}</p>
+      <p><strong>ملک:</strong> ${escapePaymentText(request.country ?? 'درج نہیں')}</p>
+      <p><strong>ادائیگی کا طریقہ:</strong> ${escapePaymentText(request.payment_method ?? 'درج نہیں')}</p>
+      <p><strong>Transaction Reference:</strong> ${escapePaymentText(request.transaction_reference || 'درج نہیں')}</p>
+      <p><strong>درخواست کی تاریخ:</strong> ${escapePaymentText(created)}</p>
+      <p style="padding:10px;border-radius:8px;background:${status.background};color:${status.color};font-weight:bold;">${escapePaymentText(status.label)}</p>
+      ${request.reviewed_at ? `<p><strong>فیصلے کی تاریخ:</strong> ${escapePaymentText(new Date(request.reviewed_at).toLocaleString('ur-PK'))}</p>` : ''}
+      ${request.admin_note ? `<p><strong>Admin کا نوٹ:</strong> ${escapePaymentText(request.admin_note)}</p>` : ''}
+      <div class="receiptLinkArea"></div>
+    `;
+
+    if (request.receipt_path) {
+      const { data: signed, error: signedError } = await supabase.storage
+        .from('payment-receipts').createSignedUrl(request.receipt_path, 600);
+      const receiptArea = card.querySelector('.receiptLinkArea');
+      if (!signedError && signed?.signedUrl) {
+        const receiptLink = document.createElement('a');
+        receiptLink.href = signed.signedUrl;
+        receiptLink.target = '_blank';
+        receiptLink.rel = 'noopener noreferrer';
+        receiptLink.textContent = 'اپنی اپ لوڈ کردہ رسید دیکھیں';
+        receiptArea.appendChild(receiptLink);
+      }
+    }
+    list.appendChild(card);
+  }
 }
 
 // STUDENT COURSE MODULES AND LESSONS
