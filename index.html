@@ -481,6 +481,8 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
   );
 });
 dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showMyPaymentRequests);
+// Show the student's latest reviewed payment decision on the dashboard.
+loadStudentPaymentNotice();
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
@@ -492,6 +494,51 @@ dashboard.querySelector('#dashboardLogout').addEventListener('click', async () =
   location.reload();
 });
 
+}
+
+// STUDENT PAYMENT STATUS NOTICE ON DASHBOARD
+async function loadStudentPaymentNotice() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard || !activeStudentId) return;
+
+  const { data: request, error } = await supabase
+    .from('payment_requests')
+    .select('status, access_type, amount, currency, admin_note, reviewed_at')
+    .eq('student_id', activeStudentId)
+    .in('status', ['approved', 'rejected'])
+    .not('reviewed_at', 'is', null)
+    .order('reviewed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !request) return;
+
+  const notice = document.createElement('div');
+  notice.className = 'card';
+  notice.style.cssText = 'margin:12px 0;padding:14px;border:1px solid #d8e5dc;box-shadow:none;';
+  const title = document.createElement('strong');
+  const detail = document.createElement('p');
+  detail.style.marginBottom = '0';
+
+  const itemName = request.access_type === 'full_book' ? 'مکمل فارسی PDF کتاب'
+    : request.access_type === 'course' ? 'مکمل فارسی گرامر کورس'
+    : request.access_type === 'chapter' ? 'فارسی گرامر کا باب'
+    : 'خریدی گئی سہولت';
+
+  if (request.status === 'approved') {
+    notice.style.background = '#eaf7ef';
+    title.textContent = '✓ آپ کی ادائیگی منظور ہو گئی ہے';
+    detail.textContent = `${itemName} کی رسائی فعال کر دی گئی ہے۔`;
+  } else {
+    notice.style.background = '#fff0f0';
+    title.textContent = 'آپ کی ادائیگی کی درخواست مسترد کر دی گئی ہے';
+    detail.textContent = request.admin_note || 'مزید معلومات کے لیے انتظامیہ سے رابطہ کریں۔';
+  }
+
+  notice.append(title, detail);
+  const paymentButton = dashboard.querySelector('#myPaymentRequestsBtn');
+  if (paymentButton?.parentElement) paymentButton.parentElement.insertBefore(notice, paymentButton);
+  else dashboard.prepend(notice);
 }
 
 // STUDENT PAYMENT REQUEST HISTORY
