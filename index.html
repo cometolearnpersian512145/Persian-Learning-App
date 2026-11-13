@@ -402,14 +402,6 @@ if (adminProfile.role === 'admin') {
   </div>
 
   <div class="card">
-    <h3>📕 مکمل فارسی گرامر کتاب (PDF)</h3>
-    <p>مکمل کتاب کے 103 صفحات اور PDF ڈاؤن لوڈ کی سہولت حاصل کریں۔</p>
-    <button id="buyFullBookBtn" type="button">مکمل کتاب خریدیں — PDF ڈاؤن لوڈ</button>
-    <button id="downloadFullBookBtn" type="button" style="display:none;background:#176b50;">مکمل کتاب PDF ڈاؤن لوڈ کریں</button>
-    <p id="fullBookDownloadMessage"></p>
-  </div>
-
-  <div class="card">
     <h3>💳 فارسی گرامر کورس خریدیں</h3>
     <p>مکمل کورس یا اپنی پسند کا الگ Paid سبق خریدنے کے لیے یہاں جائیں۔</p>
     <button id="buyGrammarCourseBtn" type="button">مکمل گرامر کورس خریدیں</button>
@@ -449,44 +441,6 @@ dashboard.querySelector('#buyGrammarCourseBtn').addEventListener('click', () => 
     targetTitle: 'مکمل فارسی گرامر کورس'
   });
 });
-dashboard.querySelector('#buyFullBookBtn').addEventListener('click', () => {
-  showPaymentForm({ accessType: 'full_book', targetId: 'persian-grammar-book', targetTitle: 'مکمل فارسی گرامر کتاب (PDF)' });
-});
-
-// Check whether this student already owns the complete PDF.
-(async () => {
-  const { data: fullBookGrant } = await supabase
-    .from('student_access_grants')
-    .select('id')
-    .eq('student_id', activeStudentId)
-    .eq('access_type', 'full_book')
-    .limit(1);
-  if (fullBookGrant && fullBookGrant.length) {
-    const buyButton = dashboard.querySelector('#buyFullBookBtn');
-    const downloadButton = dashboard.querySelector('#downloadFullBookBtn');
-    if (buyButton) buyButton.style.display = 'none';
-    if (downloadButton) {
-      downloadButton.style.display = 'block';
-      downloadButton.onclick = async () => {
-        downloadButton.disabled = true;
-        const msg = dashboard.querySelector('#fullBookDownloadMessage');
-        msg.textContent = 'محفوظ PDF لنک تیار ہو رہا ہے...';
-        const { data, error } = await supabase.storage
-          .from('paid-book-pdfs')
-          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300, { download: true });
-        if (error || !data?.signedUrl) {
-          msg.textContent = 'PDF ڈاؤن لوڈ لنک نہیں بن سکا: ' + (error?.message || 'نامعلوم مسئلہ');
-          downloadButton.disabled = false;
-          return;
-        }
-        window.open(data.signedUrl, '_blank', 'noopener');
-        msg.textContent = 'PDF ڈاؤن لوڈ لنک 5 منٹ کے لیے فعال ہے۔';
-        downloadButton.disabled = false;
-      };
-    }
-  }
-})();
-
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
 
@@ -590,6 +544,61 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
       courseMessage.textContent = 'Progress حاصل کرنے میں مسئلہ: ' + progressError.message;
     } else {
       completedLessonIds = new Set((progressRows || []).map(row => row.lesson_id));
+    }
+  }
+
+  // Full PDF is a separate product inside the Grammar Course; it never unlocks lessons.
+  if (courseId === 'bba71536-3e37-4827-8f6e-f9e8d89aaff3') {
+    const pdfCard = document.createElement('div');
+    pdfCard.className = 'card';
+    pdfCard.style.cssText = 'margin:15px 0;padding:18px;border:1px solid #d8e4dc;';
+    pdfCard.innerHTML = `
+      <h3>📕 مکمل فارسی گرامر کتاب (PDF)</h3>
+      <p>مکمل کتاب کی الگ خریداری — PDF Reader اور Download کی سہولت۔</p>
+      <button id="buyFullBookBtn" type="button">مکمل PDF کتاب خریدیں</button>
+      <button id="readFullBookBtn" type="button" style="display:none;background:#176b50;">مکمل کتاب PDF Reader میں پڑھیں</button>
+      <button id="downloadFullBookBtn" type="button" style="display:none;background:#176b50;">مکمل کتاب PDF ڈاؤن لوڈ کریں</button>
+      <p id="fullBookMessage"></p>
+    `;
+    moduleList.appendChild(pdfCard);
+    const buyPdfButton = pdfCard.querySelector('#buyFullBookBtn');
+    const readPdfButton = pdfCard.querySelector('#readFullBookBtn');
+    const downloadPdfButton = pdfCard.querySelector('#downloadFullBookBtn');
+    const pdfMessage = pdfCard.querySelector('#fullBookMessage');
+    if (fullBookGrantActive) {
+      buyPdfButton.style.display = 'none';
+      readPdfButton.style.display = 'block';
+      downloadPdfButton.style.display = 'block';
+      readPdfButton.onclick = async () => {
+        pdfMessage.textContent = 'PDF Reader تیار ہو رہا ہے...';
+        const { data: pdfData, error: pdfError } = await supabase.storage
+          .from('paid-book-pdfs')
+          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300);
+        if (pdfError || !pdfData?.signedUrl) {
+          pdfMessage.textContent = 'PDF Reader نہیں کھل سکا: ' + (pdfError?.message || 'نامعلوم مسئلہ');
+          return;
+        }
+        window.open(pdfData.signedUrl, '_blank', 'noopener');
+        pdfMessage.textContent = 'PDF لنک 5 منٹ کے لیے فعال ہے۔';
+      };
+      downloadPdfButton.onclick = async () => {
+        pdfMessage.textContent = 'PDF ڈاؤن لوڈ لنک تیار ہو رہا ہے...';
+        const { data: pdfData, error: pdfError } = await supabase.storage
+          .from('paid-book-pdfs')
+          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300, { download: true });
+        if (pdfError || !pdfData?.signedUrl) {
+          pdfMessage.textContent = 'PDF ڈاؤن لوڈ نہیں ہو سکی: ' + (pdfError?.message || 'نامعلوم مسئلہ');
+          return;
+        }
+        window.open(pdfData.signedUrl, '_blank', 'noopener');
+        pdfMessage.textContent = 'PDF ڈاؤن لوڈ لنک 5 منٹ کے لیے فعال ہے۔';
+      };
+    } else {
+      buyPdfButton.onclick = () => showPaymentForm({
+        accessType: 'full_book',
+        targetId: 'persian-grammar-book',
+        targetTitle: 'مکمل فارسی گرامر کتاب (PDF)'
+      });
     }
   }
 
@@ -823,7 +832,7 @@ heading.textContent = chapterInfo
     button.style.cssText =
       'padding:10px 18px;border-radius:9px;margin:10px 0;';
 
-    const chapterOwned = courseGrantActive || fullBookGrantActive || grantedChapterIds.has(module.id);
+    const chapterOwned = courseGrantActive || grantedChapterIds.has(module.id);
     const chapterBuyButton = document.createElement('button');
     chapterBuyButton.type = 'button';
     chapterBuyButton.textContent = chapterOwned ? 'باب کی خریداری منظور شدہ' : `💳 یہ پورا باب خریدیں`;
@@ -872,7 +881,7 @@ heading.textContent = chapterInfo
         title.textContent =
           `درس ${lesson.lesson_order}: ${lesson.title}`;
 
-        const lessonHasAccess = lesson.is_free || courseGrantActive || fullBookGrantActive || grantedChapterIds.has(module.id) || grantedLessonIds.has(lesson.id);
+        const lessonHasAccess = lesson.is_free || courseGrantActive || grantedChapterIds.has(module.id) || grantedLessonIds.has(lesson.id);
         const status = document.createElement('p');
         status.textContent = lesson.is_free
           ? '🟢 FREE — مفت سبق'
