@@ -159,6 +159,15 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
   const details = document.getElementById('paymentAccountDetails');
   const amountText = document.getElementById('paymentAmountText');
   const formMessage = document.getElementById('paymentFormMessage');
+  const submitPaymentButton = document.getElementById('submitPaymentRequestBtn');
+  const locationStatus = document.createElement('p');
+  locationStatus.style.cssText = 'color:#555;font-size:13px;margin:4px 0 10px;';
+  locationStatus.textContent = 'آپ کا ملک خودکار طور پر معلوم کیا جا رہا ہے...';
+  countrySelect.insertAdjacentElement('beforebegin', locationStatus);
+  countrySelect.disabled = true;
+  methodSelect.disabled = true;
+  submitPaymentButton.disabled = true;
+  let countryVerified = false;
   let currentPrice = null;
   let currentCurrency = null;
 
@@ -182,8 +191,6 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
     option.textContent = country.name;
     countrySelect.appendChild(option);
   }
-  countrySelect.value = 'PK';
-
   const whatsappUrl = (messageText) => `https://wa.me/923049788712?text=${encodeURIComponent(messageText)}`;
   const whatsappLink = (messageText, label = 'WhatsApp پر رابطہ کریں') =>
     `<a href="${whatsappUrl(messageText)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:10px;padding:9px 13px;background:#16834a;color:white;border-radius:8px;text-decoration:none;">${label}</a>`;
@@ -241,6 +248,8 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
     }
   }
 
+  // Detect the visitor's country from their public IP. The country is locked
+  // in the payment form so overseas visitors cannot casually select Pakistan/PKR.
   countrySelect.addEventListener('change', updatePaymentMethods);
   methodSelect.addEventListener('change', () => {
     if (countrySelect.value === 'PK') showPakistanDetails();
@@ -249,7 +258,29 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
       showInternationalDetails(selectedCountry?.name || countrySelect.value);
     }
   });
-  updatePaymentMethods();
+
+  try {
+    const geoResponse = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+    if (!geoResponse.ok) throw new Error('Country lookup service unavailable');
+    const geoData = await geoResponse.json();
+    const detectedCountry = String(geoData.country_code || '').toUpperCase();
+    if (!countryOptions.some(item => item.code === detectedCountry)) {
+      throw new Error('Country could not be identified');
+    }
+    countrySelect.value = detectedCountry;
+    countryVerified = true;
+    countrySelect.disabled = true;
+    methodSelect.disabled = false;
+    submitPaymentButton.disabled = false;
+    const detectedName = countryOptions.find(item => item.code === detectedCountry)?.name || detectedCountry;
+    locationStatus.textContent = `آپ کا ملک خودکار طور پر شناخت ہو گیا: ${detectedName}`;
+    updatePaymentMethods();
+  } catch (geoError) {
+    countryVerified = false;
+    locationStatus.textContent = 'آپ کا ملک خودکار طور پر معلوم نہیں ہو سکا۔ ادائیگی جاری رکھنے کے لیے WhatsApp پر رابطہ کریں۔';
+    details.innerHTML = whatsappLink('Assalam-o-Alaikum. My country could not be detected for Persian course payment. Please guide me.', 'ملک کی تصدیق کے لیے WhatsApp پر رابطہ کریں');
+    formMessage.textContent = 'ملک کی شناخت کے بغیر ادائیگی کی درخواست جمع نہیں ہو سکتی۔';
+  }
 
   document.getElementById('paymentBackBtn').onclick = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -257,8 +288,12 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
   };
 
   document.getElementById('submitPaymentRequestBtn').onclick = async () => {
-    const submitButton = document.getElementById('submitPaymentRequestBtn');
+    const submitButton = submitPaymentButton;
     const receipt = document.getElementById('paymentReceipt').files[0];
+    if (!countryVerified) {
+      formMessage.textContent = 'ملک کی خودکار تصدیق مکمل نہیں ہوئی؛ براہ کرم WhatsApp پر رابطہ کریں۔';
+      return;
+    }
     if (pricingError) {
       formMessage.textContent = 'قیمتوں کی معلومات حاصل نہیں ہو سکیں: ' + pricingError.message;
       return;
@@ -401,11 +436,6 @@ if (adminProfile.role === 'admin') {
     <button id="completeCourseBtn">کورس کھولیں</button>
   </div>
 
-  <div class="card">
-    <h3>💳 فارسی گرامر کورس خریدیں</h3>
-    <p>مکمل کورس یا اپنی پسند کا الگ Paid سبق خریدنے کے لیے یہاں جائیں۔</p>
-    <button id="buyGrammarCourseBtn" type="button">مکمل گرامر کورس خریدیں</button>
-  </div>
 
   <hr>
 
@@ -433,13 +463,6 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
     '947a9182-8328-4506-b2b0-50ada2b709fa',
     'فارسی بول چال'
   );
-});
-dashboard.querySelector('#buyGrammarCourseBtn').addEventListener('click', () => {
-  showPaymentForm({
-    accessType: 'course',
-    targetId: 'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
-    targetTitle: 'مکمل فارسی گرامر کورس'
-  });
 });
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
   const { error } = await supabase.auth.signOut();
@@ -481,6 +504,11 @@ async function showStudentCourse(courseId, courseName) {
     </div>
     <div id="grammarLessonsFolder" style="display:none;">
       <button id="backToGrammarFolders1" type="button" style="margin:8px 0;">← واپس دونوں فولڈرز</button>
+      <div class="card" style="margin:12px 0;padding:14px;">
+        <h3>💳 مکمل فارسی گرامر کورس</h3>
+        <p>تمام چھ ابواب اور ان کے اسباق ایک ساتھ خریدیں۔</p>
+        <button id="buyCompleteGrammarInsideFolder" type="button">مکمل گرامر کورس خریدیں</button>
+      </div>
       <div id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</div>
       <div id="studentModuleList"></div>
     </div>
@@ -525,6 +553,11 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
   };
   document.getElementById('backToGrammarFolders1').onclick = showGrammarFolders;
   document.getElementById('backToGrammarFolders2').onclick = showGrammarFolders;
+  document.getElementById('buyCompleteGrammarInsideFolder').onclick = () => showPaymentForm({
+    accessType: 'course',
+    targetId: 'bba71536-3e37-4827-8f6e-f9e8d89aaff3',
+    targetTitle: 'مکمل فارسی گرامر کورس'
+  });
 
   const { data, error } = await supabase
     .from('modules')
