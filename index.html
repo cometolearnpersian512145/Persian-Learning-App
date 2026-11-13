@@ -467,8 +467,27 @@ async function showStudentCourse(courseId, courseName) {
       <p>فارسی زبان سیکھنے کا اپنا سفر جاری رکھیں۔</p>
     </div>
 
-    <div id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</div>
-    <div id="studentModuleList"></div>
+    <div id="grammarFolderChooser" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0;">
+      <div class="card" style="padding:18px;">
+        <h3>📚 First Read & Buy Grammar Book</h3>
+        <p>مفت تعارف، پھر ترتیب سے چھ ابواب اور ان کے مفت و Paid اسباق۔</p>
+        <button id="openGrammarLessonsFolder" type="button">فولڈر کھولیں</button>
+      </div>
+      <div class="card" style="padding:18px;">
+        <h3>📕 Complete Persian PDF Book</h3>
+        <p>مکمل فارسی گرامر کتاب کا الگ PDF Reader اور Download۔</p>
+        <button id="openGrammarPdfFolder" type="button">PDF فولڈر کھولیں</button>
+      </div>
+    </div>
+    <div id="grammarLessonsFolder" style="display:none;">
+      <button id="backToGrammarFolders1" type="button" style="margin:8px 0;">← واپس دونوں فولڈرز</button>
+      <div id="studentCourseMessage">ابواب لوڈ ہو رہے ہیں...</div>
+      <div id="studentModuleList"></div>
+    </div>
+    <div id="grammarPdfFolder" style="display:none;">
+      <button id="backToGrammarFolders2" type="button" style="margin:8px 0;">← واپس دونوں فولڈرز</button>
+      <div id="studentPdfFolderContent"></div>
+    </div>
 
     <button id="backToStudentDashboard"
       style="margin-top:20px;padding:12px 20px;border-radius:10px;">
@@ -485,6 +504,27 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
 };
   const moduleList = document.getElementById('studentModuleList');
   const courseMessage = document.getElementById('studentCourseMessage');
+  const folderChooser = document.getElementById('grammarFolderChooser');
+  const lessonsFolder = document.getElementById('grammarLessonsFolder');
+  const pdfFolder = document.getElementById('grammarPdfFolder');
+  const pdfFolderContent = document.getElementById('studentPdfFolderContent');
+  const showGrammarFolders = () => {
+    folderChooser.style.display = 'grid';
+    lessonsFolder.style.display = 'none';
+    pdfFolder.style.display = 'none';
+  };
+  document.getElementById('openGrammarLessonsFolder').onclick = () => {
+    folderChooser.style.display = 'none';
+    lessonsFolder.style.display = 'block';
+    pdfFolder.style.display = 'none';
+  };
+  document.getElementById('openGrammarPdfFolder').onclick = () => {
+    folderChooser.style.display = 'none';
+    lessonsFolder.style.display = 'none';
+    pdfFolder.style.display = 'block';
+  };
+  document.getElementById('backToGrammarFolders1').onclick = showGrammarFolders;
+  document.getElementById('backToGrammarFolders2').onclick = showGrammarFolders;
 
   const { data, error } = await supabase
     .from('modules')
@@ -560,7 +600,7 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
       <button id="downloadFullBookBtn" type="button" style="display:none;background:#176b50;">مکمل کتاب PDF ڈاؤن لوڈ کریں</button>
       <p id="fullBookMessage"></p>
     `;
-    moduleList.appendChild(pdfCard);
+    pdfFolderContent.appendChild(pdfCard);
     const buyPdfButton = pdfCard.querySelector('#buyFullBookBtn');
     const readPdfButton = pdfCard.querySelector('#readFullBookBtn');
     const downloadPdfButton = pdfCard.querySelector('#downloadFullBookBtn');
