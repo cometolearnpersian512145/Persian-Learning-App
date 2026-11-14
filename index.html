@@ -367,7 +367,8 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
 }
 
 // LIVE CLASSES: STUDENT REGISTRATION
-const classDayOptions = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const classDayOptions = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const classDayLabels = {Monday:'پیر',Tuesday:'منگل',Wednesday:'بدھ',Thursday:'جمعرات',Friday:'جمعہ'};
 function classFeeFor(country, mode) {
   if (mode === 'physical') return { amount: 2000, currency: 'PKR' };
   if (mode === 'individual') return country === 'Pakistan' ? {amount:5000,currency:'PKR'} : country === 'India' ? {amount:5000,currency:'INR'} : {amount:100,currency:'USD'};
@@ -386,6 +387,7 @@ async function showClassRegistrationForm() {
       <h2>🎓 کلاس رجسٹریشن فارم</h2>
       <p>تمام کلاسز کا مکمل دورانیہ پانچ ماہ ہے۔ ہر ماہ کے لیے پیشگی درخواست دی جاسکتی ہے۔</p>
       <label class="form-field">ملک<select id="classCountry">${registrationCountryOptions()}</select></label>
+      <label class="form-field">WhatsApp نمبر (ملکی کوڈ سمیت، لازمی)<input id="classWhatsappNumber" type="tel" inputmode="tel" autocomplete="tel" placeholder="مثلاً +923001234567" required><small>اکیڈمی اسی نمبر پر آپ سے رابطہ کرے گی۔ نمبر درست اور فعال لکھیں۔</small></label>
       <label class="form-field" id="otherCountryWrap" style="display:none;">ملک کا نام<input id="otherCountryName" placeholder="اپنے ملک کا نام لکھیں"></label>
       <label class="form-field">کورس منتخب کریں<select id="classCourse"><option value="">کورس منتخب کریں</option><option value="conversation">فارسی گفتگو (Conversation)</option><option value="grammar">بنیادی فارسی گرامر (Basic Persian Grammar)</option></select></label>
       <label class="form-field">کلاس کی قسم<select id="classMode"><option value="">کلاس منتخب کریں</option><option value="group">آن لائن گروپ کلاس</option><option value="individual">انفرادی آن لائن کلاس</option><option value="physical">کراچی فزیکل کلاس</option></select></label>
@@ -393,7 +395,12 @@ async function showClassRegistrationForm() {
       <label class="form-field">کس مہینے سے کلاس شروع کرنا چاہتے ہیں؟<select id="classMonth"><option value="">مہینہ منتخب کریں</option>${['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'].map((m,i)=>`<option value="${i+1}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('')}</select></label>
       <div id="classFeePreview" class="registration-card">ملک اور کلاس منتخب کرنے کے بعد ماہانہ فیس ظاہر ہوگی۔</div>
       <div id="individualDaysWrap" style="display:none;">
-        <label class="form-field">اپنی پسند کے تین دن منتخب کریں<select id="individualDays" multiple size="7">${classDayOptions.map(d=>`<option value="${d}">${d}</option>`).join('')}</select></label>
+        <div class="form-field"><strong>اپنی پسند کے تین دن منتخب کریں (زیادہ سے زیادہ 3)</strong>
+          <div id="individualDayChoices" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:10px;">
+            ${classDayOptions.map(d=>`<label class="individual-day-option" style="display:inline-flex;align-items:center;gap:7px;border:1px solid #aaa;border-radius:9px;padding:10px 13px;cursor:pointer;background:#f7f7f7;color:#222;"><input type="checkbox" class="individual-day-checkbox" value="${d}" style="width:17px;height:17px;accent-color:#16834a;"> <span>${classDayLabels[d]} (${d})</span></label>`).join('')}
+          </div>
+          <div id="selectedIndividualDays" class="registration-card" style="margin-top:10px;">منتخب دن: ابھی کوئی دن منتخب نہیں کیا گیا۔</div>
+        </div>
         <label class="form-field">اپنی پسند کا وقت<input id="individualTime" placeholder="مثلاً شام 7 بجے تا 8 بجے"></label>
         <small>آپ اکیڈمی کے ساتھ مشورے سے دن اور وقت طے کرسکتے ہیں۔</small>
       </div>
@@ -415,6 +422,20 @@ async function showClassRegistrationForm() {
   const otherWrap=document.getElementById('otherCountryWrap'), feePreview=document.getElementById('classFeePreview');
   const individualWrap=document.getElementById('individualDaysWrap'), scheduleInfo=document.getElementById('classScheduleInfo');
   const demoInfo=document.getElementById('demoRuleInfo');
+  const selectedDaysBox=document.getElementById('selectedIndividualDays');
+  function getSelectedIndividualDays(){
+    return Array.from(document.querySelectorAll('.individual-day-checkbox:checked')).map(input=>input.value);
+  }
+  document.querySelectorAll('.individual-day-checkbox').forEach(input=>{
+    input.addEventListener('change',()=>{
+      const selected=getSelectedIndividualDays();
+      if(selected.length>3){input.checked=false;}
+      const days=getSelectedIndividualDays();
+      selectedDaysBox.textContent=days.length
+        ? 'منتخب دن: '+days.map(d=>classDayLabels[d]+' ('+d+')').join('، ')
+        : 'منتخب دن: ابھی کوئی دن منتخب نہیں کیا گیا۔';
+    });
+  });
   const paymentTimingEl=document.getElementById('classPaymentTiming');
   const paymentDetailsWrap=document.getElementById('registrationPaymentDetailsWrap');
   const paymentMethodEl=document.getElementById('classPaymentMethod');
@@ -476,17 +497,20 @@ async function showClassRegistrationForm() {
     const course=document.getElementById('classCourse').value, mode=modeEl.value;
     const year=Number(document.getElementById('classYear').value), month=Number(document.getElementById('classMonth').value);
     const timing=document.getElementById('classPaymentTiming').value, msg=document.getElementById('classRegistrationMessage');
-    if(!country||!course||!mode||!month||!timing){msg.textContent='براہ کرم تمام لازمی معلومات مکمل کریں۔';return;}
+    const whatsappNumber=document.getElementById('classWhatsappNumber').value.trim();
+    const whatsappDigits=whatsappNumber.replace(/[^0-9]/g,'');
+    if(!country||!course||!mode||!month||!timing||!whatsappNumber){msg.textContent='براہ کرم تمام لازمی معلومات مکمل کریں، بشمول WhatsApp نمبر۔';return;}
+    if(whatsappDigits.length<8||whatsappDigits.length>15){msg.textContent='براہ کرم درست WhatsApp نمبر ملکی کوڈ سمیت درج کریں، مثلاً +923001234567۔';return;}
     if(mode==='physical'&&country!=='Pakistan'){msg.textContent='کراچی فزیکل کلاس صرف پاکستان کے طلبہ کے لیے ہے۔';return;}
     let days=[]; let preferredTime=null;
     if(mode==='individual'){
-      days=Array.from(document.getElementById('individualDays').selectedOptions).map(o=>o.value);
+      days=getSelectedIndividualDays();
       preferredTime=document.getElementById('individualTime').value.trim()||null;
       if(days.length!==3){msg.textContent='انفرادی کلاس کے لیے ہفتے کے بالکل تین دن منتخب کریں۔';return;}
     }
     const fee=classFeeFor(country,mode), requiredDemo=mode==='group'?3:mode==='individual'?2:null;
     const btn=document.getElementById('submitClassRegistrationBtn');btn.disabled=true;msg.textContent='درخواست محفوظ ہو رہی ہے...';
-    const {error}=await supabase.from('class_registrations').insert({student_id:activeStudentId,country,course_type:course,class_mode:mode,enrollment_year:year,enrollment_month:month,payment_timing:timing,preferred_days:days,preferred_time:preferredTime,monthly_fee:fee.amount,currency:fee.currency,demo_classes_required:requiredDemo,demo_classes_completed:0,status:'pending',payment_status:'unpaid'});
+    const {error}=await supabase.from('class_registrations').insert({student_id:activeStudentId,country,whatsapp_number:whatsappNumber,course_type:course,class_mode:mode,enrollment_year:year,enrollment_month:month,payment_timing:timing,preferred_days:days,preferred_time:preferredTime,monthly_fee:fee.amount,currency:fee.currency,demo_classes_required:requiredDemo,demo_classes_completed:0,status:'pending',payment_status:'unpaid'});
     if(error){msg.textContent='درخواست محفوظ نہیں ہو سکی: '+error.message+'۔ پہلے Supabase میں Class Registration SQL چلائیں۔';btn.disabled=false;return;}
     msg.textContent='آپ کی رجسٹریشن درخواست کامیابی سے جمع ہوگئی ہے۔ اکیڈمی کی منظوری اور شیڈول کی اطلاع آپ کو ایپ میں ملے گی۔';btn.textContent='درخواست جمع ہوگئی';
   };
@@ -1973,7 +1997,8 @@ async function loadClassRegistrationsAdmin(){
  if(!rows?.length){msg.textContent='ابھی کوئی کلاس رجسٹریشن موصول نہیں ہوئی۔';list.innerHTML='';return;}
  const ids=[...new Set(rows.map(x=>x.student_id))];const {data:profiles}=await supabase.from('profiles').select('id,full_name,email,whatsapp').in('id',ids);const pmap=new Map((profiles||[]).map(x=>[x.id,x]));list.innerHTML='';
  const monthNames=['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'];
- for(const r of rows){const p=pmap.get(r.student_id)||{};const card=document.createElement('div');card.className='card registration-card';const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;card.innerHTML=`<h4>${escapePaymentText(p.full_name||p.email||r.student_id)}</h4><p>${escapePaymentText(course)} — ${escapePaymentText(mode)} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>ملک: ${escapePaymentText(r.country)} | فیس: ${r.monthly_fee} ${escapePaymentText(r.currency)} | ادائیگی کا وقت: ${escapePaymentText(r.payment_timing)}</p><p>WhatsApp: ${escapePaymentText(p.whatsapp||'درج نہیں')}</p><p>طالب علم کے منتخب دن: ${escapePaymentText((r.preferred_days||[]).join(', ')||'اکیڈمی مقرر کرے گی')} | وقت: ${escapePaymentText(r.preferred_time||'طے ہونا باقی')}</p><label class="form-field">درخواست کا Status<select class="reg-status"><option value="pending">زیرِ التوا</option><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label><label class="form-field">ڈیمو کلاسز مکمل<input class="reg-demo-done" type="number" min="0" value="${r.demo_classes_completed||0}"></label><label class="form-field">ڈیمو کلاسز درکار<input class="reg-demo-total" type="number" min="0" value="${r.demo_classes_required??''}" placeholder="فزیکل کے لیے تعداد درج کریں"></label><label class="form-field">ادائیگی کا Status<select class="reg-payment"><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select></label><label class="form-field">کلاس کا شیڈول / برانچ کی تفصیل<textarea class="reg-schedule" rows="3" placeholder="گروپ کا وقت، فزیکل برانچ/پتہ، یا انفرادی کلاس کا طے شدہ شیڈول"></textarea></label><label class="form-field">اکیڈمی کا نوٹ<textarea class="reg-note" rows="2"></textarea></label><button type="button" class="save-reg-btn">تبدیلیاں محفوظ کریں</button>`;
+ for(const r of rows){const p=pmap.get(r.student_id)||{};const card=document.createElement('div');card.className='card registration-card';const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;const studentWhatsapp=r.whatsapp_number||p.whatsapp||'';const waDigits=studentWhatsapp.replace(/[^0-9]/g,'');const waContact=waDigits?`<a href="https://wa.me/${waDigits}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 6px;padding:8px 12px;background:#16834a;color:white;border-radius:7px;text-decoration:none;">WhatsApp پر رابطہ کریں</a><button type="button" class="copy-reg-wa" style="margin:5px 6px;">نمبر کاپی کریں</button>`:'<span style="color:#b45309;">WhatsApp نمبر درج نہیں</span>';card.innerHTML=`<h4>${escapePaymentText(p.full_name||p.email||r.student_id)}</h4><p>${escapePaymentText(course)} — ${escapePaymentText(mode)} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>ملک: ${escapePaymentText(r.country)} | فیس: ${r.monthly_fee} ${escapePaymentText(r.currency)} | ادائیگی کا وقت: ${escapePaymentText(r.payment_timing)}</p><p><strong>طالب علم کا WhatsApp:</strong> ${escapePaymentText(studentWhatsapp||'درج نہیں')}</p>${waContact}<p>طالب علم کے منتخب دن: ${escapePaymentText((r.preferred_days||[]).join(', ')||'اکیڈمی مقرر کرے گی')} | وقت: ${escapePaymentText(r.preferred_time||'طے ہونا باقی')}</p><label class="form-field">درخواست کا Status<select class="reg-status"><option value="pending">زیرِ التوا</option><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label><label class="form-field">ڈیمو کلاسز مکمل<input class="reg-demo-done" type="number" min="0" value="${r.demo_classes_completed||0}"></label><label class="form-field">ڈیمو کلاسز درکار<input class="reg-demo-total" type="number" min="0" value="${r.demo_classes_required??''}" placeholder="فزیکل کے لیے تعداد درج کریں"></label><label class="form-field">ادائیگی کا Status<select class="reg-payment"><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select></label><label class="form-field">کلاس کا شیڈول / برانچ کی تفصیل<textarea class="reg-schedule" rows="3" placeholder="گروپ کا وقت، فزیکل برانچ/پتہ، یا انفرادی کلاس کا طے شدہ شیڈول"></textarea></label><label class="form-field">اکیڈمی کا نوٹ<textarea class="reg-note" rows="2"></textarea></label><button type="button" class="save-reg-btn">تبدیلیاں محفوظ کریں</button>`;
+ card.querySelector('.copy-reg-wa')?.addEventListener('click',()=>{if(studentWhatsapp&&navigator.clipboard?.writeText){navigator.clipboard.writeText(studentWhatsapp).then(()=>alert('WhatsApp نمبر کاپی ہوگیا۔'));}else{alert('نمبر: '+studentWhatsapp);}});
  card.querySelector('.reg-status').value=r.status||'pending';card.querySelector('.reg-payment').value=r.payment_status||'unpaid';card.querySelector('.reg-demo-total').value=r.demo_classes_required??'';card.querySelector('.reg-schedule').value=r.schedule_details||'';card.querySelector('.reg-note').value=r.admin_note||'';
  card.querySelector('.save-reg-btn').onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;const total=card.querySelector('.reg-demo-total').value;const update={status:card.querySelector('.reg-status').value,demo_classes_completed:Number(card.querySelector('.reg-demo-done').value||0),demo_classes_required:total===''?null:Number(total),payment_status:card.querySelector('.reg-payment').value,schedule_details:card.querySelector('.reg-schedule').value.trim()||null,admin_note:card.querySelector('.reg-note').value.trim()||null,updated_at:new Date().toISOString()};const {error:updateError}=await supabase.from('class_registrations').update(update).eq('id',r.id);if(updateError){alert('تبدیلیاں محفوظ نہیں ہوئیں: '+updateError.message);btn.disabled=false;return;}alert('رجسٹریشن کی تفصیلات محفوظ ہوگئیں۔');btn.disabled=false;};list.appendChild(card);
  }
