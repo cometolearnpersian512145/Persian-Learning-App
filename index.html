@@ -2139,7 +2139,15 @@ function renderClassRegistrationsAdmin(){
  const selectedGroup=grouped.get(adminClassRegSelectedCategoryKey);
  const search=(document.getElementById('classRegSearch')?.value||'').trim().toLowerCase();
  const statusFilter=document.getElementById('classRegStatusFilter')?.value||'all';
- const filtered=selectedGroup.rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||'';const haystack=[r.student_name,p.full_name,r.father_name,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter);});
+ const countryEl=document.getElementById('classRegCountryFilter');
+ const yearEl=document.getElementById('classRegYearFilter');
+ const countryFilter=countryEl?.value||'all';
+ const monthFilter=document.getElementById('classRegMonthFilter')?.value||'all';
+ const yearFilter=yearEl?.value||'all';
+ const paymentFilter=document.getElementById('classRegPaymentFilter')?.value||'all';
+ if(countryEl){const keep=countryEl.value;const countries=[...new Set(selectedGroup.rows.map(r=>(r.country||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));countryEl.innerHTML='<option value="all">تمام ممالک</option>'+countries.map(c=>`<option value="${escapePaymentText(c)}">${escapePaymentText(c)}</option>`).join('');countryEl.value=countries.includes(keep)?keep:'all';}
+ if(yearEl){const keep=yearEl.value;const years=[...new Set(selectedGroup.rows.map(r=>String(r.enrollment_year||'')).filter(y=>y&&y!=='undefined'))].sort((a,b)=>Number(b)-Number(a));yearEl.innerHTML='<option value="all">تمام سال</option>'+years.map(y=>`<option value="${escapePaymentText(y)}">${escapePaymentText(y)}</option>`).join('');yearEl.value=years.includes(keep)?keep:'all';}
+ const filtered=selectedGroup.rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||'';const haystack=[r.student_name,p.full_name,r.father_name,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter)&&(countryFilter==='all'||(r.country||'')===countryFilter)&&(monthFilter==='all'||String(r.enrollment_month||'')===monthFilter)&&(yearFilter==='all'||String(r.enrollment_year||'')===yearFilter)&&(paymentFilter==='all'||(r.payment_status||'unpaid')===paymentFilter);});
  adminClassRegFilteredRows=filtered;
  if(studentNav){studentNav.innerHTML='';filtered.forEach((r,i)=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const name=r.student_name||p.full_name||'طالب علم';const father=r.father_name||'ولدیت درج نہیں';const month=`${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;const statusText={pending:'زیرِ التوا',approved:'منظور',rejected:'مسترد'}[r.status]||r.status;const b=document.createElement('button');b.type='button';b.className='reg-student-button';b.textContent=`${name} ولد ${father} — ${month} — ${statusText}`;b.addEventListener('click',()=>{adminClassRegSelectedIndex=i;showClassRegView('detail');renderClassRegistrationsAdmin();});studentNav.appendChild(b);});}
  if(!filtered.length){list.innerHTML='';if(counter)counter.textContent='کوئی درخواست منتخب نہیں';if(prev)prev.disabled=true;if(next)next.disabled=true;msg.textContent='اس کورس میں منتخب تلاش یا Status کے مطابق کوئی درخواست نہیں ملی۔';showClassRegView('students');return;}
@@ -2232,7 +2240,7 @@ document.getElementById('adminClassRegPrev')?.addEventListener('click',()=>{admi
 document.getElementById('adminClassRegNext')?.addEventListener('click',()=>{adminClassRegSelectedIndex=Math.min(adminClassRegFilteredRows.length-1,adminClassRegSelectedIndex+1);renderClassRegistrationsAdmin();});
 document.getElementById('classRegBackToCourses')?.addEventListener('click',()=>{adminClassRegSelectedCategoryKey=null;showClassRegView('courses');});
 document.getElementById('classRegBackToStudents')?.addEventListener('click',()=>{showClassRegView('students');});
-['classRegSearch','classRegStatusFilter'].forEach(id=>{const control=document.getElementById(id);control?.addEventListener(id==='classRegSearch'?'input':'change',()=>{adminClassRegSelectedIndex=0;showClassRegView('students');renderClassRegistrationsAdmin();});});
+['classRegSearch','classRegStatusFilter','classRegCountryFilter','classRegMonthFilter','classRegYearFilter','classRegPaymentFilter'].forEach(id=>{const control=document.getElementById(id);control?.addEventListener(id==='classRegSearch'?'input':'change',()=>{adminClassRegSelectedIndex=0;showClassRegView('students');renderClassRegistrationsAdmin();});});
 
 async function loadPaymentAdmin() {
   const list = document.getElementById('adminPaymentRequestsList');
@@ -2643,6 +2651,20 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <label class="form-field">درخواست کی حالت
       <select id="classRegStatusFilter"><option value="all">تمام درخواستیں</option><option value="pending">زیرِ التوا</option><option value="approved">منظور شدہ</option><option value="rejected">مسترد شدہ</option></select>
     </label>
+    <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+      <label class="form-field">ملک کے مطابق
+        <select id="classRegCountryFilter"><option value="all">تمام ممالک</option></select>
+      </label>
+      <label class="form-field">داخلے کا مہینہ
+        <select id="classRegMonthFilter"><option value="all">تمام مہینے</option><option value="1">جنوری</option><option value="2">فروری</option><option value="3">مارچ</option><option value="4">اپریل</option><option value="5">مئی</option><option value="6">جون</option><option value="7">جولائی</option><option value="8">اگست</option><option value="9">ستمبر</option><option value="10">اکتوبر</option><option value="11">نومبر</option><option value="12">دسمبر</option></select>
+      </label>
+      <label class="form-field">داخلے کا سال
+        <select id="classRegYearFilter"><option value="all">تمام سال</option></select>
+      </label>
+      <label class="form-field">فیس کی حالت
+        <select id="classRegPaymentFilter"><option value="all">تمام ادائیگیاں</option><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select>
+      </label>
+    </div>
     <div id="adminClassRegStudentNav" class="reg-student-list"></div>
   </section>
   <section id="classRegDetailView" hidden>
