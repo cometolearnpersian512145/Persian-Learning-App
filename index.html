@@ -15,6 +15,10 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .logout-button{width:calc(100% - 44px);display:block;box-sizing:content-box;padding:12px;margin:9px auto 0;font-size:16px;min-width:0}
 .note{text-align:center;line-height:1.8}
 #message{white-space:pre-wrap;text-align:center;margin-top:15px}
+.form-field{display:block;margin:12px 0;font-weight:600}
+.form-field input,.form-field select,.form-field textarea{display:block;width:100%;box-sizing:border-box;padding:11px;margin-top:6px;border:1px solid #cbd5cf;border-radius:7px;font-size:15px;background:white}
+.registration-card{border:1px solid #dce7df;box-shadow:none;padding:16px;margin:12px 0}
+.registration-status{padding:8px 12px;border-radius:8px;background:#f1f4f2;margin:8px 0}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -362,6 +366,99 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
   };
 }
 
+// LIVE CLASSES: STUDENT REGISTRATION
+const classDayOptions = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+function classFeeFor(country, mode) {
+  if (mode === 'physical') return { amount: 2000, currency: 'PKR' };
+  if (mode === 'individual') return country === 'Pakistan' ? {amount:5000,currency:'PKR'} : country === 'India' ? {amount:5000,currency:'INR'} : {amount:100,currency:'USD'};
+  return country === 'Pakistan' ? {amount:2000,currency:'PKR'} : country === 'India' ? {amount:2000,currency:'INR'} : {amount:30,currency:'USD'};
+}
+function registrationCountryOptions() {
+  return '<option value="">ملک منتخب کریں</option><option value="Pakistan">Pakistan</option><option value="India">India</option><option value="Other">Other country</option>';
+}
+async function showClassRegistrationForm() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard || !activeStudentId) return;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  dashboard.innerHTML = `
+    <div class="card">
+      <h2>🎓 کلاس رجسٹریشن فارم</h2>
+      <p>تمام کلاسز کا مکمل دورانیہ پانچ ماہ ہے۔ ہر ماہ کے لیے پیشگی درخواست دی جاسکتی ہے۔</p>
+      <label class="form-field">ملک<select id="classCountry">${registrationCountryOptions()}</select></label>
+      <label class="form-field" id="otherCountryWrap" style="display:none;">ملک کا نام<input id="otherCountryName" placeholder="اپنے ملک کا نام لکھیں"></label>
+      <label class="form-field">کورس منتخب کریں<select id="classCourse"><option value="">کورس منتخب کریں</option><option value="conversation">فارسی گفتگو (Conversation)</option><option value="grammar">بنیادی فارسی گرامر (Basic Persian Grammar)</option></select></label>
+      <label class="form-field">کلاس کی قسم<select id="classMode"><option value="">کلاس منتخب کریں</option><option value="group">آن لائن گروپ کلاس</option><option value="individual">انفرادی آن لائن کلاس</option><option value="physical">کراچی فزیکل کلاس</option></select></label>
+      <label class="form-field">رجسٹریشن کا سال<select id="classYear">${Array.from({length:3},(_,i)=>`<option value="${currentYear+i}">${currentYear+i}</option>`).join('')}</select></label>
+      <label class="form-field">کس مہینے سے کلاس شروع کرنا چاہتے ہیں؟<select id="classMonth"><option value="">مہینہ منتخب کریں</option>${['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'].map((m,i)=>`<option value="${i+1}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('')}</select></label>
+      <div id="classFeePreview" class="registration-card">ملک اور کلاس منتخب کرنے کے بعد ماہانہ فیس ظاہر ہوگی۔</div>
+      <div id="individualDaysWrap" style="display:none;">
+        <label class="form-field">اپنی پسند کے تین دن منتخب کریں<select id="individualDays" multiple size="7">${classDayOptions.map(d=>`<option value="${d}">${d}</option>`).join('')}</select></label>
+        <label class="form-field">اپنی پسند کا وقت<input id="individualTime" placeholder="مثلاً شام 7 بجے تا 8 بجے"></label>
+        <small>آپ اکیڈمی کے ساتھ مشورے سے دن اور وقت طے کرسکتے ہیں۔</small>
+      </div>
+      <div id="classScheduleInfo" class="registration-card" style="display:none;"></div>
+      <label class="form-field">فیس کب ادا کریں گے؟<select id="classPaymentTiming"><option value="">منتخب کریں</option><option value="after_demo">ڈیمو کلاسز کے بعد</option><option value="advance">پیشگی ادائیگی</option></select></label>
+      <p id="demoRuleInfo" class="note"></p>
+      <button id="submitClassRegistrationBtn" type="button">رجسٹریشن کی درخواست جمع کریں</button>
+      <p id="classRegistrationMessage"></p>
+      <button id="classRegistrationBackBtn" type="button" style="background:#555;">واپس ڈیش بورڈ</button>
+    </div>`;
+  const countryEl=document.getElementById('classCountry'), modeEl=document.getElementById('classMode');
+  const otherWrap=document.getElementById('otherCountryWrap'), feePreview=document.getElementById('classFeePreview');
+  const individualWrap=document.getElementById('individualDaysWrap'), scheduleInfo=document.getElementById('classScheduleInfo');
+  const demoInfo=document.getElementById('demoRuleInfo');
+  function updateClassRegistrationPreview(){
+    const country=countryEl.value==='Other'?'Other':countryEl.value, mode=modeEl.value;
+    otherWrap.style.display=country==='Other'?'block':'none';
+    if(mode==='physical' && country && country!=='Pakistan'){
+      modeEl.value=''; feePreview.textContent='کراچی فزیکل کلاس صرف پاکستان کے طلبہ کے لیے دستیاب ہے۔'; return;
+    }
+    individualWrap.style.display=mode==='individual'?'block':'none';
+    scheduleInfo.style.display=mode==='group'||mode==='physical'?'block':'none';
+    if(mode==='group') scheduleInfo.textContent='گروپ کلاسز پیر تا جمعہ ہوں گی۔ کلاس کا وقت اکیڈمی مقرر کرے گی۔';
+    else if(mode==='physical') scheduleInfo.textContent='کراچی فزیکل کلاسز ہفتہ اور اتوار ہوں گی۔ برانچ اور وقت اکیڈمی کی طرف سے بتایا جائے گا۔';
+    if(mode==='group') demoInfo.textContent='گروپ کلاس: ادائیگی سے پہلے 3 ڈیمو کلاسز۔';
+    else if(mode==='individual') demoInfo.textContent='انفرادی کلاس: ادائیگی سے پہلے 2 ڈیمو کلاسز۔';
+    else if(mode==='physical') demoInfo.textContent='فزیکل کلاس کے ڈیمو کی تفصیل اکیڈمی آپ کو فراہم کرے گی۔';
+    else demoInfo.textContent='';
+    if(country && mode){const f=classFeeFor(country,mode);feePreview.innerHTML=`<strong>ماہانہ فیس:</strong> ${f.amount.toLocaleString()} ${f.currency}<br><strong>کورس کا دورانیہ:</strong> 5 ماہ`;} else feePreview.textContent='ملک اور کلاس منتخب کرنے کے بعد ماہانہ فیس ظاہر ہوگی۔';
+  }
+  countryEl.addEventListener('change',updateClassRegistrationPreview); modeEl.addEventListener('change',updateClassRegistrationPreview);
+  document.getElementById('classRegistrationBackBtn').onclick=async()=>{const {data:{session}}=await supabase.auth.getSession();if(session?.user)await handleLogin(session.user);};
+  document.getElementById('submitClassRegistrationBtn').onclick=async()=>{
+    const country=countryEl.value==='Other'?document.getElementById('otherCountryName').value.trim():countryEl.value;
+    const course=document.getElementById('classCourse').value, mode=modeEl.value;
+    const year=Number(document.getElementById('classYear').value), month=Number(document.getElementById('classMonth').value);
+    const timing=document.getElementById('classPaymentTiming').value, msg=document.getElementById('classRegistrationMessage');
+    if(!country||!course||!mode||!month||!timing){msg.textContent='براہ کرم تمام لازمی معلومات مکمل کریں۔';return;}
+    if(mode==='physical'&&country!=='Pakistan'){msg.textContent='کراچی فزیکل کلاس صرف پاکستان کے طلبہ کے لیے ہے۔';return;}
+    let days=[]; let preferredTime=null;
+    if(mode==='individual'){
+      days=Array.from(document.getElementById('individualDays').selectedOptions).map(o=>o.value);
+      preferredTime=document.getElementById('individualTime').value.trim()||null;
+      if(days.length!==3){msg.textContent='انفرادی کلاس کے لیے ہفتے کے بالکل تین دن منتخب کریں۔';return;}
+    }
+    const fee=classFeeFor(country,mode), requiredDemo=mode==='group'?3:mode==='individual'?2:null;
+    const btn=document.getElementById('submitClassRegistrationBtn');btn.disabled=true;msg.textContent='درخواست محفوظ ہو رہی ہے...';
+    const {error}=await supabase.from('class_registrations').insert({student_id:activeStudentId,country,course_type:course,class_mode:mode,enrollment_year:year,enrollment_month:month,payment_timing:timing,preferred_days:days,preferred_time:preferredTime,monthly_fee:fee.amount,currency:fee.currency,demo_classes_required:requiredDemo,demo_classes_completed:0,status:'pending',payment_status:'unpaid'});
+    if(error){msg.textContent='درخواست محفوظ نہیں ہو سکی: '+error.message+'۔ پہلے Supabase میں Class Registration SQL چلائیں۔';btn.disabled=false;return;}
+    msg.textContent='آپ کی رجسٹریشن درخواست کامیابی سے جمع ہوگئی ہے۔ اکیڈمی کی منظوری اور شیڈول کی اطلاع آپ کو ایپ میں ملے گی۔';btn.textContent='درخواست جمع ہوگئی';
+  };
+}
+async function showMyClassRegistrations(){
+  const dashboard=document.getElementById('studentDashboard');if(!dashboard||!activeStudentId)return;
+  dashboard.innerHTML='<div class="card"><h2>میری کلاس رجسٹریشنز</h2><p id="myClassRegMsg">ریکارڈ لوڈ ہو رہا ہے...</p><div id="myClassRegList"></div><button id="myClassRegBack" type="button" style="background:#555;">واپس ڈیش بورڈ</button></div>';
+  document.getElementById('myClassRegBack').onclick=async()=>{const {data:{session}}=await supabase.auth.getSession();if(session?.user)await handleLogin(session.user);};
+  const msg=document.getElementById('myClassRegMsg'),list=document.getElementById('myClassRegList');
+  const {data,error}=await supabase.from('class_registrations').select('*').eq('student_id',activeStudentId).order('created_at',{ascending:false});
+  if(error){msg.textContent='ریکارڈ حاصل نہیں ہو سکا: '+error.message;return;}
+  if(!data?.length){msg.textContent='آپ نے ابھی کوئی کلاس رجسٹریشن نہیں بھیجی۔';return;}
+  msg.textContent=`کل درخواستیں: ${data.length}`;
+  const months=['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'];
+  for(const r of data){const card=document.createElement('div');card.className='card registration-card';const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;card.innerHTML=`<h3>${escapePaymentText(course)} — ${escapePaymentText(mode)}</h3><p>مہینہ: ${months[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>ماہانہ فیس: ${Number(r.monthly_fee).toLocaleString()} ${escapePaymentText(r.currency)}</p><p>درخواست: ${escapePaymentText(r.status)} | ادائیگی: ${escapePaymentText(r.payment_status)}</p>${r.demo_classes_required!==null?`<p>ڈیمو کلاسز: ${r.demo_classes_completed||0} / ${r.demo_classes_required}</p>`:''}${r.schedule_details?`<p><strong>اکیڈمی کا شیڈول:</strong> ${escapePaymentText(r.schedule_details)}</p>`:''}${r.admin_note?`<p><strong>اکیڈمی کا نوٹ:</strong> ${escapePaymentText(r.admin_note)}</p>`:''}`;list.appendChild(card);}
+}
+
 async function handleLogin(existingUser = null) {
   const currentRenderToken = ++loginRenderToken;
   let data;
@@ -411,6 +508,7 @@ if (adminProfile.role === 'admin') {
   document.getElementById('adminPanel').style.display = 'block';
   loadCourses();
   loadPaymentAdmin();
+  loadClassRegistrationsAdmin();
   return;
 }
   document.querySelectorAll('main > .card').forEach(card => {
@@ -449,6 +547,13 @@ if (adminProfile.role === 'admin') {
 
   <hr>
 
+  <h3>🎓 Live Classes & Registration</h3>
+  <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے رجسٹریشن کریں اور اپنی درخواست کا اسٹیٹس دیکھیں۔</p>
+  <button id="classRegistrationBtn" type="button">کلاس کے لیے رجسٹریشن کریں</button>
+  <button id="myClassRegistrationsBtn" type="button" style="background:#345b75;">میری کلاس رجسٹریشنز</button>
+
+  <hr>
+
   <h3>💳 میری ادائیگی کی درخواستیں</h3>
   <p>اپنی تمام خریداری کی درخواستوں اور ان کی منظوری کا Status یہاں دیکھیں۔</p>
   <button id="myPaymentRequestsBtn" type="button">میری ادائیگی کی درخواستیں دیکھیں</button>
@@ -481,6 +586,8 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
   );
 });
 dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showMyPaymentRequests);
+dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showClassRegistrationForm);
+dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
 // Show the student's latest reviewed payment decision on the dashboard.
 loadStudentPaymentNotice();
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
@@ -1812,6 +1919,23 @@ async function loadStudentProgressAdmin() {
 
 document.getElementById('loadStudentProgressAdminBtn').addEventListener('click', loadStudentProgressAdmin);
 
+// ADMIN: REVIEW CLASS REGISTRATIONS
+async function loadClassRegistrationsAdmin(){
+ const list=document.getElementById('adminClassRegList'),msg=document.getElementById('adminClassRegMessage');if(!list||!msg)return;
+ msg.textContent='رجسٹریشنز لوڈ ہو رہی ہیں...';
+ const {data:rows,error}=await supabase.from('class_registrations').select('*').order('created_at',{ascending:false});
+ if(error){msg.textContent='رجسٹریشنز حاصل نہیں ہو سکیں: '+error.message+'۔ پہلے Supabase میں Class Registration SQL چلائیں۔';return;}
+ if(!rows?.length){msg.textContent='ابھی کوئی کلاس رجسٹریشن موصول نہیں ہوئی۔';list.innerHTML='';return;}
+ const ids=[...new Set(rows.map(x=>x.student_id))];const {data:profiles}=await supabase.from('profiles').select('id,full_name,email,whatsapp').in('id',ids);const pmap=new Map((profiles||[]).map(x=>[x.id,x]));list.innerHTML='';
+ const monthNames=['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'];
+ for(const r of rows){const p=pmap.get(r.student_id)||{};const card=document.createElement('div');card.className='card registration-card';const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;card.innerHTML=`<h4>${escapePaymentText(p.full_name||p.email||r.student_id)}</h4><p>${escapePaymentText(course)} — ${escapePaymentText(mode)} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>ملک: ${escapePaymentText(r.country)} | فیس: ${r.monthly_fee} ${escapePaymentText(r.currency)} | ادائیگی کا وقت: ${escapePaymentText(r.payment_timing)}</p><p>WhatsApp: ${escapePaymentText(p.whatsapp||'درج نہیں')}</p><p>طالب علم کے منتخب دن: ${escapePaymentText((r.preferred_days||[]).join(', ')||'اکیڈمی مقرر کرے گی')} | وقت: ${escapePaymentText(r.preferred_time||'طے ہونا باقی')}</p><label class="form-field">درخواست کا Status<select class="reg-status"><option value="pending">زیرِ التوا</option><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label><label class="form-field">ڈیمو کلاسز مکمل<input class="reg-demo-done" type="number" min="0" value="${r.demo_classes_completed||0}"></label><label class="form-field">ڈیمو کلاسز درکار<input class="reg-demo-total" type="number" min="0" value="${r.demo_classes_required??''}" placeholder="فزیکل کے لیے تعداد درج کریں"></label><label class="form-field">ادائیگی کا Status<select class="reg-payment"><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select></label><label class="form-field">کلاس کا شیڈول / برانچ کی تفصیل<textarea class="reg-schedule" rows="3" placeholder="گروپ کا وقت، فزیکل برانچ/پتہ، یا انفرادی کلاس کا طے شدہ شیڈول"></textarea></label><label class="form-field">اکیڈمی کا نوٹ<textarea class="reg-note" rows="2"></textarea></label><button type="button" class="save-reg-btn">تبدیلیاں محفوظ کریں</button>`;
+ card.querySelector('.reg-status').value=r.status||'pending';card.querySelector('.reg-payment').value=r.payment_status||'unpaid';card.querySelector('.reg-demo-total').value=r.demo_classes_required??'';card.querySelector('.reg-schedule').value=r.schedule_details||'';card.querySelector('.reg-note').value=r.admin_note||'';
+ card.querySelector('.save-reg-btn').onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;const total=card.querySelector('.reg-demo-total').value;const update={status:card.querySelector('.reg-status').value,demo_classes_completed:Number(card.querySelector('.reg-demo-done').value||0),demo_classes_required:total===''?null:Number(total),payment_status:card.querySelector('.reg-payment').value,schedule_details:card.querySelector('.reg-schedule').value.trim()||null,admin_note:card.querySelector('.reg-note').value.trim()||null,updated_at:new Date().toISOString()};const {error:updateError}=await supabase.from('class_registrations').update(update).eq('id',r.id);if(updateError){alert('تبدیلیاں محفوظ نہیں ہوئیں: '+updateError.message);btn.disabled=false;return;}alert('رجسٹریشن کی تفصیلات محفوظ ہوگئیں۔');btn.disabled=false;};list.appendChild(card);
+ }
+ msg.textContent=`کل کلاس رجسٹریشنز: ${rows.length}`;
+}
+document.getElementById('refreshClassRegistrationsBtn')?.addEventListener('click',loadClassRegistrationsAdmin);
+
 async function loadPaymentAdmin() {
   const list = document.getElementById('adminPaymentRequestsList');
   const status = document.getElementById('adminPaymentMessage');
@@ -2201,6 +2325,15 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <p id="adminPaymentMessage"></p>
     <div id="adminPaymentRequestsList"></div>
   </div>
+<!-- CLASS REGISTRATION ADMIN -->
+<div class="card">
+  <h3>🎓 کلاس رجسٹریشنز کا انتظام</h3>
+  <p>طلبہ کی درخواستیں، ڈیمو کلاسز، ماہانہ فیس، شیڈول اور منظوری یہاں منظم کریں۔ گروپ کلاس پیر تا جمعہ، فزیکل ہفتہ و اتوار، انفرادی ہفتے میں تین دن۔</p>
+  <button id="refreshClassRegistrationsBtn" type="button">رجسٹریشنز تازہ کریں</button>
+  <p id="adminClassRegMessage"></p>
+  <div id="adminClassRegList"></div>
+</div>
+
 <!-- CONVERSATION TOPICS -->
 <div class="card">
   <h3>فارسی گفتگو کے موضوعات</h3>
