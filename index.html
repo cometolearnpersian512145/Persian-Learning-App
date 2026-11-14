@@ -2475,6 +2475,19 @@ if (savePaymentPricingBtn) {
   });
 }
 
+const adminPaymentsToggle = document.getElementById('adminPaymentsToggle');
+const adminPaymentsDetails = document.getElementById('adminPaymentsDetails');
+if (adminPaymentsToggle && adminPaymentsDetails) {
+  adminPaymentsToggle.addEventListener('click', () => {
+    const willOpen = adminPaymentsDetails.hidden;
+    adminPaymentsDetails.hidden = !willOpen;
+    adminPaymentsToggle.setAttribute('aria-expanded', String(willOpen));
+    adminPaymentsToggle.textContent = willOpen
+      ? '💳 ادائیگیوں کا انتظام (Payments) — تفصیلات بند کریں'
+      : '💳 ادائیگیوں کا انتظام (Payments) — تفصیلات کھولیں';
+  });
+}
+
 document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', loadPaymentAdmin);
 
   // RESTORE LOGIN SESSION AFTER PAGE REFRESH
@@ -2620,8 +2633,9 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <div id="studentProgressAdminList"></div>
   </div>
 
-  <div class="card">
-    <h3>💳 ادائیگیوں کا انتظام (Payments)</h3>
+  <div class="card" id="adminPaymentsSection">
+    <button id="adminPaymentsToggle" type="button" aria-expanded="false" aria-controls="adminPaymentsDetails" style="width:100%;text-align:right;">💳 ادائیگیوں کا انتظام (Payments) — تفصیلات کھولیں</button>
+    <div id="adminPaymentsDetails" hidden>
     <p>پاکستان، بھارت اور باقی دنیا کے لیے مکمل کورس اور الگ سبق کی قیمتیں یہاں مقرر یا تبدیل کریں۔ پاکستان PKR، بھارت INR اور باقی ممالک USD میں ادائیگی کریں گے۔ خالی قیمت مقرر نہ ہونے کا مطلب ہے۔</p>
     <label>پاکستان — مکمل گرامر کورس (PKR)</label>
     <input id="priceCoursePKR" type="number" min="0" step="1" placeholder="بعد میں قیمت مقرر کریں">
@@ -2694,6 +2708,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <button id="refreshPaymentRequestsBtn" type="button">درخواستیں تازہ کریں</button>
     <p id="adminPaymentMessage"></p>
     <div id="adminPaymentRequestsList"></div>
+    </div>
   </div>
 <!-- CLASS REGISTRATION ADMIN -->
 <div class="card">
