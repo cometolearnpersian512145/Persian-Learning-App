@@ -2112,6 +2112,12 @@ function renderStudentManagementDashboard(){
  const rejected=rows.filter(r=>r.status==='rejected');
  const outstanding=approved.filter(r=>Number(r.amount_paid||0)<Number(r.monthly_fee||0));
  const completed=approved.filter(r=>Number(r.classes_total||0)>0&&Number(r.classes_completed||0)>=Number(r.classes_total||0));
+ const today=new Date();
+ const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ const soonDate=new Date(today.getTime()-today.getTimezoneOffset()*60000+7*86400000).toISOString().slice(0,10);
+ const followups=rows.filter(r=>r.follow_up_date).sort((a,b)=>String(a.follow_up_date).localeCompare(String(b.follow_up_date)));
+ const dueFollowups=followups.filter(r=>r.follow_up_date<=localDate);
+ const upcomingFollowups=followups.filter(r=>r.follow_up_date>localDate&&r.follow_up_date<=soonDate);
  const stats=[
   ['کل درخواست گزار طلبہ',unique(rows)],
   ['فعال / منظور شدہ طلبہ',unique(approved)],
@@ -2119,10 +2125,37 @@ function renderStudentManagementDashboard(){
   ['فیس باقی والے طلبہ',unique(outstanding)],
   ['کورس مکمل کرنے والے',unique(completed)],
   ['مسترد درخواستیں',rejected.length],
+  ['آج یا تاخیر شدہ Follow-up',dueFollowups.length],
+  ['اگلے 7 دن کے Follow-up',upcomingFollowups.length],
   ['محفوظ شدہ رجسٹریشنز',adminArchivedRegistrationCount]
  ];
  target.innerHTML='';
  stats.forEach(([label,value])=>{const box=document.createElement('div');box.style.cssText='background:#f7f8fa;border:1px solid #dce2e8;border-radius:10px;padding:12px;text-align:center;';const caption=document.createElement('div');caption.style.cssText='font-size:13px;color:#52606d;margin-bottom:5px;';caption.textContent=label;const number=document.createElement('strong');number.style.cssText='font-size:23px;';number.textContent=String(value);box.append(caption,number);target.appendChild(box);});
+ const panel=document.getElementById('classRegFollowupPanel');
+ if(panel){
+  panel.innerHTML='';
+  const heading=document.createElement('h4');heading.textContent='📅 رابطہ اور فیس کی یاددہانیاں';panel.appendChild(heading);
+  const addList=(title,list,kind)=>{
+   const h=document.createElement('h5');h.textContent=title;panel.appendChild(h);
+   if(!list.length){const empty=document.createElement('p');empty.textContent='اس وقت کوئی ریکارڈ نہیں۔';panel.appendChild(empty);return;}
+   list.forEach(r=>{
+    const item=document.createElement('div');item.style.cssText='border:1px solid #dce2e8;border-radius:9px;padding:10px;margin:7px 0;background:#fff;';
+    const name=r.student_name||adminClassRegistrationProfiles.get(r.student_id)?.full_name||'طالب علم';
+    const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';
+    const dateText=r.follow_up_date?new Date(r.follow_up_date+'T00:00:00').toLocaleDateString('ur-PK'):'تاریخ درج نہیں';
+    const p=document.createElement('p');p.style.margin='0 0 6px';p.textContent=`${name} — ${course} — ${kind==='followup'?'رابطے کی تاریخ: '+dateText:'بقایا فیس: '+Math.max(0,Number(r.monthly_fee||0)-Number(r.amount_paid||0)).toLocaleString()+' '+(r.currency||'')}`;
+    item.appendChild(p);
+    if(kind==='followup'&&r.follow_up_note){const note=document.createElement('p');note.style.margin='0 0 6px';note.textContent='نوٹ: '+r.follow_up_note;item.appendChild(note);}
+    if(kind==='fee'){const detail=document.createElement('small');detail.textContent='ماہانہ فیس: '+Number(r.monthly_fee||0).toLocaleString()+' '+(r.currency||'')+' | وصول شدہ: '+Number(r.amount_paid||0).toLocaleString();item.appendChild(detail);}
+    const wa=(r.whatsapp_number||'').replace(/[^0-9]/g,'');
+    if(wa){const a=document.createElement('a');a.href='https://wa.me/'+wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='WhatsApp پر رابطہ';a.style.cssText='display:inline-block;margin-top:7px;color:#087a42;font-weight:bold;';item.appendChild(a);}
+    panel.appendChild(item);
+   });
+  };
+  addList('آج رابطہ کریں یا تاخیر شدہ رابطے',dueFollowups,'followup');
+  addList('اگلے 7 دن میں رابطہ',upcomingFollowups,'followup');
+  addList('منظور شدہ طلبہ جن کی فیس باقی ہے',outstanding,'fee');
+ }
 }
 
 function getClassRegCategory(r){
@@ -2666,6 +2699,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <button id="showArchivedClassRegistrationsBtn" type="button" style="background:#52645b;margin-right:6px;">محفوظ شدہ رجسٹریشنز دیکھیں</button>
   <h4>📊 طلبہ کا خلاصہ (Student Management Dashboard)</h4>
   <div id="classRegSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0;"></div>
+  <div id="classRegFollowupPanel" class="card" style="background:#fbfcfd;border:1px solid #dce2e8;margin:12px 0;padding:12px;"></div>
   <p id="adminClassRegMessage"></p>
   <section id="classRegCoursesView">
     <h4>کورس کے مطابق درخواستیں</h4>
