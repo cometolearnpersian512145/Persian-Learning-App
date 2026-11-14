@@ -2498,6 +2498,9 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <h3>Admin Panel</h3>
   <p>خوش آمدید، آپ ایپ کے منتظم ہیں۔</p>
 
+  <!-- Legacy course management is hidden from the admin interface;
+       underlying course records remain available to Chapters and Lessons. -->
+  <div id="legacyCourseManagement" style="display:none;">
   <div class="card">
     <h3>کورسز کا انتظام</h3>
     <p>نئے کورسز شامل کریں اور موجودہ کورسز میں ترمیم کریں۔</p>
@@ -2525,6 +2528,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 
   <p id="courseMessage"></p>
 </div>
+  </div>
  
 <div class="card">
   <h3>Chapters اور Lessons</h3>
