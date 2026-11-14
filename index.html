@@ -25,6 +25,15 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .reg-nav-controls{display:flex;gap:8px;margin:10px 0}
 .reg-nav-controls button{flex:1}
 .reg-progress{background:#f1f6f2;border:1px solid #dce7df;border-radius:9px;padding:12px;margin:10px 0;line-height:1.9}
+.reg-course-grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:10px;margin:12px 0}
+.reg-course-button{background:#f0f6f2;color:#173d32;border:1px solid #cbdacf;text-align:right;padding:15px}
+.reg-course-button strong{display:block;font-size:16px;margin-bottom:5px}
+.reg-course-button span{font-size:13px;color:#52645b}
+.reg-student-list{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:8px;margin:12px 0}
+.reg-student-button{background:#f7faf8;color:#173d32;border:1px solid #dce7df;text-align:right}
+.reg-student-button.active{background:#176b50;color:white}
+.reg-view-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.reg-view-heading button{width:auto;padding:9px 13px}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -2000,27 +2009,49 @@ let adminClassRegistrationProfiles = new Map();
 let adminClassRegSelectedIndex = 0;
 let adminClassRegFilteredRows = [];
 
+let adminClassRegSelectedCategoryKey = null;
+let adminClassRegView = 'courses';
+
+function getClassRegCategory(r){
+ const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';
+ const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode||'کلاس';
+ return {key:`${r.course_type||'conversation'}_${r.class_mode||'group'}`,title:`${course} — ${mode}`};
+}
+function showClassRegView(view){
+ adminClassRegView=view;
+ const courses=document.getElementById('classRegCoursesView');
+ const students=document.getElementById('classRegStudentsView');
+ const detail=document.getElementById('classRegDetailView');
+ if(courses)courses.hidden=view!=='courses';
+ if(students)students.hidden=view!=='students';
+ if(detail)detail.hidden=view!=='detail';
+}
 function renderClassRegistrationsAdmin(){
  const list=document.getElementById('adminClassRegList');
  const summary=document.getElementById('classRegSummary');
  const msg=document.getElementById('adminClassRegMessage');
- const nav=document.getElementById('adminClassRegStudentNav');
+ const courseNav=document.getElementById('adminClassRegCourseNav');
+ const studentNav=document.getElementById('adminClassRegStudentNav');
  const counter=document.getElementById('adminClassRegCounter');
  const prev=document.getElementById('adminClassRegPrev');
  const next=document.getElementById('adminClassRegNext');
  if(!list||!msg)return;
- const search=(document.getElementById('classRegSearch')?.value||'').trim().toLowerCase();
- const statusFilter=document.getElementById('classRegStatusFilter')?.value||'all';
- const modeFilter=document.getElementById('classRegModeFilter')?.value||'all';
  const rows=adminClassRegistrationRows;
  const counts={all:rows.length,pending:0,approved:0,rejected:0};
  rows.forEach(r=>{if(counts[r.status]!==undefined)counts[r.status]++;});
  if(summary){summary.innerHTML='';[['کل درخواستیں',counts.all],['زیرِ التوا',counts.pending],['منظور شدہ',counts.approved],['مسترد شدہ',counts.rejected]].forEach(([label,value])=>{const box=document.createElement('div');box.style.cssText='background:#f1f6f2;border:1px solid #dce7df;border-radius:9px;padding:12px;text-align:center;';box.innerHTML=`<div style="font-size:13px;color:#52645b">${label}</div><strong style="font-size:22px">${value}</strong>`;summary.appendChild(box);});}
  const monthNames=['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'];
- const filtered=rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||p.whatsapp||'';const haystack=[p.full_name,p.email,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter)&&(modeFilter==='all'||r.class_mode===modeFilter);});
+ const grouped=new Map();
+ rows.forEach(r=>{const cat=getClassRegCategory(r);if(!grouped.has(cat.key))grouped.set(cat.key,{...cat,rows:[]});grouped.get(cat.key).rows.push(r);});
+ if(courseNav){courseNav.innerHTML='';if(!grouped.size){courseNav.textContent='ابھی کوئی درخواست موصول نہیں ہوئی۔';}for(const group of grouped.values()){const b=document.createElement('button');b.type='button';b.className='reg-course-button';b.innerHTML=`<strong>${escapePaymentText(group.title)}</strong><span>${group.rows.length} درخواستیں — درخواست گزاروں کی فہرست دیکھیں</span>`;b.addEventListener('click',()=>{adminClassRegSelectedCategoryKey=group.key;adminClassRegSelectedIndex=0;const title=document.getElementById('classRegStudentsTitle');if(title)title.textContent=group.title+' — طلبہ کی فہرست';const search=document.getElementById('classRegSearch');if(search)search.value='';const status=document.getElementById('classRegStatusFilter');if(status)status.value='all';showClassRegView('students');renderClassRegistrationsAdmin();});courseNav.appendChild(b);}}
+ if(!adminClassRegSelectedCategoryKey||!grouped.has(adminClassRegSelectedCategoryKey)){showClassRegView('courses');msg.textContent=`کل ${rows.length} درخواستیں موصول ہوئی ہیں۔ پہلے مطلوبہ کورس منتخب کریں۔`;return;}
+ const selectedGroup=grouped.get(adminClassRegSelectedCategoryKey);
+ const search=(document.getElementById('classRegSearch')?.value||'').trim().toLowerCase();
+ const statusFilter=document.getElementById('classRegStatusFilter')?.value||'all';
+ const filtered=selectedGroup.rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||p.whatsapp||'';const haystack=[p.full_name,p.email,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter);});
  adminClassRegFilteredRows=filtered;
- if(nav){nav.innerHTML='';filtered.forEach((r,i)=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const name=p.full_name||p.email||'طالب علم';const course=r.course_type==='grammar'?'گرامر':'گفتگو';const label=`${name} — ${course} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;const b=document.createElement('button');b.type='button';b.textContent=label;b.className=i===adminClassRegSelectedIndex?'active':'';b.title=label;b.addEventListener('click',()=>{adminClassRegSelectedIndex=i;renderClassRegistrationsAdmin();});nav.appendChild(b);});}
- if(!filtered.length){adminClassRegSelectedIndex=0;list.innerHTML='';if(counter)counter.textContent='کوئی درخواست منتخب نہیں';if(prev)prev.disabled=true;if(next)next.disabled=true;msg.textContent=rows.length?'منتخب فلٹر کے مطابق کوئی درخواست نہیں ملی۔':'ابھی کوئی کلاس رجسٹریشن موصول نہیں ہوئی۔';return;}
+ if(studentNav){studentNav.innerHTML='';filtered.forEach((r,i)=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const name=p.full_name||p.email||'طالب علم';const month=`${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;const statusText={pending:'زیرِ التوا',approved:'منظور',rejected:'مسترد'}[r.status]||r.status;const b=document.createElement('button');b.type='button';b.className='reg-student-button';b.textContent=`${name} — ${month} — ${statusText}`;b.addEventListener('click',()=>{adminClassRegSelectedIndex=i;showClassRegView('detail');renderClassRegistrationsAdmin();});studentNav.appendChild(b);});}
+ if(!filtered.length){list.innerHTML='';if(counter)counter.textContent='کوئی درخواست منتخب نہیں';if(prev)prev.disabled=true;if(next)next.disabled=true;msg.textContent='اس کورس میں منتخب تلاش یا Status کے مطابق کوئی درخواست نہیں ملی۔';showClassRegView('students');return;}
  if(adminClassRegSelectedIndex>=filtered.length)adminClassRegSelectedIndex=filtered.length-1;
  if(adminClassRegSelectedIndex<0)adminClassRegSelectedIndex=0;
  const r=filtered[adminClassRegSelectedIndex];
@@ -2035,7 +2066,7 @@ function renderClassRegistrationsAdmin(){
  const created=r.created_at?new Date(r.created_at).toLocaleString('ur-PK'): 'درج نہیں';
  const completed=Number(r.classes_completed||0), total=Number(r.classes_total||0), paid=Number(r.amount_paid||0), fee=Number(r.monthly_fee||0), currency=escapePaymentText(r.currency||'');
  const remaining=Math.max(0,total-completed), balance=Math.max(0,fee-paid);
- card.innerHTML=`<h3>${escapePaymentText(studentName)}</h3><p>${escapePaymentText(course)} — ${escapePaymentText(mode)} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>درخواست موصول ہونے کی تاریخ: ${escapePaymentText(created)}</p><p>ملک: ${escapePaymentText(r.country)} | ماہانہ فیس: ${fee.toLocaleString()} ${currency} | ادائیگی کا وقت: ${escapePaymentText(r.payment_timing)}</p><p><strong>طالب علم کا WhatsApp:</strong> ${escapePaymentText(studentWhatsapp||'درج نہیں')}</p>${waContact}<p>طالب علم کے منتخب دن: ${escapePaymentText((r.preferred_days||[]).join(', ')||'اکیڈمی مقرر کرے گی')} | وقت: ${escapePaymentText(r.preferred_time||'طے ہونا باقی')}</p><div class="reg-progress"><strong>کلاسز اور فیس کا خلاصہ</strong><br>باقاعدہ کلاسز: ${completed} / ${total} | باقی: ${remaining}<br>ماہانہ فیس: ${fee.toLocaleString()} ${currency} | ادا شدہ: ${paid.toLocaleString()} ${currency} | بقایا: ${balance.toLocaleString()} ${currency}</div><label class="form-field">درخواست کا Status<select class="reg-status"><option value="pending">زیرِ التوا</option><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label><label class="form-field">ڈیمو کلاسز مکمل<input class="reg-demo-done" type="number" min="0" value="${r.demo_classes_completed||0}"></label><label class="form-field">ڈیمو کلاسز درکار<input class="reg-demo-total" type="number" min="0" value="${r.demo_classes_required??''}" placeholder="فزیکل کے لیے تعداد درج کریں"></label><label class="form-field">باقاعدہ کلاسز مکمل<input class="reg-classes-done" type="number" min="0" value="${completed}"></label><label class="form-field">کل باقاعدہ کلاسز<input class="reg-classes-total" type="number" min="0" value="${total}" placeholder="مثلاً 20"></label><label class="form-field">ماہانہ فیس میں سے وصول شدہ رقم<input class="reg-amount-paid" type="number" min="0" step="0.01" value="${paid}"></label><label class="form-field">ادائیگی کا Status<select class="reg-payment"><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select></label><label class="form-field">کلاس کا شیڈول / برانچ کی تفصیل<textarea class="reg-schedule" rows="3" placeholder="گروپ کا وقت، فزیکل برانچ/پتہ، یا انفرادی کلاس کا طے شدہ شیڈول"></textarea></label><label class="form-field">اکیڈمی کا نوٹ<textarea class="reg-note" rows="2"></textarea></label><label class="form-field">یاد دہانی / اگلا رابطہ<textarea class="reg-followup" rows="2" placeholder="مثلاً دو دن بعد WhatsApp پر رابطہ کرنا ہے"></textarea></label><label class="form-field">یاد دہانی کی تاریخ<input class="reg-followup-date" type="date"></label><button type="button" class="save-reg-btn">تبدیلیاں محفوظ کریں</button>`;
+ card.innerHTML=`<h3>${escapePaymentText(studentName)}</h3><p>${escapePaymentText(course)} — ${escapePaymentText(mode)} — ${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>درخواست موصول ہونے کی تاریخ: ${escapePaymentText(created)}</p><p>ملک: ${escapePaymentText(r.country)} | ماہانہ فیس: ${fee.toLocaleString()} ${currency} | ادائیگی کا وقت: ${escapePaymentText(r.payment_timing)}</p><p><strong>طالب علم کا WhatsApp:</strong> ${escapePaymentText(studentWhatsapp||'درج نہیں')}</p>${waContact}<p>طالب علم کے منتخب دن: ${escapePaymentText((r.preferred_days||[]).join(', ')||'اکیڈمی مقرر کرے گی')} | وقت: ${escapePaymentText(r.preferred_time||'طے ہونا باقی')}</p><div class="reg-progress"><strong>کلاسز اور فیس کا خلاصہ</strong><br>ڈیمو کلاسز: ${Number(r.demo_classes_completed||0)} / ${Number(r.demo_classes_required||0)}<br>باقاعدہ کلاسز: ${completed} / ${total} | باقی: ${remaining}<br>ماہانہ فیس: ${fee.toLocaleString()} ${currency} | ادا شدہ: ${paid.toLocaleString()} ${currency} | بقایا: ${balance.toLocaleString()} ${currency}</div><label class="form-field">درخواست کا Status<select class="reg-status"><option value="pending">زیرِ التوا</option><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label><label class="form-field">ڈیمو کلاسز مکمل<input class="reg-demo-done" type="number" min="0" value="${r.demo_classes_completed||0}"></label><label class="form-field">ڈیمو کلاسز درکار<input class="reg-demo-total" type="number" min="0" value="${r.demo_classes_required??''}" placeholder="فزیکل کے لیے تعداد درج کریں"></label><label class="form-field">باقاعدہ کلاسز مکمل<input class="reg-classes-done" type="number" min="0" value="${completed}"></label><label class="form-field">کل باقاعدہ کلاسز<input class="reg-classes-total" type="number" min="0" value="${total}" placeholder="مثلاً 20"></label><label class="form-field">ماہانہ فیس میں سے وصول شدہ رقم<input class="reg-amount-paid" type="number" min="0" step="0.01" value="${paid}"></label><label class="form-field">ادائیگی کا Status<select class="reg-payment"><option value="unpaid">ادا نہیں کی</option><option value="pending">تصدیق زیرِ التوا</option><option value="paid">مکمل ادا</option><option value="partial">جزوی ادا</option></select></label><label class="form-field">کلاس کا شیڈول / برانچ کی تفصیل<textarea class="reg-schedule" rows="3" placeholder="گروپ کا وقت، فزیکل برانچ/پتہ، یا انفرادی کلاس کا طے شدہ شیڈول"></textarea></label><label class="form-field">اکیڈمی کا نوٹ<textarea class="reg-note" rows="2"></textarea></label><label class="form-field">یاد دہانی / اگلا رابطہ<textarea class="reg-followup" rows="2" placeholder="مثلاً دو دن بعد WhatsApp پر رابطہ کرنا ہے"></textarea></label><label class="form-field">یاد دہانی کی تاریخ<input class="reg-followup-date" type="date"></label><button type="button" class="save-reg-btn">تبدیلیاں محفوظ کریں</button>`;
  card.querySelector('.copy-reg-wa')?.addEventListener('click',()=>{if(studentWhatsapp&&navigator.clipboard?.writeText){navigator.clipboard.writeText(studentWhatsapp).then(()=>alert('WhatsApp نمبر کاپی ہوگیا۔'));}else{alert('نمبر: '+studentWhatsapp);}});
  card.querySelector('.reg-status').value=r.status||'pending';card.querySelector('.reg-payment').value=r.payment_status||'unpaid';card.querySelector('.reg-demo-total').value=r.demo_classes_required??'';card.querySelector('.reg-schedule').value=r.schedule_details||'';card.querySelector('.reg-note').value=r.admin_note||'';card.querySelector('.reg-followup').value=r.follow_up_note||'';card.querySelector('.reg-followup-date').value=r.follow_up_date||'';
  card.querySelector('.save-reg-btn').onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;const totalDemo=card.querySelector('.reg-demo-total').value;const update={status:card.querySelector('.reg-status').value,demo_classes_completed:Number(card.querySelector('.reg-demo-done').value||0),demo_classes_required:totalDemo===''?null:Number(totalDemo),classes_completed:Number(card.querySelector('.reg-classes-done').value||0),classes_total:Number(card.querySelector('.reg-classes-total').value||0),amount_paid:Number(card.querySelector('.reg-amount-paid').value||0),payment_status:card.querySelector('.reg-payment').value,schedule_details:card.querySelector('.reg-schedule').value.trim()||null,admin_note:card.querySelector('.reg-note').value.trim()||null,follow_up_note:card.querySelector('.reg-followup').value.trim()||null,follow_up_date:card.querySelector('.reg-followup-date').value||null,updated_at:new Date().toISOString()};if(update.classes_completed>update.classes_total){alert('مکمل کلاسز کی تعداد کل کلاسز سے زیادہ نہیں ہو سکتی۔');btn.disabled=false;return;}if(update.amount_paid>fee){alert('وصول شدہ رقم ماہانہ فیس سے زیادہ ہے۔');btn.disabled=false;return;}const {error:updateError}=await supabase.from('class_registrations').update(update).eq('id',r.id);if(updateError){alert('تبدیلیاں محفوظ نہیں ہوئیں: '+updateError.message);btn.disabled=false;return;}Object.assign(r,update);alert('رجسٹریشن کی تفصیلات محفوظ ہوگئیں۔');btn.disabled=false;renderClassRegistrationsAdmin();};
@@ -2043,7 +2074,9 @@ function renderClassRegistrationsAdmin(){
  if(counter)counter.textContent=`درخواست ${adminClassRegSelectedIndex+1} از ${filtered.length}`;
  if(prev)prev.disabled=adminClassRegSelectedIndex===0;
  if(next)next.disabled=adminClassRegSelectedIndex===filtered.length-1;
- msg.textContent=`کل ${rows.length} درخواستیں؛ اس وقت ${studentName} کی تفصیل کھلی ہے۔`;
+ const msgText=`${selectedGroup.title}: ${filtered.length} درخواستیں؛ اس وقت ${studentName} کی تفصیل کھلی ہے۔`;
+ msg.textContent=msgText;
+ if(adminClassRegView==='detail')showClassRegView('detail');else showClassRegView('students');
 }
 
 async function loadClassRegistrationsAdmin(){
@@ -2051,7 +2084,7 @@ async function loadClassRegistrationsAdmin(){
  msg.textContent='رجسٹریشنز لوڈ ہو رہی ہیں...';
  const {data:rows,error}=await supabase.from('class_registrations').select('*').order('created_at',{ascending:false});
  if(error){msg.textContent='رجسٹریشنز حاصل نہیں ہو سکیں: '+error.message+'۔ پہلے Supabase میں Class Registration SQL چلائیں۔';return;}
- adminClassRegistrationRows=rows||[];adminClassRegSelectedIndex=0;
+ adminClassRegistrationRows=rows||[];adminClassRegSelectedIndex=0;adminClassRegSelectedCategoryKey=null;showClassRegView('courses');
  if(!adminClassRegistrationRows.length){adminClassRegistrationProfiles=new Map();renderClassRegistrationsAdmin();return;}
  const ids=[...new Set(adminClassRegistrationRows.map(x=>x.student_id))];
  const {data:profiles,error:profileError}=await supabase.from('profiles').select('id,full_name,email,whatsapp').in('id',ids);
@@ -2062,7 +2095,9 @@ async function loadClassRegistrationsAdmin(){
 document.getElementById('refreshClassRegistrationsBtn')?.addEventListener('click',loadClassRegistrationsAdmin);
 document.getElementById('adminClassRegPrev')?.addEventListener('click',()=>{adminClassRegSelectedIndex=Math.max(0,adminClassRegSelectedIndex-1);renderClassRegistrationsAdmin();});
 document.getElementById('adminClassRegNext')?.addEventListener('click',()=>{adminClassRegSelectedIndex=Math.min(adminClassRegFilteredRows.length-1,adminClassRegSelectedIndex+1);renderClassRegistrationsAdmin();});
-['classRegSearch','classRegStatusFilter','classRegModeFilter'].forEach(id=>{const control=document.getElementById(id);control?.addEventListener(id==='classRegSearch'?'input':'change',()=>{adminClassRegSelectedIndex=0;renderClassRegistrationsAdmin();});});
+document.getElementById('classRegBackToCourses')?.addEventListener('click',()=>{adminClassRegSelectedCategoryKey=null;showClassRegView('courses');});
+document.getElementById('classRegBackToStudents')?.addEventListener('click',()=>{showClassRegView('students');});
+['classRegSearch','classRegStatusFilter'].forEach(id=>{const control=document.getElementById(id);control?.addEventListener(id==='classRegSearch'?'input':'change',()=>{adminClassRegSelectedIndex=0;showClassRegView('students');renderClassRegistrationsAdmin();});});
 
 async function loadPaymentAdmin() {
   const list = document.getElementById('adminPaymentRequestsList');
@@ -2456,24 +2491,30 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <!-- CLASS REGISTRATION ADMIN -->
 <div class="card">
   <h3>🎓 کلاس رجسٹریشنز کا انتظام</h3>
-  <p>طلبہ کی درخواستیں، ڈیمو کلاسز، ماہانہ فیس، شیڈول اور منظوری یہاں منظم کریں۔ گروپ کلاس پیر تا جمعہ، فزیکل ہفتہ و اتوار، انفرادی ہفتے میں تین دن۔</p>
+  <p>پہلے کورس منتخب کریں، پھر اس کورس کے درخواست گزار طلبہ کے نام دیکھیں، اور کسی ایک طالب علم کی مکمل تفصیل کھولیں۔</p>
   <button id="refreshClassRegistrationsBtn" type="button">رجسٹریشنز تازہ کریں</button>
   <div id="classRegSummary" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;"></div>
-  <label class="form-field">نام، ای میل یا WhatsApp نمبر سے تلاش کریں
-    <input id="classRegSearch" type="search" placeholder="طالب علم کا نام یا نمبر لکھیں">
-  </label>
-  <label class="form-field">درخواست کی حالت
-    <select id="classRegStatusFilter"><option value="all">تمام درخواستیں</option><option value="pending">زیرِ التوا</option><option value="approved">منظور شدہ</option><option value="rejected">مسترد شدہ</option></select>
-  </label>
-  <label class="form-field">کلاس کی قسم
-    <select id="classRegModeFilter"><option value="all">تمام کلاسز</option><option value="group">آن لائن گروپ</option><option value="individual">انفرادی آن لائن</option><option value="physical">کراچی فزیکل</option></select>
-  </label>
   <p id="adminClassRegMessage"></p>
-  <h4>طلبہ کی درخواستیں — نام منتخب کریں</h4>
-  <div id="adminClassRegStudentNav" class="reg-student-nav"></div>
-  <div class="reg-nav-controls"><button id="adminClassRegPrev" type="button" style="background:#52645b;">← پچھلا طالب علم</button><button id="adminClassRegNext" type="button">اگلا طالب علم →</button></div>
-  <p id="adminClassRegCounter" class="note"></p>
-  <div id="adminClassRegList"></div>
+  <section id="classRegCoursesView">
+    <h4>کورس کے مطابق درخواستیں</h4>
+    <div id="adminClassRegCourseNav" class="reg-course-grid"></div>
+  </section>
+  <section id="classRegStudentsView" hidden>
+    <div class="reg-view-heading"><h4 id="classRegStudentsTitle">طلبہ کی فہرست</h4><button id="classRegBackToCourses" type="button" style="background:#52645b;">← کورسز پر واپس</button></div>
+    <label class="form-field">اس کورس میں طالب علم کا نام، ای میل یا WhatsApp تلاش کریں
+      <input id="classRegSearch" type="search" placeholder="نام یا نمبر لکھیں">
+    </label>
+    <label class="form-field">درخواست کی حالت
+      <select id="classRegStatusFilter"><option value="all">تمام درخواستیں</option><option value="pending">زیرِ التوا</option><option value="approved">منظور شدہ</option><option value="rejected">مسترد شدہ</option></select>
+    </label>
+    <div id="adminClassRegStudentNav" class="reg-student-list"></div>
+  </section>
+  <section id="classRegDetailView" hidden>
+    <div class="reg-view-heading"><h4>طالب علم کی مکمل تفصیل</h4><button id="classRegBackToStudents" type="button" style="background:#52645b;">← طلبہ کی فہرست</button></div>
+    <div class="reg-nav-controls"><button id="adminClassRegPrev" type="button" style="background:#52645b;">← پچھلا طالب علم</button><button id="adminClassRegNext" type="button">اگلا طالب علم →</button></div>
+    <p id="adminClassRegCounter" class="note"></p>
+    <div id="adminClassRegList"></div>
+  </section>
 </div>
 
 <!-- CONVERSATION TOPICS -->
