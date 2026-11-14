@@ -2027,9 +2027,11 @@ function showClassRegView(view){
  const courses=document.getElementById('classRegCoursesView');
  const students=document.getElementById('classRegStudentsView');
  const detail=document.getElementById('classRegDetailView');
+ const archived=document.getElementById('classRegArchivedView');
  if(courses)courses.hidden=view!=='courses';
  if(students)students.hidden=view!=='students';
  if(detail)detail.hidden=view!=='detail';
+ if(archived)archived.hidden=view!=='archived';
 }
 function renderClassRegistrationsAdmin(){
  const list=document.getElementById('adminClassRegList');
@@ -2098,6 +2100,48 @@ async function loadClassRegistrationsAdmin(){
  if(profileError){msg.textContent='طلبہ کی معلومات حاصل نہیں ہو سکیں: '+profileError.message;return;}
  adminClassRegistrationProfiles=new Map((profiles||[]).map(x=>[x.id,x]));renderClassRegistrationsAdmin();
 }
+
+async function loadArchivedClassRegistrationsAdmin(){
+ const target=document.getElementById('adminArchivedClassRegList');
+ if(!target)return;
+ target.textContent='محفوظ شدہ رجسٹریشنز لوڈ ہو رہی ہیں...';
+ const {data:rows,error}=await supabase.from('class_registrations').select('*').not('archived_at','is',null).order('archived_at',{ascending:false});
+ if(error){target.textContent='محفوظ شدہ رجسٹریشنز حاصل نہیں ہو سکیں: '+error.message;return;}
+ if(!rows||!rows.length){target.textContent='ابھی کوئی محفوظ شدہ رجسٹریشن موجود نہیں۔';return;}
+ const ids=[...new Set(rows.map(r=>r.student_id).filter(Boolean))];
+ let profiles=[];
+ if(ids.length){const result=await supabase.from('profiles').select('id,full_name').in('id',ids);if(result.error){target.textContent='طلبہ کے نام حاصل نہیں ہو سکے: '+result.error.message;return;}profiles=result.data||[];}
+ const profileMap=new Map(profiles.map(x=>[x.id,x]));
+ const monthNames=['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'];
+ target.innerHTML='';
+ rows.forEach(r=>{
+  const profile=profileMap.get(r.student_id)||{};
+  const name=r.student_name||profile.full_name||'طالب علم';
+  const father=r.father_name||'ولدیت درج نہیں';
+  const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';
+  const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode||'';
+  const month=`${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;
+  const item=document.createElement('div');item.className='card';
+  const info=document.createElement('p');info.textContent=`${name} ولد ${father} — ${course} (${mode}) — ${month}`;
+  const date=document.createElement('p');date.textContent='محفوظ کرنے کی تاریخ: '+(r.archived_at?new Date(r.archived_at).toLocaleString('ur-PK'):'درج نہیں');
+  const restore=document.createElement('button');restore.type='button';restore.textContent='واپس فعال کریں (Restore)';restore.style.background='#16834a';
+  restore.addEventListener('click',async()=>{
+   if(!confirm(`کیا آپ ${name} کی یہ رجسٹریشن دوبارہ فعال کرنا چاہتے ہیں؟`))return;
+   restore.disabled=true;
+   const {error:restoreError}=await supabase.from('class_registrations').update({archived_at:null,updated_at:new Date().toISOString()}).eq('id',r.id).not('archived_at','is',null);
+   if(restoreError){alert('رجسٹریشن واپس فعال نہیں ہو سکی: '+restoreError.message);restore.disabled=false;return;}
+   item.remove();
+   if(!target.children.length)target.textContent='ابھی کوئی محفوظ شدہ رجسٹریشن موجود نہیں۔';
+   alert('رجسٹریشن کامیابی سے دوبارہ فعال ہوگئی ہے۔');
+   await loadClassRegistrationsAdmin();
+  });
+  item.append(info,date,restore);target.appendChild(item);
+ });
+}
+
+document.getElementById('showArchivedClassRegistrationsBtn')?.addEventListener('click',async()=>{showClassRegView('archived');await loadArchivedClassRegistrationsAdmin();});
+document.getElementById('refreshArchivedClassRegistrationsBtn')?.addEventListener('click',loadArchivedClassRegistrationsAdmin);
+document.getElementById('backFromArchivedClassRegistrationsBtn')?.addEventListener('click',()=>{showClassRegView('courses');loadClassRegistrationsAdmin();});
 
 document.getElementById('refreshClassRegistrationsBtn')?.addEventListener('click',loadClassRegistrationsAdmin);
 document.getElementById('adminClassRegPrev')?.addEventListener('click',()=>{adminClassRegSelectedIndex=Math.max(0,adminClassRegSelectedIndex-1);renderClassRegistrationsAdmin();});
@@ -2500,6 +2544,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <h3>🎓 کلاس رجسٹریشنز کا انتظام</h3>
   <p>پہلے کورس منتخب کریں، پھر اس کورس کے درخواست گزار طلبہ کے نام دیکھیں، اور کسی ایک طالب علم کی مکمل تفصیل کھولیں۔</p>
   <button id="refreshClassRegistrationsBtn" type="button">رجسٹریشنز تازہ کریں</button>
+  <button id="showArchivedClassRegistrationsBtn" type="button" style="background:#52645b;margin-right:6px;">محفوظ شدہ رجسٹریشنز دیکھیں</button>
   <div id="classRegSummary" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;"></div>
   <p id="adminClassRegMessage"></p>
   <section id="classRegCoursesView">
@@ -2521,6 +2566,12 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <div class="reg-nav-controls"><button id="adminClassRegPrev" type="button" style="background:#52645b;">← پچھلا طالب علم</button><button id="adminClassRegNext" type="button">اگلا طالب علم →</button></div>
     <p id="adminClassRegCounter" class="note"></p>
     <div id="adminClassRegList"></div>
+  </section>
+  <section id="classRegArchivedView" hidden>
+    <div class="reg-view-heading"><h4>محفوظ شدہ رجسٹریشنز</h4><button id="refreshArchivedClassRegistrationsBtn" type="button" style="background:#52645b;">فہرست تازہ کریں</button></div>
+    <p>یہاں سے کسی رجسٹریشن کو دوبارہ فعال فہرست میں واپس لایا جا سکتا ہے۔</p>
+    <div id="adminArchivedClassRegList" class="reg-student-list"></div>
+    <button id="backFromArchivedClassRegistrationsBtn" type="button" style="background:#52645b;">← فعال رجسٹریشنز پر واپس</button>
   </section>
 </div>
 
