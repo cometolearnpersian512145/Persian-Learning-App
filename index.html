@@ -548,6 +548,89 @@ async function showMyClassRegistrations(){
   for(const r of data){const card=document.createElement('div');card.className='card registration-card';const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;card.innerHTML=`<h3>${escapePaymentText(course)} — ${escapePaymentText(mode)}</h3><p>مہینہ: ${months[(r.enrollment_month||1)-1]} ${r.enrollment_year}</p><p>ماہانہ فیس: ${Number(r.monthly_fee).toLocaleString()} ${escapePaymentText(r.currency)}</p><p>درخواست: ${escapePaymentText(r.status)} | ادائیگی: ${escapePaymentText(r.payment_status)}</p>${r.demo_classes_required!==null?`<p>ڈیمو کلاسز: ${r.demo_classes_completed||0} / ${r.demo_classes_required}</p>`:''}<div class="reg-progress"><strong>باقاعدہ کلاسز کی پیش رفت</strong><br>مکمل کلاسز: ${Number(r.classes_total||0)>0?`${Number(r.classes_completed||0)} / ${Number(r.classes_total||0)}`:'اکیڈمی شیڈول درج کرے گی'}<br>باقی کلاسز: ${Number(r.classes_total||0)>0?Math.max(0,Number(r.classes_total||0)-Number(r.classes_completed||0)):'شیڈول کے بعد'}<br>ماہانہ فیس: ${Number(r.monthly_fee||0).toLocaleString()} ${escapePaymentText(r.currency)}<br>ادا شدہ رقم: ${Number(r.amount_paid||0).toLocaleString()} ${escapePaymentText(r.currency)}<br>بقایا رقم: ${Math.max(0,Number(r.monthly_fee||0)-Number(r.amount_paid||0)).toLocaleString()} ${escapePaymentText(r.currency)}</div>${r.schedule_details?`<p><strong>اکیڈمی کا شیڈول:</strong> ${escapePaymentText(r.schedule_details)}</p>`:''}${r.admin_note?`<p><strong>اکیڈمی کا نوٹ:</strong> ${escapePaymentText(r.admin_note)}</p>`:''}`;list.appendChild(card);}
 }
 
+async function showMyProfile() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard || !activeStudentId) return;
+
+  dashboard.innerHTML = `
+    <div class="card">
+      <h2>👤 میرا پروفائل</h2>
+      <p id="profileMessage">آپ کی معلومات لوڈ ہو رہی ہیں...</p>
+      <form id="myProfileForm">
+        <label class="form-field">مکمل نام
+          <input id="profileFullName" type="text" required>
+        </label>
+        <label class="form-field">والد کا نام
+          <input id="profileFatherName" type="text">
+        </label>
+        <label class="form-field">WhatsApp نمبر
+          <input id="profileWhatsapp" type="tel">
+        </label>
+        <label class="form-field">ملک
+          <input id="profileCountry" type="text">
+        </label>
+        <label class="form-field">شہر
+          <input id="profileCity" type="text">
+        </label>
+        <label class="form-field">جنس
+          <input id="profileGender" type="text">
+        </label>
+        <label class="form-field">Email
+          <input id="profileEmail" type="email" disabled>
+        </label>
+        <button id="saveMyProfileBtn" type="submit">تبدیلیاں محفوظ کریں</button>
+      </form>
+      <button id="profileBackBtn" type="button" style="background:#555;">واپس ڈیش بورڈ</button>
+    </div>`;
+
+  const profileMessage = document.getElementById('profileMessage');
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user || userData.user.id !== activeStudentId) {
+    profileMessage.textContent = 'پروفائل لوڈ نہیں ہو سکا: ' + (userError?.message || 'اکاؤنٹ کی تصدیق نہیں ہو سکی۔');
+    return;
+  }
+
+  const user = userData.user;
+  const details = user.user_metadata || {};
+  document.getElementById('profileFullName').value = details.full_name || '';
+  document.getElementById('profileFatherName').value = details.father_name || '';
+  document.getElementById('profileWhatsapp').value = details.whatsapp || '';
+  document.getElementById('profileCountry').value = details.country || '';
+  document.getElementById('profileCity').value = details.city || '';
+  document.getElementById('profileGender').value = details.gender || '';
+  document.getElementById('profileEmail').value = user.email || '';
+  profileMessage.textContent = 'اپنی معلومات دیکھیں یا تبدیل کرکے محفوظ کریں۔';
+
+  document.getElementById('myProfileForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const saveButton = document.getElementById('saveMyProfileBtn');
+    saveButton.disabled = true;
+    profileMessage.textContent = 'معلومات محفوظ ہو رہی ہیں...';
+    const { data: updated, error } = await supabase.auth.updateUser({
+      data: {
+        ...details,
+        full_name: document.getElementById('profileFullName').value.trim(),
+        father_name: document.getElementById('profileFatherName').value.trim(),
+        whatsapp: document.getElementById('profileWhatsapp').value.trim(),
+        country: document.getElementById('profileCountry').value.trim(),
+        city: document.getElementById('profileCity').value.trim(),
+        gender: document.getElementById('profileGender').value.trim()
+      }
+    });
+    saveButton.disabled = false;
+    if (error) {
+      profileMessage.textContent = 'معلومات محفوظ نہیں ہو سکیں: ' + error.message;
+      return;
+    }
+    profileMessage.textContent = 'آپ کا پروفائل کامیابی سے محفوظ ہوگیا۔';
+  });
+
+  document.getElementById('profileBackBtn').addEventListener('click', async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) await handleLogin(sessionData.session.user);
+  });
+}
+
 async function handleLogin(existingUser = null) {
   const currentRenderToken = ++loginRenderToken;
   let data;
@@ -675,6 +758,7 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
   );
 });
 dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showMyPaymentRequests);
+dashboard.querySelector('#profileBtn').addEventListener('click', showMyProfile);
 dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showClassRegistrationForm);
 dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
 // Show the student's latest reviewed payment decision on the dashboard.
