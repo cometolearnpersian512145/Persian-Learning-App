@@ -1983,7 +1983,7 @@ async function loadStudentProgressAdmin() {
   const userIds = [...new Set(rows.map(row => row.student_id))];
   const lessonIds = [...new Set(rows.map(row => row.lesson_id))];
   const [{ data: profiles }, { data: lessons }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email').in('id', userIds),
+    supabase.from('profiles').select('id, full_name').in('id', userIds),
     supabase.from('lessons').select('id, title').in('id', lessonIds)
   ]);
 
@@ -1996,7 +1996,7 @@ async function loadStudentProgressAdmin() {
     const item = document.createElement('div');
     item.className = 'card';
     const date = row.completed_at ? new Date(row.completed_at).toLocaleString() : '';
-    item.textContent = `${profile?.full_name || profile?.email || row.student_id} — ${lesson?.title || 'سبق'} — ${date}`;
+    item.textContent = `${profile?.full_name || row.student_id} — ${lesson?.title || 'سبق'} — ${date}`;
     target.appendChild(item);
   });
 }
@@ -2048,9 +2048,9 @@ function renderClassRegistrationsAdmin(){
  const selectedGroup=grouped.get(adminClassRegSelectedCategoryKey);
  const search=(document.getElementById('classRegSearch')?.value||'').trim().toLowerCase();
  const statusFilter=document.getElementById('classRegStatusFilter')?.value||'all';
- const filtered=selectedGroup.rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||p.whatsapp||'';const haystack=[p.full_name,p.email,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter);});
+ const filtered=selectedGroup.rows.filter(r=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const wa=r.whatsapp_number||'';const haystack=[p.full_name,wa,r.country].join(' ').toLowerCase();return (!search||haystack.includes(search))&&(statusFilter==='all'||r.status===statusFilter);});
  adminClassRegFilteredRows=filtered;
- if(studentNav){studentNav.innerHTML='';filtered.forEach((r,i)=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const name=p.full_name||p.email||'طالب علم';const month=`${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;const statusText={pending:'زیرِ التوا',approved:'منظور',rejected:'مسترد'}[r.status]||r.status;const b=document.createElement('button');b.type='button';b.className='reg-student-button';b.textContent=`${name} — ${month} — ${statusText}`;b.addEventListener('click',()=>{adminClassRegSelectedIndex=i;showClassRegView('detail');renderClassRegistrationsAdmin();});studentNav.appendChild(b);});}
+ if(studentNav){studentNav.innerHTML='';filtered.forEach((r,i)=>{const p=adminClassRegistrationProfiles.get(r.student_id)||{};const name=p.full_name||'طالب علم';const month=`${monthNames[(r.enrollment_month||1)-1]} ${r.enrollment_year||''}`;const statusText={pending:'زیرِ التوا',approved:'منظور',rejected:'مسترد'}[r.status]||r.status;const b=document.createElement('button');b.type='button';b.className='reg-student-button';b.textContent=`${name} — ${month} — ${statusText}`;b.addEventListener('click',()=>{adminClassRegSelectedIndex=i;showClassRegView('detail');renderClassRegistrationsAdmin();});studentNav.appendChild(b);});}
  if(!filtered.length){list.innerHTML='';if(counter)counter.textContent='کوئی درخواست منتخب نہیں';if(prev)prev.disabled=true;if(next)next.disabled=true;msg.textContent='اس کورس میں منتخب تلاش یا Status کے مطابق کوئی درخواست نہیں ملی۔';showClassRegView('students');return;}
  if(adminClassRegSelectedIndex>=filtered.length)adminClassRegSelectedIndex=filtered.length-1;
  if(adminClassRegSelectedIndex<0)adminClassRegSelectedIndex=0;
@@ -2059,8 +2059,8 @@ function renderClassRegistrationsAdmin(){
  const card=document.createElement('div');card.className='card registration-card';
  const course=r.course_type==='grammar'?'بنیادی فارسی گرامر':'فارسی گفتگو';
  const mode={group:'آن لائن گروپ',individual:'انفرادی آن لائن',physical:'کراچی فزیکل'}[r.class_mode]||r.class_mode;
- const studentName=p.full_name||p.email||'طالب علم';
- const studentWhatsapp=r.whatsapp_number||p.whatsapp||'';
+ const studentName=p.full_name||'طالب علم';
+ const studentWhatsapp=r.whatsapp_number||'';
  const waDigits=studentWhatsapp.replace(/[^0-9]/g,'');
  const waContact=waDigits?`<a href="https://wa.me/${waDigits}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 6px;padding:8px 12px;background:#16834a;color:white;border-radius:7px;text-decoration:none;">WhatsApp پر رابطہ کریں</a><button type="button" class="copy-reg-wa" style="margin:5px 6px;">نمبر کاپی کریں</button>`:'<span style="color:#b45309;">WhatsApp نمبر درج نہیں</span>';
  const created=r.created_at?new Date(r.created_at).toLocaleString('ur-PK'): 'درج نہیں';
@@ -2087,7 +2087,7 @@ async function loadClassRegistrationsAdmin(){
  adminClassRegistrationRows=rows||[];adminClassRegSelectedIndex=0;adminClassRegSelectedCategoryKey=null;showClassRegView('courses');
  if(!adminClassRegistrationRows.length){adminClassRegistrationProfiles=new Map();renderClassRegistrationsAdmin();return;}
  const ids=[...new Set(adminClassRegistrationRows.map(x=>x.student_id))];
- const {data:profiles,error:profileError}=await supabase.from('profiles').select('id,full_name,email,whatsapp').in('id',ids);
+ const {data:profiles,error:profileError}=await supabase.from('profiles').select('id,full_name').in('id',ids);
  if(profileError){msg.textContent='طلبہ کی معلومات حاصل نہیں ہو سکیں: '+profileError.message;return;}
  adminClassRegistrationProfiles=new Map((profiles||[]).map(x=>[x.id,x]));renderClassRegistrationsAdmin();
 }
@@ -2147,7 +2147,7 @@ async function loadPaymentAdmin() {
 
   const studentIds = [...new Set(requests.map(row => row.student_id))];
   const { data: profiles } = await supabase
-    .from('profiles').select('id, full_name, email, whatsapp').in('id', studentIds);
+    .from('profiles').select('id, full_name').in('id', studentIds);
   const profileMap = new Map((profiles || []).map(profile => [profile.id, profile]));
   list.innerHTML = '';
 
@@ -2156,7 +2156,7 @@ async function loadPaymentAdmin() {
     const card = document.createElement('div');
     card.className = 'card';
     const heading = document.createElement('h4');
-    heading.textContent = profile?.full_name || profile?.email || request.student_id;
+    heading.textContent = profile?.full_name || request.student_id;
     const info = document.createElement('p');
     const targetLabel = request.access_type === 'course' ? 'مکمل کورس' : request.access_type === 'chapter' ? 'مکمل باب' : request.access_type === 'full_book' ? 'مکمل کتاب PDF' : 'الگ سبق';
     info.textContent = `${targetLabel} — ${request.country} — ${request.payment_method} — ${request.amount ?? ''} ${request.currency ?? ''} — ${request.status} — ${new Date(request.created_at).toLocaleString()}`;
