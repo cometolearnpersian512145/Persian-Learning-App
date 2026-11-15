@@ -2187,6 +2187,7 @@ async function editLesson(lessonId) {
   document.getElementById('lessonOrder').value = data.lesson_order || 1;
   document.getElementById('lessonFree').checked = data.is_free;
   document.getElementById('lessonPublished').checked = data.is_published;
+  updateLessonVisibilityStatus();
 
   document.getElementById('addLessonBtn').textContent = 'تبدیلی محفوظ کریں';
 
@@ -2317,6 +2318,20 @@ async function renderExistingMeenaResources(lessonId) {
     host.appendChild(card);
   }
 }
+
+function updateLessonVisibilityStatus() {
+  const free = document.getElementById('lessonFree').checked;
+  const published = document.getElementById('lessonPublished').checked;
+  const status = document.getElementById('lessonVisibilityStatus');
+  if (!status) return;
+  status.textContent = `${free ? 'مفت (Free)' : 'ادائیگی والا (Paid)'} — ${published ? 'طلبہ کو نظر آئے گا (Published)' : 'طلبہ کو نظر نہیں آئے گا (Unpublished)'}`;
+  status.style.background = published ? '#e8f5e9' : '#fff4e5';
+  status.style.borderColor = published ? '#81c784' : '#ffcc80';
+}
+
+document.getElementById('lessonFree').addEventListener('change', updateLessonVisibilityStatus);
+document.getElementById('lessonPublished').addEventListener('change', updateLessonVisibilityStatus);
+updateLessonVisibilityStatus();
   // ADD NEW LESSON
 document.getElementById('loadAllLessonAccessBtn').addEventListener('click', loadAllLessonAccess);
 
@@ -3122,6 +3137,8 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <input id="lessonPublished" type="checkbox">
   سبق شائع کریں
 </label>
+
+<div id="lessonVisibilityStatus" role="status" aria-live="polite" style="padding:10px 12px;margin:10px 0;border:1px solid #dce7df;border-radius:8px;line-height:1.8;"></div>
 
 <button id="addLessonBtn">سبق شامل کریں</button>
 
