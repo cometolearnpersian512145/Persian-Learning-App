@@ -41,6 +41,11 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .student-calendar-date{background:#ffffff18;border:1px solid #ffffff30;border-radius:12px;padding:9px 5px;min-width:0}
 .student-calendar-date-label{display:block;font-size:12px;opacity:.85;margin-bottom:5px}
 .student-calendar-date-value{display:block;font-size:14px;line-height:1.6;font-weight:600}
+.student-search{margin:0 0 20px}
+.student-search-form{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #dce7df;border-radius:18px;padding:8px 10px 8px 14px;box-shadow:0 3px 12px #0000000b}
+.student-search-form input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;margin:0;padding:10px 4px;background:transparent;font-size:16px}
+.student-search-form button{width:auto;flex:none;margin:0;padding:10px 15px;border-radius:12px}
+.student-search-result{padding:13px;margin:10px 0;border:1px solid #dce7df;box-shadow:none}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -171,6 +176,80 @@ function updateStudentCalendarClock() {
     islamicDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic', dateOptions).format(now);
   }
   document.getElementById('studentIslamicDate').textContent = islamicDate;
+}
+
+async function searchStudentLessons() {
+  const input = document.getElementById('studentSearchInput');
+  const results = document.getElementById('studentSearchResults');
+  if (!input || !results) return;
+  const query = input.value.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  if (!query) { results.textContent = 'فارسی یا اردو میں کوئی لفظ لکھ کر تلاش کریں۔'; return; }
+  results.textContent = 'تلاش جاری ہے...';
+
+  const fields = ['title', 'persian_text', 'urdu_explanation', 'english_explanation', 'shenasay'];
+  const filters = fields.map(field => `${field}.ilike.%${query}%`).join(',');
+  const [{ data: lessons, error: lessonError }, { data: grants, error: grantError }] = await Promise.all([
+    supabase.from('lessons')
+      .select('id,module_id,title,lesson_order,is_free,persian_text,urdu_explanation,english_explanation,shenasay')
+      .eq('is_published', true)
+      .or(filters)
+      .order('lesson_order')
+      .limit(100),
+    supabase.from('student_access_grants').select('access_type,target_id').eq('student_id', activeStudentId)
+  ]);
+  if (lessonError || grantError) {
+    results.textContent = 'تلاش میں مسئلہ آیا: ' + (lessonError || grantError).message;
+    return;
+  }
+  if (!lessons || lessons.length === 0) { results.textContent = 'اس لفظ کے لیے کوئی شائع شدہ سبق نہیں ملا۔'; return; }
+
+  const moduleIds = [...new Set(lessons.map(lesson => lesson.module_id))];
+  const { data: modules, error: moduleError } = await supabase.from('modules')
+    .select('id,title,course_id').in('id', moduleIds);
+  if (moduleError) { results.textContent = 'کورس کی معلومات حاصل نہیں ہو سکیں: ' + moduleError.message; return; }
+  const courseIds = [...new Set((modules || []).map(module => module.course_id))];
+  const { data: courses, error: courseError } = await supabase.from('courses')
+    .select('id,title').in('id', courseIds);
+  if (courseError) { results.textContent = 'کورس کے نام حاصل نہیں ہو سکے: ' + courseError.message; return; }
+
+  const moduleById = new Map((modules || []).map(module => [module.id, module]));
+  const courseById = new Map((courses || []).map(course => [course.id, course]));
+  const grantRows = grants || [];
+  const grantedCourses = new Set(grantRows.filter(row => row.access_type === 'course').map(row => row.target_id));
+  const grantedModules = new Set(grantRows.filter(row => row.access_type === 'chapter').map(row => row.target_id));
+  const grantedLessons = new Set(grantRows.filter(row => row.access_type === 'lesson').map(row => row.target_id));
+  const hasFullBook = grantRows.some(row => row.access_type === 'full_book');
+  const visibleLessons = lessons.filter(lesson => {
+    const module = moduleById.get(lesson.module_id);
+    return module && (lesson.is_free || hasFullBook || grantedCourses.has(module.course_id) || grantedModules.has(module.id) || grantedLessons.has(lesson.id));
+  });
+  results.replaceChildren();
+  if (!visibleLessons.length) { results.textContent = 'یہ لفظ ملا، لیکن اس سبق تک رسائی کے لیے خریداری درکار ہے۔'; return; }
+  const heading = document.createElement('p');
+  heading.textContent = `${visibleLessons.length} دستیاب سبق ملے:`;
+  results.appendChild(heading);
+  for (const lesson of visibleLessons) {
+    const module = moduleById.get(lesson.module_id);
+    const course = courseById.get(module.course_id);
+    const card = document.createElement('div');
+    card.className = 'card student-search-result';
+    const title = document.createElement('strong');
+    title.textContent = lesson.title || `سبق ${lesson.lesson_order}`;
+    const location = document.createElement('p');
+    location.textContent = `${course?.title || 'فارسی کورس'} — ${module.title} — سبق ${lesson.lesson_order}`;
+    const snippet = document.createElement('p');
+    const matchingText = [lesson.persian_text, lesson.urdu_explanation, lesson.english_explanation, lesson.shenasay]
+      .find(text => text && text.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+    snippet.textContent = matchingText ? (matchingText.length > 180 ? matchingText.slice(0, 180) + '…' : matchingText) : '';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.textContent = 'کورس کھولیں';
+    open.onclick = () => showStudentCourse(module.course_id, course?.title || 'فارسی کورس');
+    card.append(title, location);
+    if (snippet.textContent) card.appendChild(snippet);
+    card.appendChild(open);
+    results.appendChild(card);
+  }
 }
 
 function escapePaymentText(value) {
@@ -736,6 +815,13 @@ if (adminProfile.role === 'admin') {
       <div class="student-calendar-date"><span class="student-calendar-date-label">ایرانی</span><span id="studentIranianDate" class="student-calendar-date-value" lang="fa" dir="rtl"></span></div>
     </div>
   </section>
+  <section class="student-search" aria-label="سبق تلاش کریں">
+    <form id="studentSearchForm" class="student-search-form" role="search">
+      <input id="studentSearchInput" type="search" placeholder="فارسی یا اردو میں لفظ تلاش کریں — معنی، گرامر، جملے" autocomplete="off" aria-label="فارسی یا اردو میں تلاش کریں">
+      <button type="submit" aria-label="تلاش کریں">🔍 تلاش</button>
+    </form>
+    <div id="studentSearchResults" aria-live="polite"></div>
+  </section>
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>طالب علم کا ڈیش بورڈ</h3>
 
@@ -780,6 +866,10 @@ if (adminProfile.role === 'admin') {
   <div style="text-align:center;"><button type="button" id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
 `;
   document.querySelector('main').prepend(dashboard);
+  dashboard.querySelector('#studentSearchForm').addEventListener('submit', event => {
+    event.preventDefault();
+    searchStudentLessons();
+  });
   updateStudentCalendarClock();
   if (studentClockInterval) clearInterval(studentClockInterval);
   studentClockInterval = setInterval(updateStudentCalendarClock, 1000);
@@ -3373,6 +3463,13 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <script>
 (function () {
   const translations = {
+    "فارسی یا اردو میں لفظ تلاش کریں — معنی، گرامر، جملے": "Search a word in Persian or Urdu — meaning, grammar, sentences",
+    "فارسی یا اردو میں تلاش کریں": "Search in Persian or Urdu",
+    "تلاش": "Search",
+    "تلاش کریں": "Search",
+    "اسلامی": "Islamic",
+    "عیسوی": "Gregorian",
+    "ایرانی": "Iranian",
     "آؤ فارسی سیکھیں": "Come To Learn Persian",
     "اپنی زبان منتخب کریں": "Choose your language",
     "ایپ استعمال کرنے سے پہلے اپنی پسند کی زبان منتخب کریں۔": "Choose your preferred language before using the app.",
