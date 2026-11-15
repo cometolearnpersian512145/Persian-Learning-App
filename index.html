@@ -148,7 +148,7 @@ function escapePaymentText(value) {
   }[char]));
 }
 
-async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumber = null }) {
+async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumber = null, priceKey = null }) {
   const dashboard = document.getElementById('studentDashboard');
   if (!dashboard || !activeStudentId) return;
 
@@ -222,19 +222,19 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
 
     if (countryCode === 'PK') {
       methodSelect.innerHTML = '<option value="JazzCash">JazzCash</option><option value="Easypaisa">Easypaisa</option><option value="Meezan Bank">Meezan Bank</option>';
-      const priceField = accessType === 'course' ? 'course_price_pkr' : accessType === 'full_book' ? 'book_price_pkr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_pkr` : 'lesson_price_pkr';
+      const priceField = priceKey ? `${priceKey}_price_pkr` : accessType === 'course' ? 'course_price_pkr' : accessType === 'full_book' ? 'book_price_pkr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_pkr` : 'lesson_price_pkr';
       currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'PKR';
       showPakistanDetails();
     } else if (countryCode === 'IN') {
       methodSelect.innerHTML = '<option value="Google Pay">Google Pay</option>';
       details.innerHTML = '<strong>Google Pay نمبر:</strong> 9897400499<br><strong>اکاؤنٹ ہولڈر:</strong> Ali Jaffar Hashmi<br><small>ادائیگی سے پہلے وصول کنندہ کا نام ضرور چیک کریں۔</small>';
-      const priceField = accessType === 'course' ? 'course_price_inr' : accessType === 'full_book' ? 'book_price_inr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_inr` : 'lesson_price_inr';
+      const priceField = priceKey ? `${priceKey}_price_inr` : accessType === 'course' ? 'course_price_inr' : accessType === 'full_book' ? 'book_price_inr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_inr` : 'lesson_price_inr';
       currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'INR';
     } else {
       methodSelect.innerHTML = '<option value="International Bank Transfer">International Bank Transfer</option><option value="Western Union">Western Union</option>';
-      const priceField = accessType === 'course' ? 'course_price_usd' : accessType === 'full_book' ? 'book_price_usd' : accessType === 'chapter' ? `chapter${chapterNumber}_price_usd` : 'lesson_price_usd';
+      const priceField = priceKey ? `${priceKey}_price_usd` : accessType === 'course' ? 'course_price_usd' : accessType === 'full_book' ? 'book_price_usd' : accessType === 'chapter' ? `chapter${chapterNumber}_price_usd` : 'lesson_price_usd';
       currentPrice = pricing ? pricing[priceField] : null;
       currentCurrency = 'USD';
       showInternationalDetails(countryName);
@@ -783,7 +783,7 @@ async function loadStudentPaymentNotice() {
 
   const { data: request, error } = await supabase
     .from('payment_requests')
-    .select('status, access_type, amount, currency, admin_note, reviewed_at')
+    .select('status, access_type, target_id, amount, currency, admin_note, reviewed_at')
     .eq('student_id', activeStudentId)
     .in('status', ['approved', 'rejected'])
     .not('reviewed_at', 'is', null)
@@ -800,7 +800,9 @@ async function loadStudentPaymentNotice() {
   const detail = document.createElement('p');
   detail.style.marginBottom = '0';
 
-  const itemName = request.access_type === 'full_book' ? 'مکمل فارسی PDF کتاب'
+  const itemName = (request.access_type === 'course' && request.target_id === '947a9182-8328-4506-b2b0-50ada2b709fa') ? 'مینا کی تینوں کتابوں کا Bundle'
+    : request.access_type === 'chapter' ? 'فارسی گرامر / مینا کتاب'
+    : request.access_type === 'full_book' ? 'مکمل فارسی PDF کتاب'
     : request.access_type === 'course' ? 'مکمل فارسی گرامر کورس'
     : request.access_type === 'chapter' ? 'فارسی گرامر کا باب'
     : 'خریدی گئی سہولت';
@@ -869,7 +871,9 @@ async function showMyPaymentRequests() {
   };
 
   for (const request of requests) {
-    const targetLabel = request.access_type === 'course' ? 'مکمل فارسی گرامر کورس'
+    const targetLabel = (request.access_type === 'course' && request.target_id === '947a9182-8328-4506-b2b0-50ada2b709fa') ? 'مینا کی تینوں کتابوں کا Bundle'
+      : request.access_type === 'chapter' ? 'فارسی گرامر / مینا کتاب'
+      : request.access_type === 'course' ? 'مکمل فارسی گرامر کورس'
       : request.access_type === 'chapter' ? 'فارسی گرامر کا باب'
       : request.access_type === 'full_book' ? 'مکمل فارسی PDF کتاب'
       : 'الگ سبق';
@@ -908,33 +912,233 @@ async function showMyPaymentRequests() {
   }
 }
 
+// CONVERSATION COURSE: MEENA BOOK FOLDERS, LESSONS, MEDIA AND PURCHASES
+async function showConversationCourse(dashboard, courseId, courseName) {
+  dashboard.innerHTML = `
+    <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
+      <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
+      <h3>${escapePaymentText(courseName || 'فارسی گفتگو')}</h3>
+      <p>مینا کی کتابیں، اسباق، PDF اور آڈیو ایک جگہ۔</p>
+    </div>
+    <div class="card" style="padding:18px;margin:14px 0;border:1px solid #d8e4dc;">
+      <h3>🎁 تینوں کتابوں کا رعایتی Bundle</h3>
+      <p>Meena 01، Meena 02 اور Meena 03 تینوں کتابیں ایک ساتھ خریدیں۔</p>
+      <button id="buyMeenaBundleBtn" type="button">تینوں کتابیں Bundle میں خریدیں</button>
+      <p id="meenaBundleStatus"></p>
+    </div>
+    <p id="meenaCourseMessage">کتابیں لوڈ ہو رہی ہیں...</p>
+    <div id="meenaBookFolders"></div>
+    <div id="meenaBookLessons" style="display:none;"></div>
+    <div id="meenaLessonContent" style="display:none;"></div>
+    <button id="meenaBackDashboard" type="button" style="margin-top:20px;background:#555;">← واپس ڈیش بورڈ</button>
+  `;
+
+  const message = dashboard.querySelector('#meenaCourseMessage');
+  const folderList = dashboard.querySelector('#meenaBookFolders');
+  const lessonsPanel = dashboard.querySelector('#meenaBookLessons');
+  const lessonContent = dashboard.querySelector('#meenaLessonContent');
+  const bundleButton = dashboard.querySelector('#buyMeenaBundleBtn');
+  const bundleStatus = dashboard.querySelector('#meenaBundleStatus');
+
+  dashboard.querySelector('#meenaBackDashboard').onclick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await handleLogin(session.user);
+  };
+
+  const { data: modules, error: moduleError } = await supabase
+    .from('modules')
+    .select('id,title,module_order')
+    .eq('course_id', courseId)
+    .in('title', ['Meena 01', 'Meena 02', 'Meena 03'])
+    .order('module_order');
+
+  if (moduleError) {
+    message.textContent = 'کتابوں کی فہرست حاصل نہیں ہو سکی: ' + moduleError.message;
+    return;
+  }
+  if (!modules || modules.length === 0) {
+    message.textContent = 'مینا کی کتابوں کے فولڈرز ابھی ڈیٹابیس میں شامل نہیں ہوئے۔ Admin setup مکمل ہونے کے بعد یہاں ظاہر ہوں گے۔';
+    return;
+  }
+
+  const { data: accessRows, error: accessError } = await supabase
+    .from('student_access_grants')
+    .select('access_type,target_id')
+    .eq('student_id', activeStudentId);
+  if (accessError) {
+    message.textContent = 'خریداری کی معلومات حاصل نہیں ہو سکیں: ' + accessError.message;
+    return;
+  }
+
+  const bundleOwned = (accessRows || []).some(row => row.access_type === 'course' && row.target_id === courseId);
+  const ownedBookIds = new Set((accessRows || []).filter(row => row.access_type === 'chapter').map(row => row.target_id));
+  if (bundleOwned) {
+    bundleButton.disabled = true;
+    bundleButton.textContent = '✓ تینوں کتابوں کا Bundle منظور شدہ';
+    bundleStatus.textContent = 'آپ کو تینوں کتابوں کی رسائی حاصل ہے۔';
+  } else if (modules.every(module => ownedBookIds.has(module.id))) {
+    bundleButton.disabled = true;
+    bundleButton.textContent = '✓ تینوں کتابیں پہلے ہی خریدی جا چکی ہیں';
+    bundleStatus.textContent = 'آپ کے پاس تینوں کتابوں کی رسائی موجود ہے۔';
+  }
+  bundleButton.onclick = () => showPaymentForm({
+    accessType: 'course',
+    targetId: courseId,
+    priceKey: 'conversation_bundle',
+    targetTitle: 'Meena 01 + Meena 02 + Meena 03 — رعایتی Bundle'
+  });
+
+  const bookMeta = {
+    'Meena 01': { priceKey: 'meena1', count: 26, free: 4 },
+    'Meena 02': { priceKey: 'meena2', count: 23, free: 2 },
+    'Meena 03': { priceKey: 'meena3', count: 3, free: 2 }
+  };
+  const lessonsByBook = new Map();
+  for (const module of modules) {
+    const { data: lessons, error } = await supabase
+      .from('lessons')
+      .select('id,title,lesson_order,is_free,is_published,persian_text,urdu_explanation,english_explanation,pdf_url,audio_url,video_url')
+      .eq('module_id', module.id)
+      .eq('is_published', true)
+      .order('lesson_order');
+    if (error) {
+      message.textContent = 'اسباق حاصل کرنے میں مسئلہ: ' + error.message;
+      return;
+    }
+    lessonsByBook.set(module.id, lessons || []);
+  }
+
+  message.textContent = 'اپنی کتاب منتخب کریں۔';
+  folderList.innerHTML = '';
+  for (const module of modules) {
+    const meta = bookMeta[module.title] || { priceKey: 'meena1', count: 0, free: 0 };
+    const lessons = lessonsByBook.get(module.id) || [];
+    const owned = bundleOwned || ownedBookIds.has(module.id);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'padding:18px;margin:14px 0;border:1px solid #d8e4dc;';
+    const heading = document.createElement('h3');
+    heading.textContent = '📁 ' + module.title;
+    const detail = document.createElement('p');
+    detail.textContent = `${lessons.length} اسباق | ${meta.free} مفت اسباق`;
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.textContent = 'فولڈر کھولیں — اسباق دیکھیں';
+    open.onclick = () => renderBookLessons(module, lessons, meta, owned);
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.style.cssText = 'margin-right:8px;background:#8a5b16;';
+    buy.textContent = owned ? '✓ کتاب خریدی جا چکی ہے' : '💳 یہ کتاب الگ خریدیں';
+    buy.disabled = owned;
+    buy.onclick = () => showPaymentForm({
+      accessType: 'chapter',
+      targetId: module.id,
+      priceKey: meta.priceKey,
+      targetTitle: module.title + ' — مکمل کتاب'
+    });
+    card.append(heading, detail, open, buy);
+    folderList.appendChild(card);
+  }
+
+  async function renderBookLessons(module, lessons, meta, bookOwned) {
+    folderList.style.display = 'none';
+    lessonsPanel.style.display = 'block';
+    lessonContent.style.display = 'none';
+    lessonsPanel.innerHTML = `<button id="backMeenaBooks" type="button" style="background:#555;">← واپس کتابوں کے فولڈرز</button><h3>📁 ${escapePaymentText(module.title)}</h3><p>اپنا سبق منتخب کریں۔</p><div id="meenaLessonList"></div>`;
+    lessonsPanel.querySelector('#backMeenaBooks').onclick = () => {
+      lessonsPanel.style.display = 'none';
+      folderList.style.display = 'block';
+      lessonContent.style.display = 'none';
+    };
+    const list = lessonsPanel.querySelector('#meenaLessonList');
+    if (!lessons.length) {
+      list.textContent = 'اس کتاب کے اسباق ابھی شامل نہیں کیے گئے۔';
+      return;
+    }
+    for (const lesson of lessons) {
+      const free = !!lesson.is_free;
+      const accessible = free || bookOwned;
+      const item = document.createElement('div');
+      item.className = 'card';
+      item.style.cssText = 'padding:14px;margin:10px 0;';
+      const title = document.createElement('h4');
+      title.textContent = `Lesson ${String(lesson.lesson_order).padStart(2, '0')}`;
+      const status = document.createElement('p');
+      status.textContent = free ? '🟢 مفت سبق' : (accessible ? '🟢 خریدی ہوئی کتاب' : '🔒 خریداری ضروری ہے');
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.textContent = accessible ? 'سبق کھولیں' : 'یہ کتاب خریدیں';
+      action.onclick = () => {
+        if (!accessible) {
+          showPaymentForm({ accessType: 'chapter', targetId: module.id, priceKey: meta.priceKey, targetTitle: module.title + ' — مکمل کتاب' });
+          return;
+        }
+        renderLessonContent(module, lesson);
+      };
+      item.append(title, status, action);
+      list.appendChild(item);
+    }
+  }
+
+  async function renderLessonContent(module, lesson) {
+    lessonsPanel.style.display = 'none';
+    lessonContent.style.display = 'block';
+    lessonContent.innerHTML = `<button id="backMeenaLessons" type="button" style="background:#555;">← واپس اسباق</button><div class="card" style="padding:18px;margin-top:12px;"><h3>${escapePaymentText(module.title)} — Lesson ${String(lesson.lesson_order).padStart(2, '0')}</h3><div id="meenaLessonResources"></div><div id="meenaLessonProgress"></div></div>`;
+    lessonContent.querySelector('#backMeenaLessons').onclick = () => {
+      lessonContent.style.display = 'none';
+      lessonsPanel.style.display = 'block';
+    };
+    const resources = lessonContent.querySelector('#meenaLessonResources');
+    const addSection = (heading, body) => {
+      const section = document.createElement('section');
+      section.style.cssText = 'margin:14px 0;padding:12px;border:1px solid #e1e5e9;border-radius:10px;';
+      const h = document.createElement('h4'); h.textContent = heading; section.appendChild(h);
+      if (body) section.appendChild(body);
+      resources.appendChild(section);
+    };
+    if (lesson.persian_text) { const el = document.createElement('div'); el.textContent = lesson.persian_text; addSection('فارسی متن', el); }
+    if (lesson.urdu_explanation) { const el = document.createElement('div'); el.textContent = lesson.urdu_explanation; addSection('اردو تشریح', el); }
+    if (lesson.english_explanation) { const el = document.createElement('div'); el.textContent = lesson.english_explanation; addSection('English Explanation', el); }
+    if (lesson.pdf_url) {
+      const el = document.createElement('a'); el.href = lesson.pdf_url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '📄 PDF کھولیں';
+      addSection('PDF', el);
+    } else addSection('PDF', document.createTextNode('PDF ابھی شامل نہیں کی گئی۔'));
+    if (lesson.audio_url) {
+      const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = lesson.audio_url; audio.style.width = '100%';
+      addSection('🔊 آڈیو سنیں', audio);
+    } else addSection('🔊 آڈیو', document.createTextNode('آڈیو ابھی شامل نہیں کی گئی۔'));
+    if (lesson.video_url) {
+      const el = document.createElement('a'); el.href = lesson.video_url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '▶ ویڈیو دیکھیں';
+      addSection('ویڈیو', el);
+    } else addSection('ویڈیو', document.createTextNode('ویڈیو ابھی شامل نہیں کی گئی۔'));
+
+    const progressArea = lessonContent.querySelector('#meenaLessonProgress');
+    const { data: progress } = await supabase.from('lesson_progress').select('completed').eq('student_id', activeStudentId).eq('lesson_id', lesson.id).maybeSingle();
+    const done = !!progress?.completed;
+    const progressButton = document.createElement('button');
+    progressButton.type = 'button';
+    progressButton.textContent = done ? '✓ سبق مکمل ہو چکا ہے' : 'سبق مکمل نشان زد کریں';
+    progressButton.disabled = done;
+    progressButton.style.background = '#28734f';
+    progressButton.onclick = async () => {
+      progressButton.disabled = true;
+      const { error } = await supabase.from('lesson_progress').upsert({ student_id: activeStudentId, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'student_id,lesson_id' });
+      if (error) { alert('Progress محفوظ نہیں ہوئی: ' + error.message); progressButton.disabled = false; return; }
+      progressButton.textContent = '✓ سبق مکمل ہو چکا ہے';
+    };
+    progressArea.appendChild(progressButton);
+  }
+}
+
 // STUDENT COURSE MODULES AND LESSONS
 
 async function showStudentCourse(courseId, courseName) {
   const dashboard = document.getElementById('studentDashboard');
   if (!dashboard) return;
 
-  // Grammar folders and PDF purchase belong only to the Grammar course.
-  // Keep the Conversation course empty until its own lessons are added.
+  // Conversation Course has three separately purchasable Meena books plus a discounted bundle.
   if (courseId === '947a9182-8328-4506-b2b0-50ada2b709fa') {
-    dashboard.innerHTML = `
-      <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
-        <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
-        <h3>${courseName}</h3>
-        <p>فارسی زبان سیکھنے کا اپنا سفر جاری رکھیں۔</p>
-      </div>
-      <div class="card" style="padding:22px;margin:18px 0;text-align:center;">
-        <h3>فارسی گفتگو</h3>
-        <p>اس کورس میں ابھی کوئی سبق موجود نہیں۔ اسباق جلد شامل کیے جائیں گے۔</p>
-      </div>
-      <button id="backToStudentDashboard" style="margin-top:20px;padding:12px 20px;border-radius:10px;">
-        ← واپس ڈیش بورڈ
-      </button>
-    `;
-    document.getElementById('backToStudentDashboard').onclick = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user) await handleLogin(session.user);
-    };
+    await showConversationCourse(dashboard, courseId, courseName);
     return;
   }
   
@@ -2332,6 +2536,12 @@ async function loadPaymentAdmin() {
       const input = document.getElementById('price_book_price_' + currency);
       if (input) input.value = pricing['book_price_' + currency] ?? '';
     }
+    for (const key of ['meena1', 'meena2', 'meena3', 'conversation_bundle']) {
+      for (const currency of ['pkr', 'inr', 'usd']) {
+        const input = document.getElementById(`price_${key}_price_${currency}`);
+        if (input) input.value = pricing[`${key}_price_${currency}`] ?? '';
+      }
+    }
   }
 
   const { data: requests, error } = await supabase
@@ -2361,7 +2571,7 @@ async function loadPaymentAdmin() {
     const heading = document.createElement('h4');
     heading.textContent = profile?.full_name || request.student_id;
     const info = document.createElement('p');
-    const targetLabel = request.access_type === 'course' ? 'مکمل کورس' : request.access_type === 'chapter' ? 'مکمل باب' : request.access_type === 'full_book' ? 'مکمل کتاب PDF' : 'الگ سبق';
+    const targetLabel = (request.access_type === 'course' && request.target_id === '947a9182-8328-4506-b2b0-50ada2b709fa') ? 'مینا کی تینوں کتابوں کا Bundle' : request.access_type === 'chapter' ? 'فارسی گرامر / مینا کتاب' : request.access_type === 'course' ? 'مکمل کورس' : request.access_type === 'chapter' ? 'مکمل باب' : request.access_type === 'full_book' ? 'مکمل کتاب PDF' : 'الگ سبق';
     info.textContent = `${targetLabel} — ${request.country} — ${request.payment_method} — ${request.amount ?? ''} ${request.currency ?? ''} — ${request.status} — ${new Date(request.created_at).toLocaleString()}`;
     const reference = document.createElement('p');
     reference.textContent = 'Transaction Reference: ' + (request.transaction_reference || 'درج نہیں');
@@ -2462,6 +2672,12 @@ if (savePaymentPricingBtn) {
     for (const currency of ['pkr', 'inr', 'usd']) {
       const input = document.getElementById('price_book_price_' + currency);
       values['book_price_' + currency] = !input || input.value === '' ? null : Number(input.value);
+    }
+    for (const key of ['meena1', 'meena2', 'meena3', 'conversation_bundle']) {
+      for (const currency of ['pkr', 'inr', 'usd']) {
+        const input = document.getElementById(`price_${key}_price_${currency}`);
+        values[`${key}_price_${currency}`] = !input || input.value === '' ? null : Number(input.value);
+      }
     }
     if (Object.values(values).some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
       alert('قیمت صفر یا اس سے زیادہ درست عدد میں درج کریں۔');
@@ -2702,6 +2918,25 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
     <input id="price_book_price_inr" type="number" min="0" step="1">
     <label>دیگر ممالک — مکمل کتاب (USD)</label>
     <input id="price_book_price_usd" type="number" min="0" step="0.01">
+    <hr>
+    <h4>Conversation Course — مینا کی کتابوں کی قیمتیں</h4>
+    <p>ہر کتاب الگ فروخت ہوگی۔ Bundle میں تینوں کتابوں کی رعایتی مجموعی قیمت درج کریں۔</p>
+    <h5>Meena 01</h5>
+    <label>پاکستان — PKR</label><input id="price_meena1_price_pkr" type="number" min="0" step="1">
+    <label>بھارت — INR</label><input id="price_meena1_price_inr" type="number" min="0" step="1">
+    <label>دیگر ممالک — USD</label><input id="price_meena1_price_usd" type="number" min="0" step="0.01">
+    <h5>Meena 02</h5>
+    <label>پاکستان — PKR</label><input id="price_meena2_price_pkr" type="number" min="0" step="1">
+    <label>بھارت — INR</label><input id="price_meena2_price_inr" type="number" min="0" step="1">
+    <label>دیگر ممالک — USD</label><input id="price_meena2_price_usd" type="number" min="0" step="0.01">
+    <h5>Meena 03</h5>
+    <label>پاکستان — PKR</label><input id="price_meena3_price_pkr" type="number" min="0" step="1">
+    <label>بھارت — INR</label><input id="price_meena3_price_inr" type="number" min="0" step="1">
+    <label>دیگر ممالک — USD</label><input id="price_meena3_price_usd" type="number" min="0" step="0.01">
+    <h5>تینوں کتابوں کا رعایتی Bundle</h5>
+    <label>پاکستان — PKR</label><input id="price_conversation_bundle_price_pkr" type="number" min="0" step="1">
+    <label>بھارت — INR</label><input id="price_conversation_bundle_price_inr" type="number" min="0" step="1">
+    <label>دیگر ممالک — USD</label><input id="price_conversation_bundle_price_usd" type="number" min="0" step="0.01">
     <button id="savePaymentPricingBtn" type="button">قیمتیں محفوظ کریں</button>
     <hr>
     <h4>طلبہ کی ادائیگیوں کی درخواستیں</h4>
