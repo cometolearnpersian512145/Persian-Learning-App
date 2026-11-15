@@ -34,6 +34,13 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .reg-student-button.active{background:#176b50;color:white}
 .reg-view-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .reg-view-heading button{width:auto;padding:9px 13px}
+.student-calendar{background:linear-gradient(140deg,#075f5b,#0c7772);color:#fff;border:1px solid #ffffff2b;border-radius:20px;padding:18px 16px;margin:0 0 20px;text-align:center;box-shadow:0 8px 24px #073b3330}
+.student-calendar-weekday{font-size:15px;opacity:.9;margin:0 0 2px}
+.student-calendar-clock{font-size:clamp(32px,9vw,48px);font-variant-numeric:tabular-nums;letter-spacing:2px;line-height:1.3;margin:0 0 14px}
+.student-calendar-dates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.student-calendar-date{background:#ffffff18;border:1px solid #ffffff30;border-radius:12px;padding:9px 5px;min-width:0}
+.student-calendar-date-label{display:block;font-size:12px;opacity:.85;margin-bottom:5px}
+.student-calendar-date-value{display:block;font-size:14px;line-height:1.6;font-weight:600}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -141,6 +148,30 @@ const { error } = await supabase.auth.signUp({
 
 let loginRenderToken = 0;
 let activeStudentId = null;
+let studentClockInterval = null;
+
+function updateStudentCalendarClock() {
+  const clock = document.getElementById('studentCalendarClock');
+  if (!clock) return;
+  const now = new Date();
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Karachi';
+  const dateOptions = { timeZone, day: 'numeric', month: 'long', year: 'numeric' };
+  clock.textContent = new Intl.DateTimeFormat('en-PK', {
+    timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+  }).format(now);
+  document.getElementById('studentCalendarWeekday').textContent = new Intl.DateTimeFormat('ur-PK', {
+    timeZone, weekday: 'long'
+  }).format(now);
+  document.getElementById('studentGregorianDate').textContent = new Intl.DateTimeFormat('ur-PK', dateOptions).format(now);
+  document.getElementById('studentIranianDate').textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', dateOptions).format(now);
+  let islamicDate;
+  try {
+    islamicDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic-umalqura', dateOptions).format(now);
+  } catch (_) {
+    islamicDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic', dateOptions).format(now);
+  }
+  document.getElementById('studentIslamicDate').textContent = islamicDate;
+}
 
 function escapePaymentText(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -696,6 +727,15 @@ if (adminProfile.role === 'admin') {
   dashboard.className = 'card';
 
  dashboard.innerHTML = `
+  <section class="student-calendar" aria-label="وقت اور تاریخ">
+    <p id="studentCalendarWeekday" class="student-calendar-weekday"></p>
+    <p id="studentCalendarClock" class="student-calendar-clock" aria-live="off"></p>
+    <div class="student-calendar-dates">
+      <div class="student-calendar-date"><span class="student-calendar-date-label">اسلامی</span><span id="studentIslamicDate" class="student-calendar-date-value"></span></div>
+      <div class="student-calendar-date"><span class="student-calendar-date-label">عیسوی</span><span id="studentGregorianDate" class="student-calendar-date-value"></span></div>
+      <div class="student-calendar-date"><span class="student-calendar-date-label">ایرانی</span><span id="studentIranianDate" class="student-calendar-date-value" lang="fa" dir="rtl"></span></div>
+    </div>
+  </section>
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>طالب علم کا ڈیش بورڈ</h3>
 
@@ -740,6 +780,9 @@ if (adminProfile.role === 'admin') {
   <div style="text-align:center;"><button type="button" id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
 `;
   document.querySelector('main').prepend(dashboard);
+  updateStudentCalendarClock();
+  if (studentClockInterval) clearInterval(studentClockInterval);
+  studentClockInterval = setInterval(updateStudentCalendarClock, 1000);
   // Defensive cleanup: exactly one Student Logout button may exist.
   document.querySelectorAll('#dashboardLogout').forEach((button, index) => {
     if (index > 0) button.remove();
