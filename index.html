@@ -2191,9 +2191,131 @@ async function editLesson(lessonId) {
   document.getElementById('addLessonBtn').textContent = 'تبدیلی محفوظ کریں';
 
   document.getElementById('lessonMessage').textContent =
-    'سبق کا موجودہ مواد فارم میں آ گیا ہے۔ اب آپ اس میں ترمیم کر سکتے ہیں۔';
+    'سبق کی تفصیلات آ گئی ہیں۔ نیچے موجودہ اپلوڈ شدہ فائلیں بھی دیکھیے؛ ہر فائل الگ تبدیل یا حذف کی جا سکتی ہے۔';
 
+  await renderExistingMeenaResources(lessonId);
   document.getElementById('lessonTitle').focus();
+}
+
+// Show, replace, or delete resources already attached to a lesson.
+async function renderExistingMeenaResources(lessonId) {
+  const host = document.getElementById('existingMeenaResources');
+  if (!host) return;
+  host.innerHTML = '<p>پہلے سے موجود مواد لوڈ ہو رہا ہے...</p>';
+  const { data: rows, error } = await supabase
+    .from('lesson_resources')
+    .select('id,resource_type,title,storage_path,external_url,display_order')
+    .eq('lesson_id', lessonId)
+    .order('display_order', { ascending: true });
+  if (error) {
+    host.innerHTML = `<p style="color:#b42318;">مواد لوڈ نہیں ہو سکا: ${escapePaymentText(error.message)}</p>`;
+    return;
+  }
+  host.innerHTML = '<h4>📂 پہلے سے اپلوڈ شدہ مواد</h4>';
+  if (!rows || !rows.length) {
+    host.innerHTML += '<p>اس سبق میں ابھی کوئی اضافی فائل محفوظ نہیں ہے۔</p>';
+    return;
+  }
+  const names = {
+    pdf: 'PDF', page_image: 'سبق کی تصویر',
+    audio_explanation: 'اردو وضاحت آڈیو', audio_homework: 'فارسی ہوم ورک آڈیو', video: 'ویڈیو'
+  };
+  for (const resource of rows) {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid #d7dde5;border-radius:9px;padding:12px;margin:10px 0;background:#fff;';
+    const heading = document.createElement('strong');
+    heading.textContent = `${names[resource.resource_type] || 'فائل'} — ${resource.title || 'بلا عنوان'}`;
+    card.appendChild(heading);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;';
+
+    const view = document.createElement('button');
+    view.type = 'button'; view.textContent = 'فائل دیکھیں / کھولیں';
+    view.onclick = async () => {
+      try {
+        let url = resource.external_url || '';
+        if (resource.storage_path) {
+          const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(resource.storage_path, 3600);
+          if (signed.error) throw signed.error;
+          url = signed.data.signedUrl;
+        }
+        if (!url) throw new Error('اس فائل کا لنک موجود نہیں۔');
+        window.open(url, '_blank', 'noopener');
+      } catch (e) { alert('فائل کھولنے میں مسئلہ: ' + e.message); }
+    };
+    actions.appendChild(view);
+
+    if (resource.storage_path) {
+      const replaceLabel = document.createElement('label');
+      replaceLabel.textContent = 'فائل تبدیل کریں: ';
+      replaceLabel.style.cssText = 'display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;';
+      const picker = document.createElement('input');
+      picker.type = 'file';
+      if (resource.resource_type === 'pdf') picker.accept = 'application/pdf,.pdf';
+      else if (resource.resource_type === 'page_image') picker.accept = 'image/*';
+      else picker.accept = 'audio/*';
+      picker.onchange = async () => {
+        const file = picker.files && picker.files[0];
+        if (!file) return;
+        const type = resource.resource_type;
+        const max = type === 'pdf' ? 50*1024*1024 : type === 'page_image' ? 10*1024*1024 : 100*1024*1024;
+        if (file.size > max) { alert('فائل مقررہ سائز سے بڑی ہے۔'); picker.value=''; return; }
+        if (type === 'pdf' && file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) { alert('صرف PDF فائل منتخب کریں۔'); picker.value=''; return; }
+        if (type === 'page_image' && !file.type.startsWith('image/')) { alert('صرف تصویر منتخب کریں۔'); picker.value=''; return; }
+        if ((type === 'audio_explanation' || type === 'audio_homework') && !file.type.startsWith('audio/')) { alert('صرف آڈیو فائل منتخب کریں۔'); picker.value=''; return; }
+        if (!confirm(`کیا آپ واقعی یہ فائل تبدیل کرنا چاہتے ہیں؟\n${resource.title || names[type]}`)) { picker.value=''; return; }
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-70);
+        const newPath = `meena/replace/${lessonId}/${crypto.randomUUID()}_${safe}`;
+        try {
+          const up = await supabase.storage.from('meena-lesson-files').upload(newPath, file, { upsert:false, contentType:file.type || undefined });
+          if (up.error) throw up.error;
+          const upd = await supabase.from('lesson_resources').update({ storage_path:newPath, external_url:null, title:file.name }).eq('id', resource.id);
+          if (upd.error) {
+            await supabase.storage.from('meena-lesson-files').remove([newPath]);
+            throw upd.error;
+          }
+          const old = await supabase.storage.from('meena-lesson-files').remove([resource.storage_path]);
+          if (old.error) alert('نئی فائل محفوظ ہوگئی، لیکن پرانی فائل اسٹوریج سے خودکار حذف نہیں ہو سکی: ' + old.error.message);
+          alert('فائل کامیابی سے تبدیل ہوگئی۔');
+          await renderExistingMeenaResources(lessonId);
+        } catch (e) { alert('فائل تبدیل نہیں ہو سکی: ' + e.message); }
+      };
+      replaceLabel.appendChild(picker);
+      actions.appendChild(replaceLabel);
+    } else if (resource.resource_type === 'video') {
+      const urlInput = document.createElement('input');
+      urlInput.type = 'url'; urlInput.placeholder = 'نیا ویڈیو URL'; urlInput.value = resource.external_url || '';
+      urlInput.style.cssText = 'min-width:220px;max-width:100%;';
+      const saveUrl = document.createElement('button'); saveUrl.type='button'; saveUrl.textContent='ویڈیو لنک تبدیل کریں';
+      saveUrl.onclick = async () => {
+        const url = urlInput.value.trim();
+        if (!/^https?:\/\//i.test(url)) { alert('درست http یا https ویڈیو URL درج کریں۔'); return; }
+        const upd = await supabase.from('lesson_resources').update({ external_url:url }).eq('id', resource.id);
+        if (upd.error) { alert('لنک محفوظ نہیں ہوا: ' + upd.error.message); return; }
+        alert('ویڈیو لنک تبدیل ہوگیا۔');
+        await renderExistingMeenaResources(lessonId);
+      };
+      actions.appendChild(urlInput); actions.appendChild(saveUrl);
+    }
+
+    const del = document.createElement('button');
+    del.type='button'; del.textContent='یہ فائل حذف کریں'; del.style.background='#b42318';
+    del.onclick = async () => {
+      if (!confirm(`کیا آپ واقعی یہ فائل حذف کرنا چاہتے ہیں؟\n${resource.title || names[resource.resource_type]}`)) return;
+      const removed = await supabase.from('lesson_resources').delete().eq('id', resource.id).select('id');
+      if (removed.error) { alert('فائل حذف نہیں ہوئی: ' + removed.error.message); return; }
+      if (!removed.data || !removed.data.length) { alert('فائل کا ریکارڈ حذف نہیں ہوا۔ ممکن ہے Admin کو اجازت نہ ہو۔'); return; }
+      if (resource.storage_path) {
+        const storageDelete = await supabase.storage.from('meena-lesson-files').remove([resource.storage_path]);
+        if (storageDelete.error) alert('ریکارڈ حذف ہوگیا، مگر اسٹوریج فائل حذف کرنے میں مسئلہ آیا: ' + storageDelete.error.message);
+      }
+      alert('فائل حذف ہوگئی۔');
+      await renderExistingMeenaResources(lessonId);
+    };
+    actions.appendChild(del);
+    card.appendChild(actions);
+    host.appendChild(card);
+  }
 }
   // ADD NEW LESSON
 document.getElementById('loadAllLessonAccessBtn').addEventListener('click', loadAllLessonAccess);
@@ -2338,6 +2460,8 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideoList').value = '';
   document.getElementById('lessonResourceModePdf').checked = true;
   editingLessonId = null;
+  const existingResourceBox = document.getElementById('existingMeenaResources');
+  if (existingResourceBox) existingResourceBox.innerHTML = '';
   document.getElementById('addLessonBtn').textContent = 'سبق شامل کریں';
   document.getElementById('lessonModule').value = module_id;
   await loadLessons();
@@ -3002,6 +3126,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <button id="addLessonBtn">سبق شامل کریں</button>
 
 <p id="lessonMessage"></p>
+<div id="existingMeenaResources" style="margin:16px 0;"></div>
 
 <h4>تمام اسباق</h4>
 <div id="lessonList"></div>
