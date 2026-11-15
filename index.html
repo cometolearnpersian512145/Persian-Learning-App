@@ -1099,18 +1099,28 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     if (lesson.persian_text) { const el = document.createElement('div'); el.textContent = lesson.persian_text; addSection('فارسی متن', el); }
     if (lesson.urdu_explanation) { const el = document.createElement('div'); el.textContent = lesson.urdu_explanation; addSection('اردو تشریح', el); }
     if (lesson.english_explanation) { const el = document.createElement('div'); el.textContent = lesson.english_explanation; addSection('English Explanation', el); }
-    if (lesson.pdf_url) {
-      const el = document.createElement('a'); el.href = lesson.pdf_url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '📄 PDF کھولیں';
-      addSection('PDF', el);
-    } else addSection('PDF', document.createTextNode('PDF ابھی شامل نہیں کی گئی۔'));
+    const makeResourceButton = (label, url) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.style.cssText = 'display:inline-block;margin:4px 0;padding:10px 16px;border:0;border-radius:8px;background:#176b50;color:#fff;font-weight:600;';
+      if (url) {
+        button.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        button.disabled = true;
+        button.textContent += ' — ابھی دستیاب نہیں';
+        button.title = 'یہ فائل ابھی ایڈمن پینل سے شامل نہیں کی گئی۔';
+        button.style.background = '#888';
+        button.style.cursor = 'not-allowed';
+      }
+      return button;
+    };
+    addSection('PDF', makeResourceButton('📄 PDF کھولیں', lesson.pdf_url));
     if (lesson.audio_url) {
       const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = lesson.audio_url; audio.style.width = '100%';
       addSection('🔊 آڈیو سنیں', audio);
-    } else addSection('🔊 آڈیو', document.createTextNode('آڈیو ابھی شامل نہیں کی گئی۔'));
-    if (lesson.video_url) {
-      const el = document.createElement('a'); el.href = lesson.video_url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '▶ ویڈیو دیکھیں';
-      addSection('ویڈیو', el);
-    } else addSection('ویڈیو', document.createTextNode('ویڈیو ابھی شامل نہیں کی گئی۔'));
+    } else addSection('🔊 آڈیو', makeResourceButton('▶ آڈیو چلائیں', null));
+    addSection('ویڈیو', makeResourceButton('▶ ویڈیو دیکھیں', lesson.video_url));
 
     const progressArea = lessonContent.querySelector('#meenaLessonProgress');
     const { data: progress } = await supabase.from('lesson_progress').select('completed').eq('student_id', activeStudentId).eq('lesson_id', lesson.id).maybeSingle();
