@@ -1099,28 +1099,34 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     if (lesson.persian_text) { const el = document.createElement('div'); el.textContent = lesson.persian_text; addSection('فارسی متن', el); }
     if (lesson.urdu_explanation) { const el = document.createElement('div'); el.textContent = lesson.urdu_explanation; addSection('اردو تشریح', el); }
     if (lesson.english_explanation) { const el = document.createElement('div'); el.textContent = lesson.english_explanation; addSection('English Explanation', el); }
-    const makeResourceButton = (label, url) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = label;
-      button.style.cssText = 'display:inline-block;margin:4px 0;padding:10px 16px;border:0;border-radius:8px;background:#176b50;color:#fff;font-weight:600;';
-      if (url) {
-        button.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
-      } else {
-        button.disabled = true;
-        button.textContent += ' — ابھی دستیاب نہیں';
-        button.title = 'یہ فائل ابھی ایڈمن پینل سے شامل نہیں کی گئی۔';
-        button.style.background = '#888';
-        button.style.cursor = 'not-allowed';
+    async function getLessonResourceUrl(value) {
+      if (!value) return null;
+      if (value.startsWith('storage://')) {
+        const path = value.slice('storage://'.length);
+        const { data, error } = await supabase.storage.from('meena-lesson-files').createSignedUrl(path, 3600);
+        if (error) throw error;
+        return data.signedUrl;
       }
-      return button;
-    };
-    addSection('PDF', makeResourceButton('📄 PDF کھولیں', lesson.pdf_url));
+      return value;
+    }
+    if (lesson.pdf_url) {
+      try {
+        const url = await getLessonResourceUrl(lesson.pdf_url);
+        const el = document.createElement('a'); el.href = url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '📄 PDF کھولیں';
+        addSection('PDF', el);
+      } catch (e) { addSection('PDF', document.createTextNode('PDF کھولنے میں مسئلہ: ' + e.message)); }
+    } else addSection('PDF', document.createTextNode('PDF ابھی شامل نہیں کی گئی۔'));
     if (lesson.audio_url) {
-      const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = lesson.audio_url; audio.style.width = '100%';
-      addSection('🔊 آڈیو سنیں', audio);
-    } else addSection('🔊 آڈیو', makeResourceButton('▶ آڈیو چلائیں', null));
-    addSection('ویڈیو', makeResourceButton('▶ ویڈیو دیکھیں', lesson.video_url));
+      try {
+        const url = await getLessonResourceUrl(lesson.audio_url);
+        const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = url; audio.style.width = '100%';
+        addSection('🔊 آڈیو سنیں', audio);
+      } catch (e) { addSection('🔊 آڈیو', document.createTextNode('آڈیو چلانے میں مسئلہ: ' + e.message)); }
+    } else addSection('🔊 آڈیو', document.createTextNode('آڈیو ابھی شامل نہیں کی گئی۔'));
+    if (lesson.video_url) {
+      const el = document.createElement('a'); el.href = lesson.video_url; el.target = '_blank'; el.rel = 'noopener noreferrer'; el.textContent = '▶ ویڈیو دیکھیں';
+      addSection('ویڈیو', el);
+    } else addSection('ویڈیو', document.createTextNode('ویڈیو ابھی شامل نہیں کی گئی۔'));
 
     const progressArea = lessonContent.querySelector('#meenaLessonProgress');
     const { data: progress } = await supabase.from('lesson_progress').select('completed').eq('student_id', activeStudentId).eq('lesson_id', lesson.id).maybeSingle();
@@ -2126,6 +2132,8 @@ async function editLesson(lessonId) {
   document.getElementById('lessonVideo').value = data.video_url || '';
   document.getElementById('lessonAudio').value = data.audio_url || '';
   document.getElementById('lessonPdf').value = data.pdf_url || '';
+  document.getElementById('lessonAudioFile').value = '';
+  document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonOrder').value = data.lesson_order || 1;
   document.getElementById('lessonFree').checked = data.is_free;
   document.getElementById('lessonPublished').checked = data.is_published;
@@ -2140,6 +2148,19 @@ async function editLesson(lessonId) {
   // ADD NEW LESSON
 document.getElementById('loadAllLessonAccessBtn').addEventListener('click', loadAllLessonAccess);
 
+async function uploadMeenaLessonFile(file, moduleId, lessonOrder, kind) {
+  if (!file) return null;
+  const maxBytes = kind === 'pdf' ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
+  if (file.size > maxBytes) throw new Error(kind === 'pdf' ? 'PDF فائل 50 MB سے کم ہونی چاہیے۔' : 'آڈیو فائل 100 MB سے کم ہونی چاہیے۔');
+  if (kind === 'pdf' && file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) throw new Error('صرف PDF فائل منتخب کریں۔');
+  if (kind === 'audio' && !file.type.startsWith('audio/')) throw new Error('براہِ کرم درست Audio فائل منتخب کریں۔');
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+  const path = `meena/${moduleId}/${String(lessonOrder).padStart(2,'0')}_${kind}_${crypto.randomUUID()}_${cleanName}`;
+  const { error } = await supabase.storage.from('meena-lesson-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (error) throw error;
+  return `storage://${path}`;
+}
+
 document.getElementById('addLessonBtn').addEventListener('click', async () => {
   const module_id = document.getElementById('lessonModule').value;
   const title = document.getElementById('lessonTitle').value.trim();
@@ -2147,8 +2168,6 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   const urdu_explanation = document.getElementById('lessonUrdu').value.trim();
   const english_explanation = document.getElementById('lessonEnglish').value.trim();
   const video_url = document.getElementById('lessonVideo').value.trim();
-  const audio_url = document.getElementById('lessonAudio').value.trim();
-  const pdf_url = document.getElementById('lessonPdf').value.trim();
   const lesson_order = Number(document.getElementById('lessonOrder').value);
   const is_free = document.getElementById('lessonFree').checked;
   const is_published = document.getElementById('lessonPublished').checked;
@@ -2159,7 +2178,19 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
     return;
   }
 
-  lessonMessage.textContent = 'سبق محفوظ ہو رہا ہے...';
+  lessonMessage.textContent = 'سبق اور منتخب فائلیں محفوظ ہو رہی ہیں...';
+
+  let audio_url = document.getElementById('lessonAudio').value.trim();
+  let pdf_url = document.getElementById('lessonPdf').value.trim();
+  try {
+    const audioFile = document.getElementById('lessonAudioFile').files[0];
+    const pdfFile = document.getElementById('lessonPdfFile').files[0];
+    if (audioFile) audio_url = await uploadMeenaLessonFile(audioFile, module_id, lesson_order, 'audio');
+    if (pdfFile) pdf_url = await uploadMeenaLessonFile(pdfFile, module_id, lesson_order, 'pdf');
+  } catch (uploadError) {
+    lessonMessage.textContent = 'فائل اپ لوڈ نہیں ہو سکی: ' + uploadError.message;
+    return;
+  }
 
   const lessonData = {
     module_id,
@@ -2205,6 +2236,8 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideo').value = '';
   document.getElementById('lessonAudio').value = '';
   document.getElementById('lessonPdf').value = '';
+  document.getElementById('lessonAudioFile').value = '';
+  document.getElementById('lessonPdfFile').value = '';
   editingLessonId = null;
   document.getElementById('addLessonBtn').textContent = 'سبق شامل کریں';
   document.getElementById('lessonModule').value = module_id;
@@ -2827,11 +2860,18 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   
 <textarea id="lessonEnglish" placeholder="English Explanation"></textarea>
 
-<input id="lessonVideo" type="text" placeholder="Video URL">
+<input id="lessonVideo" type="text" placeholder="Video URL (اختیاری)">
 
-<input id="lessonAudio" type="text" placeholder="Audio URL">
+<label class="form-field">آڈیو فائل براہِ راست اپ لوڈ کریں (MP3, M4A, WAV)
+  <input id="lessonAudioFile" type="file" accept="audio/*">
+</label>
+<input id="lessonAudio" type="text" placeholder="یا Audio URL درج کریں (اختیاری)">
 
-<input id="lessonPdf" type="text" placeholder="PDF URL">
+<label class="form-field">PDF فائل براہِ راست اپ لوڈ کریں
+  <input id="lessonPdfFile" type="file" accept="application/pdf,.pdf">
+</label>
+<input id="lessonPdf" type="text" placeholder="یا PDF URL درج کریں (اختیاری)">
+<p>فائل منتخب کرنے پر وہ محفوظ طور پر اپ لوڈ ہوگی۔ ویڈیو کے لیے فی الحال YouTube یا دوسری Video URL درج کریں۔</p>
 
 <input id="lessonOrder" type="number" placeholder="سبق نمبر" value="1">
 
