@@ -2603,6 +2603,7 @@ async function editLesson(lessonId) {
   document.getElementById('lessonVideo').value = data.video_url || '';
   document.getElementById('lessonAudio').value = data.audio_url || '';
   document.getElementById('lessonPdf').value = data.pdf_url || '';
+  document.getElementById('lessonAudioFile').value = '';
   document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonImageFiles').value = '';
   document.getElementById('lessonResourceModePdf').checked = true;
@@ -2616,20 +2617,11 @@ async function editLesson(lessonId) {
 
   document.getElementById('addLessonBtn').textContent = 'تبدیلی محفوظ کریں';
 
-  const hasLessonText = Boolean(
-    (data.persian_text || '').trim() ||
-    (data.urdu_explanation || '').trim() ||
-    (data.english_explanation || '').trim() ||
-    (data.shenasay || '').trim()
-  );
-  document.getElementById('lessonMessage').textContent = hasLessonText
-    ? 'سبق کی محفوظ شدہ عبارت اور تشریح لوڈ ہوگئی ہے۔ موجودہ فائلیں نیچے الگ فہرست میں ہیں۔'
-    : 'نوٹ: اس سبق کے فارسی متن، اردو تشریح، شناسه اور English Explanation کے خانے ڈیٹابیس میں خالی ہیں۔ اگر طالب علم کو سبق کی فائلیں نظر آتی ہیں تو وہ نیچے موجودہ مواد کی فہرست میں دکھائی دیں گی۔';
+  document.getElementById('lessonMessage').textContent =
+    'سبق کی تفصیلات آ گئی ہیں۔ نیچے موجودہ اپلوڈ شدہ فائلیں بھی دیکھیے؛ ہر فائل الگ تبدیل یا حذف کی جا سکتی ہے۔';
 
   await renderExistingMeenaResources(lessonId);
-  const resourcePanel = document.getElementById('existingMeenaResources');
-  if (resourcePanel) resourcePanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  document.getElementById('lessonTitle').focus({ preventScroll: true });
+  document.getElementById('lessonTitle').focus();
 }
 
 // Show, replace, or delete resources already attached to a lesson.
@@ -2652,13 +2644,7 @@ async function renderExistingMeenaResources(lessonId) {
     return;
   }
 
-  host.innerHTML = '<h4>📂 اس سبق کا موجودہ محفوظ شدہ مواد</h4>';
-  const counts = { pdf: 0, page_image: 0, audio_explanation: 0, audio_homework: 0, video: 0 };
-  (rows || []).forEach(item => { if (Object.prototype.hasOwnProperty.call(counts, item.resource_type)) counts[item.resource_type]++; });
-  const countLine = document.createElement('p');
-  countLine.style.cssText = 'line-height:1.9;margin:6px 0 12px;';
-  countLine.textContent = `موجودہ فائلیں: PDF ${counts.pdf}، تصاویر ${counts.page_image}، اردو آڈیوز ${counts.audio_explanation}، فارسی ہوم ورک آڈیوز ${counts.audio_homework}، ویڈیوز ${counts.video}`;
-  host.appendChild(countLine);
+  host.innerHTML = '<h4>📂 اس سبق کا موجودہ مواد</h4>';
   const status = document.createElement('p');
   status.style.cssText = 'padding:10px;border-radius:8px;background:#f3f6f4;line-height:1.9;';
   status.textContent = `${lesson.is_free ? '🟢 FREE / مفت' : '🔒 PAID / ادائیگی والا'} — ${lesson.is_published ? '🟢 PUBLISHED / طلبہ کو نظر آئے گا' : '🔴 UNPUBLISHED / طلبہ کو نظر نہیں آئے گا'}`;
@@ -2712,8 +2698,7 @@ async function renderExistingMeenaResources(lessonId) {
   if (!rows || !rows.length) {
     if (!lesson.pdf_url && !lesson.audio_url && !lesson.video_url) {
       const empty = document.createElement('p');
-      empty.style.cssText = 'padding:10px;background:#fff4e5;border-radius:8px;';
-      empty.textContent = 'اس سبق کے lesson_resources ریکارڈ میں کوئی PDF، تصویر، آڈیو یا ویڈیو نہیں ملی۔ اگر طالب علم کو مواد نظر آتا ہے تو براہِ کرم اس کا اسکرین شاٹ بھیجیں؛ ممکن ہے وہ کسی دوسرے محفوظ شدہ ذریعے سے آ رہا ہو۔';
+      empty.textContent = 'اس سبق میں ابھی کوئی PDF، تصویر، آڈیو یا ویڈیو محفوظ نہیں ہے۔';
       host.appendChild(empty);
     }
     return;
@@ -2962,6 +2947,7 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideo').value = '';
   document.getElementById('lessonAudio').value = '';
   document.getElementById('lessonPdf').value = '';
+  document.getElementById('lessonAudioFile').value = '';
   document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonImageFiles').value = '';
   document.getElementById('lessonExplanationAudioFiles').value = '';
@@ -3592,8 +3578,6 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   
 <textarea id="lessonEnglish" placeholder="English Explanation"></textarea>
 
-<div id="existingMeenaResources" style="margin:16px 0;padding:14px;border:2px solid #176b50;border-radius:12px;background:#f7fbf8;"></div>
-
 <h4>1۔ سبق کا مواد: PDF یا تصاویر میں سے ایک منتخب کریں</h4>
 <label><input type="radio" name="lessonResourceMode" id="lessonResourceModePdf" value="pdf" checked> PDF فائل اپ لوڈ کریں</label>
 <label><input type="radio" name="lessonResourceMode" id="lessonResourceModeImages" value="images"> صفحات کی تصاویر اپ لوڈ کریں (ایک ساتھ زیادہ سے زیادہ 7)</label>
@@ -3639,6 +3623,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <button id="addLessonBtn">سبق شامل کریں</button>
 
 <p id="lessonMessage"></p>
+<div id="existingMeenaResources" style="margin:16px 0;"></div>
 
 <h4>تمام اسباق</h4>
 <div id="lessonList"></div>
