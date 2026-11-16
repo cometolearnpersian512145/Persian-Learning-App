@@ -2619,39 +2619,48 @@ async function editLesson(lessonId) {
     .eq('id', lessonId)
     .single();
 
-  if (error) {
-    alert('سبق حاصل کرنے میں مسئلہ: ' + error.message);
+  if (error || !data) {
+    alert('سبق حاصل کرنے میں مسئلہ: ' + (error?.message || 'سبق نہیں ملا'));
     return;
   }
 
   editingLessonId = lessonId;
 
-  document.getElementById('lessonModule').value = data.module_id;
-  const isConversationLesson = await updateLessonMediaAdminVisibility(data.module_id);
-  document.getElementById('lessonTitle').value = data.title || '';
-  document.getElementById('lessonPersian').value = data.persian_text || '';
-  document.getElementById('lessonUrdu').value = data.urdu_explanation || '';
-  document.getElementById('lessonShenasay').value = data.shenasay || '';
-  document.getElementById('lessonEnglish').value = data.english_explanation || '';
-  document.getElementById('lessonVideo').value = data.video_url || '';
-  document.getElementById('lessonAudio').value = data.audio_url || '';
-  document.getElementById('lessonPdf').value = data.pdf_url || '';
-  document.getElementById('lessonAudioFile').value = '';
-  document.getElementById('lessonPdfFile').value = '';
-  document.getElementById('lessonImageFiles').value = '';
-  document.getElementById('lessonResourceModePdf').checked = true;
-  document.getElementById('lessonExplanationAudioFiles').value = '';
-  document.getElementById('lessonHomeworkAudioFiles').value = '';
-  document.getElementById('lessonVideoList').value = '';
-  document.getElementById('lessonOrder').value = data.lesson_order || 1;
-  document.getElementById('lessonFree').checked = data.is_free;
-  document.getElementById('lessonPublished').checked = data.is_published;
+  // Set the two status checkboxes immediately so optional media fields
+  // cannot prevent Free / Published from being restored in either course.
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value ?? '';
+  };
+  const setChecked = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = value === true;
+  };
+
+  setValue('lessonModule', data.module_id);
+  setChecked('lessonFree', data.is_free);
+  setChecked('lessonPublished', data.is_published);
+  setValue('lessonTitle', data.title);
+  setValue('lessonPersian', data.persian_text);
+  setValue('lessonUrdu', data.urdu_explanation);
+  setValue('lessonShenasay', data.shenasay);
+  setValue('lessonEnglish', data.english_explanation);
+  setValue('lessonVideo', data.video_url);
+  setValue('lessonAudio', data.audio_url);
+  setValue('lessonPdf', data.pdf_url);
+  setValue('lessonOrder', data.lesson_order || 1);
+
+  // Clear only upload inputs that exist in this version of the form.
+  ['lessonPdfFile','lessonImageFiles','lessonExplanationAudioFiles',
+   'lessonHomeworkAudioFiles','lessonVideoList'].forEach(id => setValue(id, ''));
+  setChecked('lessonResourceModePdf', true);
   updateLessonVisibilityStatus();
 
-  document.getElementById('addLessonBtn').textContent = 'تبدیلی محفوظ کریں';
-
-  document.getElementById('lessonMessage').textContent =
-    'سبق کی تفصیلات آ گئی ہیں۔ نیچے موجودہ اپلوڈ شدہ فائلیں بھی دیکھیے؛ ہر فائل الگ تبدیل یا حذف کی جا سکتی ہے۔';
+  const isConversationLesson = await updateLessonMediaAdminVisibility(data.module_id);
+  const addButton = document.getElementById('addLessonBtn');
+  if (addButton) addButton.textContent = 'تبدیلی محفوظ کریں';
+  const message = document.getElementById('lessonMessage');
+  if (message) message.textContent = 'سبق کی تمام محفوظ شدہ تفصیلات فارم میں آ گئی ہیں۔';
 
   if (isConversationLesson) {
     await renderExistingMeenaResources(lessonId);
@@ -2659,7 +2668,7 @@ async function editLesson(lessonId) {
     const existing = document.getElementById('existingMeenaResources');
     if (existing) { existing.innerHTML = ''; existing.style.display = 'none'; }
   }
-  document.getElementById('lessonTitle').focus();
+  document.getElementById('lessonTitle')?.focus();
 }
 
 // Show, replace, or delete resources already attached to a lesson.
@@ -2990,7 +2999,7 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideo').value = '';
   document.getElementById('lessonAudio').value = '';
   document.getElementById('lessonPdf').value = '';
-  document.getElementById('lessonAudioFile').value = '';
+  // Obsolete audio-file input was removed; Meena audio uploads use lesson_resources.
   document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonImageFiles').value = '';
   document.getElementById('lessonExplanationAudioFiles').value = '';
@@ -3646,7 +3655,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <hr>
 <h4>4۔ ویڈیوز</h4>
 <textarea id="lessonVideoList" rows="3" placeholder="ہر ویڈیو کا URL الگ لائن میں درج کریں؛ ایک سے زیادہ ویڈیوز شامل کر سکتے ہیں"></textarea>
-<p>مواد کی ترتیب طالب علم کے صفحے پر: PDF/تصاویر، اردو وضاحت کی آڈیوز، فارسی ہوم ورک آڈیوز، پھر ویڈیوز۔</p>
+
 <input id="lessonVideo" type="hidden">
 <input id="lessonAudio" type="hidden">
 <input id="lessonPdf" type="hidden">
