@@ -2603,7 +2603,6 @@ async function editLesson(lessonId) {
   document.getElementById('lessonVideo').value = data.video_url || '';
   document.getElementById('lessonAudio').value = data.audio_url || '';
   document.getElementById('lessonPdf').value = data.pdf_url || '';
-  document.getElementById('lessonAudioFile').value = '';
   document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonImageFiles').value = '';
   document.getElementById('lessonResourceModePdf').checked = true;
@@ -2947,7 +2946,6 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   document.getElementById('lessonVideo').value = '';
   document.getElementById('lessonAudio').value = '';
   document.getElementById('lessonPdf').value = '';
-  document.getElementById('lessonAudioFile').value = '';
   document.getElementById('lessonPdfFile').value = '';
   document.getElementById('lessonImageFiles').value = '';
   document.getElementById('lessonExplanationAudioFiles').value = '';
