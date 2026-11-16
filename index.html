@@ -2232,7 +2232,9 @@ openButton.onclick = async () => {
   lessonCard.appendChild(content);
 
   loadLessonPage();
-  appendStudentLessonResources(content, lesson, module, courseId, courseName);
+  if (courseId === CONVERSATION_COURSE_ID) {
+    appendStudentLessonResources(content, lesson, module, courseId, courseName);
+  }
 };
 
         lessonCard.appendChild(title);
@@ -2580,6 +2582,36 @@ async function loadLessons() {
 
   let editingLessonId = null;
 
+const CONVERSATION_COURSE_ID = '947a9182-8328-4506-b2b0-50ada2b709fa';
+async function updateLessonMediaAdminVisibility(moduleId) {
+  const panel = document.getElementById('lessonMeenaMediaAdmin');
+  const existing = document.getElementById('existingMeenaResources');
+  if (!panel) return false;
+  if (!moduleId) {
+    panel.style.display = 'none';
+    if (existing) existing.style.display = 'none';
+    return false;
+  }
+  const { data: moduleRow, error } = await supabase
+    .from('modules').select('course_id').eq('id', moduleId).single();
+  if (error || !moduleRow) {
+    panel.style.display = 'none';
+    if (existing) existing.style.display = 'none';
+    return false;
+  }
+  const isConversation = moduleRow.course_id === CONVERSATION_COURSE_ID;
+  panel.style.display = isConversation ? 'block' : 'none';
+  if (existing) existing.style.display = isConversation ? 'block' : 'none';
+  return isConversation;
+}
+
+const lessonModuleSelector = document.getElementById('lessonModule');
+if (lessonModuleSelector) {
+  lessonModuleSelector.addEventListener('change', async () => {
+    await updateLessonMediaAdminVisibility(lessonModuleSelector.value);
+  });
+}
+
 async function editLesson(lessonId) {
   const { data, error } = await supabase
     .from('lessons')
@@ -2595,6 +2627,7 @@ async function editLesson(lessonId) {
   editingLessonId = lessonId;
 
   document.getElementById('lessonModule').value = data.module_id;
+  const isConversationLesson = await updateLessonMediaAdminVisibility(data.module_id);
   document.getElementById('lessonTitle').value = data.title || '';
   document.getElementById('lessonPersian').value = data.persian_text || '';
   document.getElementById('lessonUrdu').value = data.urdu_explanation || '';
@@ -2620,7 +2653,12 @@ async function editLesson(lessonId) {
   document.getElementById('lessonMessage').textContent =
     'سبق کی تفصیلات آ گئی ہیں۔ نیچے موجودہ اپلوڈ شدہ فائلیں بھی دیکھیے؛ ہر فائل الگ تبدیل یا حذف کی جا سکتی ہے۔';
 
-  await renderExistingMeenaResources(lessonId);
+  if (isConversationLesson) {
+    await renderExistingMeenaResources(lessonId);
+  } else {
+    const existing = document.getElementById('existingMeenaResources');
+    if (existing) { existing.innerHTML = ''; existing.style.display = 'none'; }
+  }
   document.getElementById('lessonTitle').focus();
 }
 
@@ -2931,7 +2969,12 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
     return;
   }
   try {
-    await uploadAndSaveLessonResources(savedLessonId, module_id, lesson_order);
+    const { data: selectedModule, error: selectedModuleError } = await supabase
+      .from('modules').select('course_id').eq('id', module_id).single();
+    if (selectedModuleError) throw selectedModuleError;
+    if (selectedModule?.course_id === CONVERSATION_COURSE_ID) {
+      await uploadAndSaveLessonResources(savedLessonId, module_id, lesson_order);
+    }
   } catch (uploadError) {
     lessonMessage.textContent = 'سبق محفوظ ہوگیا، لیکن کچھ مواد اپ لوڈ نہیں ہو سکا: ' + uploadError.message + '۔ دوبارہ Edit کرکے باقی فائلیں شامل کریں۔';
     return;
@@ -2959,6 +3002,7 @@ document.getElementById('addLessonBtn').addEventListener('click', async () => {
   if (existingResourceBox) existingResourceBox.innerHTML = '';
   document.getElementById('addLessonBtn').textContent = 'سبق شامل کریں';
   document.getElementById('lessonModule').value = module_id;
+  await updateLessonMediaAdminVisibility(module_id);
   await loadLessons();
 });
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
@@ -3578,6 +3622,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   
 <textarea id="lessonEnglish" placeholder="English Explanation"></textarea>
 
+<div id="lessonMeenaMediaAdmin" style="display:none;">
 <h4>1۔ سبق کا مواد: PDF یا تصاویر میں سے ایک منتخب کریں</h4>
 <label><input type="radio" name="lessonResourceMode" id="lessonResourceModePdf" value="pdf" checked> PDF فائل اپ لوڈ کریں</label>
 <label><input type="radio" name="lessonResourceMode" id="lessonResourceModeImages" value="images"> صفحات کی تصاویر اپ لوڈ کریں (ایک ساتھ زیادہ سے زیادہ 7)</label>
@@ -3605,6 +3650,7 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <input id="lessonVideo" type="hidden">
 <input id="lessonAudio" type="hidden">
 <input id="lessonPdf" type="hidden">
+</div>
 
 <input id="lessonOrder" type="number" placeholder="سبق نمبر" value="1">
 
