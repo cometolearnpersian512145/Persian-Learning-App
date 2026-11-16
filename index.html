@@ -1305,6 +1305,12 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       <p>Meena 01، Meena 02 اور Meena 03 تینوں کتابیں ایک ساتھ خریدیں۔</p>
       <button id="buyMeenaBundleBtn" type="button">تینوں کتابیں Bundle میں خریدیں</button>
       <p id="meenaBundleStatus"></p>
+      <div id="meenaBundleDownloads" style="display:none;margin-top:14px;padding:14px;background:#eaf7ef;border-radius:10px;">
+        <h4 style="margin-top:0;">📥 آپ کی تینوں کتابیں</h4>
+        <p>ہر کتاب کے سامنے موجود بٹن دباکر PDF ڈاؤن لوڈ کریں۔</p>
+        <div id="meenaBundleDownloadLinks"></div>
+        <p id="meenaBundleDownloadStatus" aria-live="polite"></p>
+      </div>
     </div>
     <p id="meenaCourseMessage">کتابیں لوڈ ہو رہی ہیں...</p>
     <div id="meenaBookFolders"></div>
@@ -1319,6 +1325,9 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   const lessonContent = dashboard.querySelector('#meenaLessonContent');
   const bundleButton = dashboard.querySelector('#buyMeenaBundleBtn');
   const bundleStatus = dashboard.querySelector('#meenaBundleStatus');
+  const bundleDownloads = dashboard.querySelector('#meenaBundleDownloads');
+  const bundleDownloadLinks = dashboard.querySelector('#meenaBundleDownloadLinks');
+  const bundleDownloadStatus = dashboard.querySelector('#meenaBundleDownloadStatus');
 
   dashboard.querySelector('#meenaBackDashboard').onclick = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -1352,14 +1361,53 @@ async function showConversationCourse(dashboard, courseId, courseName) {
 
   const bundleOwned = (accessRows || []).some(row => row.access_type === 'course' && row.target_id === courseId);
   const ownedBookIds = new Set((accessRows || []).filter(row => row.access_type === 'chapter').map(row => row.target_id));
-  if (bundleOwned) {
+  const allThreeBooksOwned = modules.length === 3 && modules.every(module => ownedBookIds.has(module.id));
+  if (bundleOwned || allThreeBooksOwned) {
+    bundleButton.disabled = true;
     bundleButton.disabled = true;
     bundleButton.textContent = '✓ تینوں کتابوں کا Bundle منظور شدہ';
     bundleStatus.textContent = 'آپ کو تینوں کتابوں کی رسائی حاصل ہے۔';
-  } else if (modules.every(module => ownedBookIds.has(module.id))) {
-    bundleButton.disabled = true;
-    bundleButton.textContent = '✓ تینوں کتابیں پہلے ہی خریدی جا چکی ہیں';
-    bundleStatus.textContent = 'آپ کے پاس تینوں کتابوں کی رسائی موجود ہے۔';
+    bundleDownloads.style.display = 'block';
+    const downloadableBooks = [
+      { label: 'Meena 01 Conversation Book PDF', path: 'Meena 01 Conversation Book PDF.pdf' },
+      { label: 'Meena 02 Conversation Book PDF', path: 'Meena 02 Conversation Book PDF.pdf' },
+      { label: 'Meena 03 Conversation Book PDF', path: 'Meena 03 Conversation Book PDF.pdf' }
+    ];
+    bundleDownloadLinks.innerHTML = '';
+    for (const book of downloadableBooks) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #d5e5da;';
+      const name = document.createElement('span');
+      name.textContent = book.label;
+      const download = document.createElement('button');
+      download.type = 'button';
+      download.textContent = 'PDF ڈاؤن لوڈ کریں';
+      download.onclick = async () => {
+        download.disabled = true;
+        bundleDownloadStatus.textContent = `${book.label} کا محفوظ لنک تیار ہو رہا ہے...`;
+        try {
+          const { data, error } = await supabase.storage
+            .from('Meena Conversation Books PDF')
+            .createSignedUrl(book.path, 300, { download: true });
+          if (error || !data?.signedUrl) throw error || new Error('Download link دستیاب نہیں۔');
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.download = book.path;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          bundleDownloadStatus.textContent = `${book.label} کا ڈاؤن لوڈ لنک کھول دیا گیا ہے۔`;
+        } catch (err) {
+          bundleDownloadStatus.textContent = 'ڈاؤن لوڈ میں مسئلہ: ' + (err?.message || String(err));
+        } finally {
+          download.disabled = false;
+        }
+      };
+      row.append(name, download);
+      bundleDownloadLinks.appendChild(row);
+    }
   }
   bundleButton.onclick = () => showPaymentForm({
     accessType: 'course',
@@ -1371,7 +1419,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   const bookMeta = {
     'Meena 01': { priceKey: 'meena1', count: 26, free: 4 },
     'Meena 02': { priceKey: 'meena2', count: 23, free: 2 },
-    'Meena 03': { priceKey: 'meena3', count: 3, free: 2 }
+    'Meena 03': { priceKey: 'meena3', count: 3, free: 0, disabled: true }
   };
   const lessonsByBook = new Map();
   for (const module of modules) {
@@ -1405,8 +1453,14 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     const open = document.createElement('button');
     open.type = 'button';
     open.className = 'open-meena-book';
-    open.textContent = 'فولڈر کھولیں — اسباق دیکھیں';
-    open.onclick = () => renderBookLessons(module, lessons, meta, owned);
+    open.textContent = meta.disabled ? 'اسباق جلد دستیاب ہوں گے' : 'فولڈر کھولیں — اسباق دیکھیں';
+    open.disabled = !!meta.disabled;
+    if (meta.disabled) {
+      open.title = 'Meena 03 کے اسباق کتاب مکمل ہونے تک بند رہیں گے۔';
+      detail.textContent = 'اسباق فی الحال بند ہیں — مکمل ہونے کے بعد دستیاب ہوں گے۔';
+    } else {
+      open.onclick = () => renderBookLessons(module, lessons, meta, owned);
+    }
     const buy = document.createElement('button');
     buy.type = 'button';
     buy.style.cssText = 'margin-right:8px;background:#8a5b16;';
@@ -1427,6 +1481,10 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   }
 
   async function renderBookLessons(module, lessons, meta, bookOwned) {
+    if (meta.disabled) {
+      message.textContent = 'Meena 03 کے اسباق کتاب مکمل ہونے تک بند رہیں گے۔';
+      return;
+    }
     folderList.style.display = 'none';
     lessonsPanel.style.display = 'block';
     lessonContent.style.display = 'none';
