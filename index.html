@@ -49,6 +49,24 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .academy-contact-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 .academy-contact-links a,.academy-contact-links button{display:block;box-sizing:border-box;margin:0;text-align:center;text-decoration:none;padding:12px 8px;border-radius:10px;font-size:15px}
 .academy-contact-links button:disabled{background:#e8eeea;color:#718078;cursor:not-allowed}
+.student-utility-controls{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;margin:0 0 16px}
+.student-utility-controls button{margin:0;padding:10px 6px;font-size:14px}
+.student-utility-controls button[aria-pressed="true"]{outline:2px solid #d5b66a;outline-offset:1px}
+.student-favorite-button{width:auto;display:inline-block;margin:5px 0;padding:7px 11px;background:#fff7dc;color:#624d00;border:1px solid #e8d28b;border-radius:9px;font-size:14px}
+.student-favorite-card{padding:14px;margin:10px 0;border:1px solid #dce7df;box-shadow:none}
+body[data-theme="night"]{background:#101918;color:#e8f0ec}
+body[data-theme="night"] header{background:#0b2823}
+body[data-theme="night"] .card{background:#1c2927!important;color:#e8f0ec!important;border-color:#344541!important;box-shadow:none!important}
+body[data-theme="night"] input,body[data-theme="night"] select,body[data-theme="night"] textarea{background:#202c2b!important;color:#eef5f1!important;border-color:#53635d!important}
+body[data-theme="night"] input::placeholder,body[data-theme="night"] textarea::placeholder{color:#b1beb7}
+body[data-theme="night"] hr{border-color:#46534e}
+body[data-theme="night"] .student-search-form{background:#1c2927;border-color:#46534e}
+body[data-theme="night"] .student-search-form input{background:transparent!important}
+body[data-theme="night"] .student-calendar-date{color:#fff}
+body[data-theme="night"] .lessonContent,body[data-theme="night"] .lessonContent div,body[data-theme="night"] .lessonContent section{background-color:#202c2b!important;color:#e8f0ec!important;border-color:#46534e!important}
+body[data-theme="night"] .student-favorite-button{background:#4b401b!important;color:#fff1b8!important;border-color:#87753d!important}
+body[data-theme="night"] main p,body[data-theme="night"] main h1,body[data-theme="night"] main h2,body[data-theme="night"] main h3,body[data-theme="night"] main h4,body[data-theme="night"] main label,body[data-theme="night"] main small{color:#e8f0ec!important}
+body[data-theme="night"] main a{color:#a9d9ff}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -157,6 +175,191 @@ const { error } = await supabase.auth.signUp({
 let loginRenderToken = 0;
 let activeStudentId = null;
 let studentClockInterval = null;
+let pendingFavoriteNavigation = null;
+
+function studentFavoritesStorageKey() {
+  return `ctlp-favorites-${activeStudentId || 'guest'}`;
+}
+
+function getStudentFavorites() {
+  try { return JSON.parse(localStorage.getItem(studentFavoritesStorageKey()) || '[]'); }
+  catch (_) { return []; }
+}
+
+function setStudentFavorites(favorites) {
+  localStorage.setItem(studentFavoritesStorageKey(), JSON.stringify(favorites));
+  updateStudentFavoriteCount();
+}
+
+function updateStudentFavoriteCount() {
+  const button = document.getElementById('studentFavoritesButton');
+  if (button) button.textContent = `⭐ پسندیدہ (${getStudentFavorites().length})`;
+}
+
+function createStudentFavoriteButton(item) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'student-favorite-button';
+  const refresh = () => {
+    const saved = getStudentFavorites().some(favorite => favorite.key === item.key);
+    button.textContent = saved ? '★ پسندیدہ میں شامل' : '☆ پسندیدہ میں رکھیں';
+    button.setAttribute('aria-pressed', String(saved));
+  };
+  refresh();
+  button.onclick = event => {
+    event?.stopPropagation();
+    const favorites = getStudentFavorites();
+    const index = favorites.findIndex(favorite => favorite.key === item.key);
+    if (index >= 0) favorites.splice(index, 1);
+    else favorites.push(item);
+    setStudentFavorites(favorites);
+    refresh();
+  };
+  return button;
+}
+
+function createLessonResourceFavorite(lesson, module, courseId, courseName, resource, fallbackType, fallbackTitle) {
+  const resourceType = resource.resource_type || fallbackType || 'resource';
+  const title = resource.title || fallbackTitle || resourceType;
+  const externalUrl = resource.external_url || null;
+  const storagePath = resource.storage_path || (externalUrl?.startsWith('storage://') ? externalUrl.slice('storage://'.length) : null);
+  return createStudentFavoriteButton({
+    key: `resource:${lesson.id}:${resource.id || `${resourceType}:${title}`}`,
+    kind: 'resource', title, location: `${courseName} — ${module.title} — Lesson ${lesson.lesson_order}`,
+    courseId, courseName, moduleId: module.id, lessonId: lesson.id, resourceType,
+    bucket: 'meena-lesson-files', storagePath,
+    externalUrl: externalUrl?.startsWith('storage://') ? null : externalUrl
+  });
+}
+
+async function appendStudentLessonResources(container, lesson, module, courseId, courseName) {
+  const { data: rows, error } = await supabase.from('lesson_resources')
+    .select('id,resource_type,title,storage_path,external_url,display_order')
+    .eq('lesson_id', lesson.id).order('display_order', { ascending: true });
+  if (error) {
+    const note = document.createElement('p'); note.textContent = 'اضافی مواد حاصل نہیں ہو سکا: ' + error.message; container.appendChild(note); return;
+  }
+  const resources = [...(rows || [])];
+  [['pdf_url','pdf','PDF'], ['audio_url','audio_explanation','آڈیو'], ['video_url','video','ویڈیو']].forEach(([field,type,title]) => {
+    if (lesson[field] && !resources.some(item => item.resource_type === type)) resources.push({ resource_type:type, title, external_url:lesson[field] });
+  });
+  if (!resources.length) return;
+  const section = document.createElement('section');
+  section.className = 'card';
+  const heading = document.createElement('h4'); heading.textContent = '📎 اس سبق کا اضافی مواد'; section.appendChild(heading);
+  for (const resource of resources) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #dce7df;';
+    const type = resource.resource_type;
+    let url = resource.external_url || '';
+    if (resource.storage_path) {
+      const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(resource.storage_path, 3600);
+      if (signed.error) { const errorText = document.createElement('span'); errorText.textContent = 'فائل نہیں کھلی: ' + signed.error.message; row.appendChild(errorText); }
+      else url = signed.data.signedUrl;
+    } else if (url.startsWith('storage://')) {
+      const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(url.slice('storage://'.length), 3600);
+      url = signed.error ? '' : signed.data.signedUrl;
+    }
+    const title = resource.title || 'سبق کا مواد';
+    if (url) {
+      if (type === 'audio_explanation' || type === 'audio_homework') {
+        const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = url; row.appendChild(audio);
+      } else if (type === 'page_image') {
+        const image = document.createElement('img'); image.src = url; image.alt = title; image.loading = 'lazy'; image.style.cssText = 'max-width:100%;height:auto;border-radius:8px;'; row.appendChild(image);
+      } else {
+        const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = `${type === 'video' ? '▶' : '📄'} ${title}`; row.appendChild(link);
+      }
+    }
+    row.appendChild(createLessonResourceFavorite(lesson,module,courseId,courseName,resource,type,title));
+    section.appendChild(row);
+  }
+  container.appendChild(section);
+}
+
+function ensureStudentUtilityControls() {
+  const main = document.querySelector('main');
+  let controls = document.getElementById('studentUtilityControls');
+  if (!controls) {
+    controls = document.createElement('div');
+    controls.id = 'studentUtilityControls';
+    controls.className = 'student-utility-controls';
+    controls.innerHTML = '<button id="themeDayButton" type="button">☀ دن</button><button id="themeNightButton" type="button">🌙 رات</button><button id="studentFavoritesButton" type="button">⭐ پسندیدہ (0)</button>';
+    main.prepend(controls);
+    controls.querySelector('#themeDayButton').onclick = () => applyStudentTheme('day');
+    controls.querySelector('#themeNightButton').onclick = () => applyStudentTheme('night');
+    controls.querySelector('#studentFavoritesButton').onclick = showStudentFavorites;
+  }
+  main.prepend(controls);
+  updateStudentFavoriteCount();
+  applyStudentTheme(localStorage.getItem('ctlp-theme') || 'day');
+}
+
+function applyStudentTheme(theme) {
+  const selected = theme === 'night' ? 'night' : 'day';
+  document.body.dataset.theme = selected;
+  localStorage.setItem('ctlp-theme', selected);
+  const dayButton = document.getElementById('themeDayButton');
+  const nightButton = document.getElementById('themeNightButton');
+  if (dayButton) dayButton.setAttribute('aria-pressed', String(selected === 'day'));
+  if (nightButton) nightButton.setAttribute('aria-pressed', String(selected === 'night'));
+}
+
+async function openStudentFavorite(favorite) {
+  if (favorite.kind === 'resource') {
+    const popup = window.open('about:blank', '_blank');
+    try {
+      let url = favorite.externalUrl || '';
+      if (favorite.storagePath) {
+        const { data, error } = await supabase.storage.from(favorite.bucket || 'meena-lesson-files').createSignedUrl(favorite.storagePath, 3600);
+        if (error) throw error;
+        url = data.signedUrl;
+      }
+      if (!url) throw new Error('فائل کا لنک دستیاب نہیں۔');
+      if (popup) popup.location.href = url;
+      else window.location.href = url;
+    } catch (error) {
+      popup?.close();
+      alert('پسندیدہ فائل نہیں کھل سکی: ' + error.message);
+    }
+    return;
+  }
+  if (favorite.courseId) {
+    pendingFavoriteNavigation = favorite;
+    await showStudentCourse(favorite.courseId, favorite.courseName || 'فارسی کورس');
+  }
+}
+
+function showStudentFavorites() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard) return;
+  dashboard.innerHTML = '<button id="backFromStudentFavorites" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button><h2>⭐ میرے پسندیدہ</h2><p>یہ فہرست اسی ڈیوائس اور طالب علم کے لیے محفوظ ہے۔</p><div id="studentFavoritesList"></div>';
+  dashboard.querySelector('#backFromStudentFavorites').onclick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await handleLogin(session.user);
+  };
+  const list = dashboard.querySelector('#studentFavoritesList');
+  const favorites = getStudentFavorites();
+  if (!favorites.length) { list.textContent = 'ابھی پسندیدہ فہرست خالی ہے۔ سبق یا فائل کے ستارے پر کلک کرکے اسے یہاں محفوظ کریں۔'; return; }
+  favorites.forEach(favorite => {
+    const card = document.createElement('div');
+    card.className = 'card student-favorite-card';
+    const title = document.createElement('strong');
+    title.textContent = favorite.title || 'پسندیدہ مواد';
+    card.appendChild(title);
+    if (favorite.location) { const location = document.createElement('p'); location.textContent = favorite.location; card.appendChild(location); }
+    const open = document.createElement('button');
+    open.type = 'button'; open.textContent = favorite.kind === 'resource' ? 'فائل کھولیں' : 'سبق کھولیں';
+    open.onclick = () => openStudentFavorite(favorite);
+    const remove = document.createElement('button');
+    remove.type = 'button'; remove.textContent = '★ فہرست سے ہٹائیں'; remove.style.background = '#7a3333';
+    remove.onclick = () => { setStudentFavorites(getStudentFavorites().filter(item => item.key !== favorite.key)); showStudentFavorites(); };
+    card.append(open, remove);
+    list.appendChild(card);
+  });
+}
+
+applyStudentTheme(localStorage.getItem('ctlp-theme') || 'day');
 
 function updateStudentCalendarClock() {
   const clock = document.getElementById('studentCalendarClock');
@@ -244,10 +447,18 @@ async function searchStudentLessons() {
     const matchingText = [lesson.persian_text, lesson.urdu_explanation, lesson.english_explanation, lesson.shenasay]
       .find(text => text && text.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
     snippet.textContent = matchingText ? (matchingText.length > 180 ? matchingText.slice(0, 180) + '…' : matchingText) : '';
+    card.appendChild(createStudentFavoriteButton({
+      key: `lesson:${lesson.id}`, kind: 'lesson', title: lesson.title || `سبق ${lesson.lesson_order}`,
+      location: `${course?.title || 'فارسی کورس'} — ${module.title}`, courseId: module.course_id,
+      courseName: course?.title || 'فارسی کورس', moduleId: module.id, lessonId: lesson.id
+    }));
     const open = document.createElement('button');
     open.type = 'button';
     open.textContent = 'کورس کھولیں';
-    open.onclick = () => showStudentCourse(module.course_id, course?.title || 'فارسی کورس');
+    open.onclick = () => openStudentFavorite({
+      kind: 'lesson', courseId: module.course_id, courseName: course?.title || 'فارسی کورس',
+      moduleId: module.id, lessonId: lesson.id
+    });
     card.append(title, location);
     if (snippet.textContent) card.appendChild(snippet);
     card.appendChild(open);
@@ -886,6 +1097,7 @@ if (adminProfile.role === 'admin') {
   <div style="text-align:center;"><button type="button" id="dashboardLogout" class="logout-button">Logout / باہر جائیں</button></div>
 `;
   document.querySelector('main').prepend(dashboard);
+  ensureStudentUtilityControls();
   dashboard.querySelector('#studentSearchForm').addEventListener('submit', event => {
     event.preventDefault();
     searchStudentLessons();
@@ -1177,6 +1389,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     const owned = bundleOwned || ownedBookIds.has(module.id);
     const card = document.createElement('div');
     card.className = 'card';
+    card.dataset.moduleId = module.id;
     card.style.cssText = 'padding:18px;margin:14px 0;border:1px solid #d8e4dc;';
     const heading = document.createElement('h3');
     heading.textContent = '📁 ' + module.title;
@@ -1184,6 +1397,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     detail.textContent = `${lessons.length} اسباق | ${meta.free} مفت اسباق`;
     const open = document.createElement('button');
     open.type = 'button';
+    open.className = 'open-meena-book';
     open.textContent = 'فولڈر کھولیں — اسباق دیکھیں';
     open.onclick = () => renderBookLessons(module, lessons, meta, owned);
     const buy = document.createElement('button');
@@ -1199,6 +1413,10 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     });
     card.append(heading, detail, open, buy);
     folderList.appendChild(card);
+  }
+  if (pendingFavoriteNavigation?.courseId === courseId) {
+    const targetModule = [...folderList.children].find(card => card.dataset.moduleId === pendingFavoriteNavigation.moduleId);
+    if (targetModule) targetModule.querySelector('.open-meena-book')?.click();
   }
 
   async function renderBookLessons(module, lessons, meta, bookOwned) {
@@ -1221,6 +1439,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       const accessible = free || bookOwned;
       const item = document.createElement('div');
       item.className = 'card';
+      item.dataset.lessonId = lesson.id;
       item.style.cssText = 'padding:14px;margin:10px 0;';
       const title = document.createElement('h4');
       title.textContent = `Lesson ${String(lesson.lesson_order).padStart(2, '0')}`;
@@ -1236,8 +1455,20 @@ async function showConversationCourse(dashboard, courseId, courseName) {
         }
         renderLessonContent(module, lesson);
       };
-      item.append(title, status, action);
+      const favorite = createStudentFavoriteButton({
+        key: `lesson:${lesson.id}`, kind: 'lesson', title: `${module.title} — Lesson ${String(lesson.lesson_order).padStart(2, '0')}`,
+        location: `${courseName} — ${module.title}`, courseId, courseName, moduleId: module.id, lessonId: lesson.id
+      });
+      action.classList.add('open-favorite-lesson');
+      item.append(title, status, favorite, action);
       list.appendChild(item);
+    }
+    if (pendingFavoriteNavigation?.moduleId === module.id) {
+      const targetLesson = [...list.children].find(card => card.dataset.lessonId === pendingFavoriteNavigation.lessonId);
+      if (targetLesson) {
+        pendingFavoriteNavigation = null;
+        targetLesson.querySelector('.open-favorite-lesson')?.click();
+      }
     }
   }
 
@@ -1294,14 +1525,14 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     if (documentResources.length) {
       const nodes = document.createElement('div');
       for (const item of documentResources) {
-        try { const a=document.createElement('a'); a.href=await resourceUrl(item); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 '+(item.title||'PDF کھولیں'); a.style.display='block'; a.style.margin='8px 0'; nodes.appendChild(a); }
+        try { const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;'; const a=document.createElement('a'); a.href=await resourceUrl(item); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 '+(item.title||'PDF کھولیں'); row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'pdf','PDF')); nodes.appendChild(row); }
         catch(e) { const p=document.createElement('p'); p.textContent='PDF کھولنے میں مسئلہ: '+e.message; nodes.appendChild(p); }
       }
       addSection('1۔ سبق کی PDF', nodes);
     } else if (pageImages.length) {
       const gallery=document.createElement('div'); gallery.style.cssText='display:grid;grid-template-columns:1fr;gap:12px;';
       for (const item of pageImages) {
-        try { const url=await resourceUrl(item); const wrap=document.createElement('div'); const img=document.createElement('img'); img.src=url; img.alt=item.title||'سبق کا صفحہ'; img.loading='lazy'; img.style.cssText='width:100%;height:auto;border:1px solid #ddd;border-radius:8px;'; wrap.appendChild(img); gallery.appendChild(wrap); }
+        try { const url=await resourceUrl(item); const wrap=document.createElement('div'); const img=document.createElement('img'); img.src=url; img.alt=item.title||'سبق کا صفحہ'; img.loading='lazy'; img.style.cssText='width:100%;height:auto;border:1px solid #ddd;border-radius:8px;'; wrap.append(img,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'page_image','سبق کا صفحہ')); gallery.appendChild(wrap); }
         catch(e) { const err=document.createElement('p'); err.textContent='صفحہ کھولنے میں مسئلہ: '+e.message; gallery.appendChild(err); }
       }
       addSection('1۔ سبق کے صفحات', gallery);
@@ -1317,7 +1548,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       if (!items.length) { group.textContent=emptyText; addSection(heading,group); return; }
       for (let i=0;i<items.length;i++) {
         const row=document.createElement('div'); row.style.cssText='margin:10px 0;padding:10px;background:#f7f8fa;border-radius:8px;';
-        const label=document.createElement('p'); label.textContent=items[i].title || `آڈیو ${String(i+1).padStart(2,'0')}`; row.appendChild(label);
+        const label=document.createElement('p'); label.textContent=items[i].title || `آڈیو ${String(i+1).padStart(2,'0')}`; row.append(label,createLessonResourceFavorite(lesson,module,courseId,courseName,items[i],items[i].resource_type||'audio',label.textContent));
         try { const audio=document.createElement('audio'); audio.controls=true; audio.preload='none'; audio.src=await resourceUrl(items[i]); audio.style.width='100%'; row.appendChild(audio); }
         catch(e) { const err=document.createElement('p'); err.textContent='آڈیو چلانے میں مسئلہ: '+e.message; row.appendChild(err); }
         group.appendChild(row);
@@ -1330,7 +1561,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     if (!videos.length && lesson.video_url) videos.push({external_url:lesson.video_url,title:'ویڈیو 01'});
     const videoGroup=document.createElement('div');
     if (videos.length) {
-      videos.forEach((v,i)=>{ const a=document.createElement('a'); a.href=v.external_url; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='▶ '+(v.title||`ویڈیو ${String(i+1).padStart(2,'0')}`); a.style.display='block'; a.style.margin='8px 0'; videoGroup.appendChild(a); });
+      videos.forEach((v,i)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;'; const a=document.createElement('a'); a.href=v.external_url||'#'; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='▶ '+(v.title||`ویڈیو ${String(i+1).padStart(2,'0')}`); row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,v,'video',`ویڈیو ${String(i+1).padStart(2,'0')}`)); videoGroup.appendChild(row); });
     } else videoGroup.textContent='ویڈیوز ابھی شامل نہیں کی گئیں۔';
     addSection('4۔ ویڈیوز',videoGroup);
 
@@ -1547,6 +1778,11 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
         window.open(pdfData.signedUrl, '_blank', 'noopener');
         pdfMessage.textContent = 'PDF ڈاؤن لوڈ لنک 5 منٹ کے لیے فعال ہے۔';
       };
+      pdfCard.appendChild(createStudentFavoriteButton({
+        key: 'resource:grammar-complete-book-pdf', kind: 'resource', title: 'مکمل فارسی گرامر کتاب (PDF)',
+        location: 'فارسی گرامر — مکمل کتاب', bucket: 'paid-book-pdfs',
+        storagePath: 'Complete Persian Tens Book (Final Update 02 ).pdf', resourceType: 'pdf'
+      }));
     } else {
       buyPdfButton.onclick = () => showPaymentForm({
         accessType: 'full_book',
@@ -1770,6 +2006,7 @@ prefaceButton.onclick = () => {
   data.forEach(module => {
     const card = document.createElement('div');
     card.className = 'card';
+    card.dataset.moduleId = module.id;
     card.style.cssText =
       'padding:18px;margin:15px 0;border-radius:14px;border:1px solid #ddd;';
 
@@ -1782,6 +2019,7 @@ heading.textContent = chapterInfo
     const lessonArea = document.createElement('div');
 
     const button = document.createElement('button');
+    button.className = 'student-module-open';
     button.textContent = 'باب کھولیں';
     button.style.cssText =
       'padding:10px 18px;border-radius:9px;margin:10px 0;';
@@ -1805,7 +2043,7 @@ heading.textContent = chapterInfo
 
       const { data: lessons, error: lessonError } = await supabase
         .from('lessons')
-        .select('id, title, lesson_order, is_free')
+        .select('id, title, lesson_order, is_free, pdf_url, audio_url, video_url')
         .eq('module_id', module.id)
         .eq('is_published', true)
         .order('lesson_order');
@@ -1828,12 +2066,18 @@ heading.textContent = chapterInfo
   : null;
         
         const lessonCard = document.createElement('div');
+        lessonCard.dataset.lessonId = lesson.id;
         lessonCard.style.cssText =
           'padding:14px;margin:12px 0;border:1px solid #ddd;border-radius:12px;';
 
         const title = document.createElement('h4');
         title.textContent =
           `درس ${lesson.lesson_order}: ${lesson.title}`;
+
+        const favoriteButton = createStudentFavoriteButton({
+          key: `lesson:${lesson.id}`, kind: 'lesson', title: `درس ${lesson.lesson_order}: ${lesson.title}`,
+          location: `${courseName} — ${module.title}`, courseId, courseName, moduleId: module.id, lessonId: lesson.id
+        });
 
         const lessonHasAccess = lesson.is_free || courseGrantActive || grantedChapterIds.has(module.id) || grantedLessonIds.has(lesson.id);
         const status = document.createElement('p');
@@ -1842,6 +2086,7 @@ heading.textContent = chapterInfo
           : (lessonHasAccess ? '🟢 PAID — خریداری منظور شدہ' : '🔒 PAID — خریداری ضروری ہے');
 
         const openButton = document.createElement('button');
+        openButton.classList.add('student-open-lesson');
         openButton.textContent = lessonHasAccess ? 'سبق پڑھیں ←' : '💳 یہ سبق خریدیں';
         openButton.disabled = false;
         if (!lessonHasAccess) openButton.title = 'ادائیگی کی درخواست جمع کرنے کے لیے کلک کریں۔';
@@ -1980,15 +2225,24 @@ openButton.onclick = async () => {
   lessonCard.appendChild(content);
 
   loadLessonPage();
+  appendStudentLessonResources(content, lesson, module, courseId, courseName);
 };
 
         lessonCard.appendChild(title);
+        lessonCard.appendChild(favoriteButton);
         lessonCard.appendChild(status);
         lessonCard.appendChild(openButton);
         lessonCard.appendChild(progressLabel);
         lessonCard.appendChild(completeButton);
         lessonArea.appendChild(lessonCard);
       });
+      if (pendingFavoriteNavigation?.moduleId === module.id) {
+        const targetLesson = [...lessonArea.children].find(item => item.dataset.lessonId === pendingFavoriteNavigation.lessonId);
+        if (targetLesson) {
+          pendingFavoriteNavigation = null;
+          targetLesson.querySelector('.student-open-lesson')?.click();
+        }
+      }
     };
 
     card.appendChild(heading);
@@ -1997,6 +2251,10 @@ openButton.onclick = async () => {
     card.appendChild(lessonArea);
     moduleList.appendChild(card);
   });
+    if (pendingFavoriteNavigation?.courseId === courseId) {
+      const targetModule = [...moduleList.querySelectorAll('[data-module-id]')].find(item => item.dataset.moduleId === pendingFavoriteNavigation.moduleId);
+      if (targetModule) targetModule.querySelector('.student-module-open')?.click();
+    }
     moduleList.appendChild(instituteIntro);
 }
 document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
@@ -3491,6 +3749,17 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <script>
 (function () {
   const translations = {
+    "☀ دن": "☀ Day",
+    "🌙 رات": "🌙 Night",
+    "⭐ پسندیدہ": "⭐ Favorites",
+    "☆ پسندیدہ میں رکھیں": "☆ Add to favorites",
+    "★ پسندیدہ میں شامل": "★ In favorites",
+    "⭐ میرے پسندیدہ": "⭐ My Favorites",
+    "یہ فہرست اسی ڈیوائس اور طالب علم کے لیے محفوظ ہے۔": "This list is saved on this device for this student.",
+    "فائل کھولیں": "Open file",
+    "سبق کھولیں": "Open lesson",
+    "ہم سے رابطہ": "Contact Us",
+    "رابطے بند کریں": "Close contacts",
     "فارسی یا اردو میں لفظ تلاش کریں — معنی، گرامر، جملے": "Search a word in Persian or Urdu — meaning, grammar, sentences",
     "فارسی یا اردو میں تلاش کریں": "Search in Persian or Urdu",
     "تلاش": "Search",
