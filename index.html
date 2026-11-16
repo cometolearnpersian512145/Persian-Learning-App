@@ -1043,19 +1043,26 @@ if (adminProfile.role === 'admin') {
 
   <hr>
 
-  <h3>📚 میرے کورسز</h3>
-
-  <div class="card">
-    <h3>فارسی گرامر</h3>
-    <p>فارسی قواعد اور بنیادی گرامر سیکھیں۔</p>
-    <button id="grammarBtn">کورس کھولیں</button>
+  <h3>👤 طالب علم کے اہم بٹن</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 18px;">
+    <button id="profileBtn" type="button" style="margin:0;min-height:54px;">👤 My Profile / میرا پروفائل</button>
+    <button id="persianLanguageCourseBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 Persian Language Course</button>
   </div>
 
-  <div class="card">
-    <h3>فارسی بول چال</h3>
-    <p>روزمرہ گفتگو اور مکالمے سیکھیں۔</p>
-    <button id="conversationBtn">کورس کھولیں</button>
-  </div>
+  <section id="persianCourseChooser" hidden>
+    <h3>📚 Persian Language Course</h3>
+    <p>اپنا مطلوبہ فارسی کورس منتخب کریں۔</p>
+    <div class="card">
+      <h3>فارسی گرامر (Persian Grammar)</h3>
+      <p>فارسی قواعد اور بنیادی گرامر سیکھیں۔</p>
+      <button id="grammarBtn" type="button">کورس کھولیں</button>
+    </div>
+    <div class="card">
+      <h3>فارسی گفتگو (Persian Conversation)</h3>
+      <p>روزمرہ گفتگو اور مکالمے سیکھیں۔</p>
+      <button id="conversationBtn" type="button">کورس کھولیں</button>
+    </div>
+  </section>
 
   <hr>
 
@@ -1069,11 +1076,6 @@ if (adminProfile.role === 'admin') {
   <h3>💳 میری ادائیگی کی درخواستیں</h3>
   <p>اپنی تمام خریداری کی درخواستوں اور ان کی منظوری کا Status یہاں دیکھیں۔</p>
   <button id="myPaymentRequestsBtn" type="button">میری ادائیگی کی درخواستیں دیکھیں</button>
-
-  <hr>
-
-  <h3>👤 میرا اکاؤنٹ</h3>
-  <button id="profileBtn">میرا پروفائل</button>
 
   <hr>
 
@@ -1124,6 +1126,11 @@ dashboard.querySelector('#conversationBtn').addEventListener('click', () => {
 });
 dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showMyPaymentRequests);
 dashboard.querySelector('#profileBtn').addEventListener('click', showMyProfile);
+dashboard.querySelector('#persianLanguageCourseBtn').addEventListener('click', () => {
+  const chooser = dashboard.querySelector('#persianCourseChooser');
+  chooser.hidden = !chooser.hidden;
+  if (!chooser.hidden) chooser.scrollIntoView({behavior:'smooth', block:'start'});
+});
 dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showClassRegistrationForm);
 dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
 dashboard.querySelector('#academyContactToggle').addEventListener('click', event => {
@@ -2622,24 +2629,81 @@ async function renderExistingMeenaResources(lessonId) {
   const host = document.getElementById('existingMeenaResources');
   if (!host) return;
   host.innerHTML = '<p>پہلے سے موجود مواد لوڈ ہو رہا ہے...</p>';
-  const { data: rows, error } = await supabase
-    .from('lesson_resources')
-    .select('id,resource_type,title,storage_path,external_url,display_order')
-    .eq('lesson_id', lessonId)
-    .order('display_order', { ascending: true });
-  if (error) {
-    host.innerHTML = `<p style="color:#b42318;">مواد لوڈ نہیں ہو سکا: ${escapePaymentText(error.message)}</p>`;
+
+  const [{ data: rows, error }, { data: lesson, error: lessonError }] = await Promise.all([
+    supabase.from('lesson_resources')
+      .select('id,resource_type,title,storage_path,external_url,display_order')
+      .eq('lesson_id', lessonId)
+      .order('display_order', { ascending: true }),
+    supabase.from('lessons')
+      .select('pdf_url,audio_url,video_url,is_free,is_published')
+      .eq('id', lessonId).single()
+  ]);
+  if (error || lessonError) {
+    host.innerHTML = `<p style="color:#b42318;">مواد لوڈ نہیں ہو سکا: ${escapePaymentText((error || lessonError).message)}</p>`;
     return;
   }
-  host.innerHTML = '<h4>📂 پہلے سے اپلوڈ شدہ مواد</h4>';
-  if (!rows || !rows.length) {
-    host.innerHTML += '<p>اس سبق میں ابھی کوئی اضافی فائل محفوظ نہیں ہے۔</p>';
-    return;
-  }
+
+  host.innerHTML = '<h4>📂 اس سبق کا موجودہ مواد</h4>';
+  const status = document.createElement('p');
+  status.style.cssText = 'padding:10px;border-radius:8px;background:#f3f6f4;line-height:1.9;';
+  status.textContent = `${lesson.is_free ? '🟢 FREE / مفت' : '🔒 PAID / ادائیگی والا'} — ${lesson.is_published ? '🟢 PUBLISHED / طلبہ کو نظر آئے گا' : '🔴 UNPUBLISHED / طلبہ کو نظر نہیں آئے گا'}`;
+  host.appendChild(status);
+
   const names = {
     pdf: 'PDF', page_image: 'سبق کی تصویر',
     audio_explanation: 'اردو وضاحت آڈیو', audio_homework: 'فارسی ہوم ورک آڈیو', video: 'ویڈیو'
   };
+  const addLegacyItem = (field, label, value) => {
+    if (!value) return;
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px dashed #c28b36;border-radius:9px;padding:12px;margin:10px 0;background:#fffaf0;';
+    const heading = document.createElement('strong');
+    heading.textContent = `${label} — پرانا/Legacy ریکارڈ`;
+    card.appendChild(heading);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;';
+    const open = document.createElement('button');
+    open.type = 'button'; open.textContent = 'فائل دیکھیں / کھولیں';
+    open.onclick = async () => {
+      try {
+        let url = value;
+        if (String(value).startsWith('storage://')) {
+          const path = String(value).slice('storage://'.length);
+          const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(path, 3600);
+          if (signed.error) throw signed.error;
+          url = signed.data.signedUrl;
+        }
+        if (!/^https?:\/\//i.test(url)) throw new Error('اس پرانی فائل کا لنک قابلِ مطالعہ نہیں۔');
+        window.open(url, '_blank', 'noopener');
+      } catch (e) { alert('فائل کھولنے میں مسئلہ: ' + e.message); }
+    };
+    const remove = document.createElement('button');
+    remove.type = 'button'; remove.textContent = 'اس پرانے لنک کو ہٹائیں'; remove.style.background = '#b42318';
+    remove.onclick = async () => {
+      if (!confirm(`کیا آپ واقعی ${label} کا پرانا لنک ہٹانا چاہتے ہیں؟`)) return;
+      const result = await supabase.from('lessons').update({[field]:null}).eq('id', lessonId).select('id');
+      if (result.error || !result.data?.length) { alert('لنک نہیں ہٹ سکا: ' + (result.error?.message || 'Admin اجازت چیک کریں۔')); return; }
+      alert('پرانا لنک ہٹا دیا گیا۔');
+      await renderExistingMeenaResources(lessonId);
+    };
+    actions.append(open, remove);
+    card.appendChild(actions);
+    host.appendChild(card);
+  };
+  addLegacyItem('pdf_url', 'PDF', lesson.pdf_url);
+  addLegacyItem('audio_url', 'آڈیو', lesson.audio_url);
+  addLegacyItem('video_url', 'ویڈیو', lesson.video_url);
+
+  if (!rows || !rows.length) {
+    if (!lesson.pdf_url && !lesson.audio_url && !lesson.video_url) {
+      const empty = document.createElement('p');
+      empty.textContent = 'اس سبق میں ابھی کوئی PDF، تصویر، آڈیو یا ویڈیو محفوظ نہیں ہے۔';
+      host.appendChild(empty);
+    }
+    return;
+  }
+
   for (const resource of rows) {
     const card = document.createElement('div');
     card.style.cssText = 'border:1px solid #d7dde5;border-radius:9px;padding:12px;margin:10px 0;background:#fff;';
@@ -2690,10 +2754,7 @@ async function renderExistingMeenaResources(lessonId) {
           const up = await supabase.storage.from('meena-lesson-files').upload(newPath, file, { upsert:false, contentType:file.type || undefined });
           if (up.error) throw up.error;
           const upd = await supabase.from('lesson_resources').update({ storage_path:newPath, external_url:null, title:file.name }).eq('id', resource.id);
-          if (upd.error) {
-            await supabase.storage.from('meena-lesson-files').remove([newPath]);
-            throw upd.error;
-          }
+          if (upd.error) { await supabase.storage.from('meena-lesson-files').remove([newPath]); throw upd.error; }
           const old = await supabase.storage.from('meena-lesson-files').remove([resource.storage_path]);
           if (old.error) alert('نئی فائل محفوظ ہوگئی، لیکن پرانی فائل اسٹوریج سے خودکار حذف نہیں ہو سکی: ' + old.error.message);
           alert('فائل کامیابی سے تبدیل ہوگئی۔');
@@ -2715,7 +2776,7 @@ async function renderExistingMeenaResources(lessonId) {
         alert('ویڈیو لنک تبدیل ہوگیا۔');
         await renderExistingMeenaResources(lessonId);
       };
-      actions.appendChild(urlInput); actions.appendChild(saveUrl);
+      actions.append(urlInput, saveUrl);
     }
 
     const del = document.createElement('button');
