@@ -547,19 +547,25 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
     if (countryCode === 'PK') {
       methodSelect.innerHTML = '<option value="JazzCash">JazzCash</option><option value="Easypaisa">Easypaisa</option><option value="Meezan Bank">Meezan Bank</option>';
       const priceField = priceKey ? `${priceKey}_price_pkr` : accessType === 'course' ? 'course_price_pkr' : accessType === 'full_book' ? 'book_price_pkr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_pkr` : 'lesson_price_pkr';
-      currentPrice = pricing ? pricing[priceField] : null;
+      currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
+        ? pricing[priceField]
+        : (priceKey === 'conversation_bundle' ? 3000 : null);
       currentCurrency = 'PKR';
       showPakistanDetails();
     } else if (countryCode === 'IN') {
       methodSelect.innerHTML = '<option value="Google Pay">Google Pay</option>';
       details.innerHTML = '<strong>Google Pay نمبر:</strong> 9897400499<br><strong>اکاؤنٹ ہولڈر:</strong> Ali Jaffar Hashmi<br><small>ادائیگی سے پہلے وصول کنندہ کا نام ضرور چیک کریں۔</small>';
       const priceField = priceKey ? `${priceKey}_price_inr` : accessType === 'course' ? 'course_price_inr' : accessType === 'full_book' ? 'book_price_inr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_inr` : 'lesson_price_inr';
-      currentPrice = pricing ? pricing[priceField] : null;
+      currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
+        ? pricing[priceField]
+        : (priceKey === 'conversation_bundle' ? 3000 : null);
       currentCurrency = 'INR';
     } else {
       methodSelect.innerHTML = '<option value="International Bank Transfer">International Bank Transfer</option><option value="Western Union">Western Union</option>';
       const priceField = priceKey ? `${priceKey}_price_usd` : accessType === 'course' ? 'course_price_usd' : accessType === 'full_book' ? 'book_price_usd' : accessType === 'chapter' ? `chapter${chapterNumber}_price_usd` : 'lesson_price_usd';
-      currentPrice = pricing ? pricing[priceField] : null;
+      currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
+        ? pricing[priceField]
+        : (priceKey === 'conversation_bundle' ? 30 : null);
       currentCurrency = 'USD';
       showInternationalDetails(countryName);
     }
@@ -3411,7 +3417,12 @@ async function loadPaymentAdmin() {
     for (const key of ['meena1', 'meena2', 'meena3', 'conversation_bundle']) {
       for (const currency of ['pkr', 'inr', 'usd']) {
         const input = document.getElementById(`price_${key}_price_${currency}`);
-        if (input) input.value = pricing[`${key}_price_${currency}`] ?? '';
+        if (input) {
+          const agreedBundleDefaults = key === 'conversation_bundle'
+            ? { pkr: 3000, inr: 3000, usd: 30 }
+            : null;
+          input.value = pricing[`${key}_price_${currency}`] ?? (agreedBundleDefaults ? agreedBundleDefaults[currency] : '');
+        }
       }
     }
   }
