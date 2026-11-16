@@ -46,6 +46,9 @@ button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;backgro
 .student-search-form input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;margin:0;padding:10px 4px;background:transparent;font-size:16px}
 .student-search-form button{width:auto;flex:none;margin:0;padding:10px 15px;border-radius:12px}
 .student-search-result{padding:13px;margin:10px 0;border:1px solid #dce7df;box-shadow:none}
+.academy-contact-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.academy-contact-links a,.academy-contact-links button{display:block;box-sizing:border-box;margin:0;text-align:center;text-decoration:none;padding:12px 8px;border-radius:10px;font-size:15px}
+.academy-contact-links button:disabled{background:#e8eeea;color:#718078;cursor:not-allowed}
 
 /* Language choice on the welcome screen */
 #languageChoice{text-align:center}
@@ -858,6 +861,24 @@ if (adminProfile.role === 'admin') {
 
   <hr>
 
+  <section class="card" style="padding:16px;box-shadow:none;border:1px solid #dce7df;">
+    <h3>📞 ہم سے رابطہ</h3>
+    <p>کورس یا رجسٹریشن کے بارے میں اکیڈمی سے رابطہ کریں۔</p>
+    <button id="academyContactToggle" type="button" aria-expanded="false" aria-controls="academyContactPanel">ہم سے رابطہ</button>
+    <div id="academyContactPanel" hidden>
+      <div class="academy-contact-links">
+        <a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer" style="background:#16834a;color:white;">WhatsApp</a>
+        <a href="https://youtube.com/@cometolearnpersian51214" target="_blank" rel="noopener noreferrer" style="background:#d93025;color:white;">YouTube</a>
+        <button type="button" disabled title="اکیڈمی کا Facebook لنک درکار ہے">Facebook — لنک درکار</button>
+        <button type="button" disabled title="اکیڈمی کا Instagram لنک درکار ہے">Instagram — لنک درکار</button>
+        <button type="button" disabled title="اکیڈمی کا Gmail پتہ درکار ہے">Gmail — پتہ درکار</button>
+      </div>
+      <p class="note">سوشل میڈیا اور Gmail کے فعال بٹن لگانے کے لیے اکیڈمی کے اصل لنکس شامل کرنا باقی ہے۔</p>
+    </div>
+  </section>
+
+  <hr>
+
   <h3>👤 میرا اکاؤنٹ</h3>
   <button id="profileBtn">میرا پروفائل</button>
 
@@ -894,6 +915,14 @@ dashboard.querySelector('#myPaymentRequestsBtn').addEventListener('click', showM
 dashboard.querySelector('#profileBtn').addEventListener('click', showMyProfile);
 dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showClassRegistrationForm);
 dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
+dashboard.querySelector('#academyContactToggle').addEventListener('click', event => {
+  const button = event.currentTarget;
+  const panel = dashboard.querySelector('#academyContactPanel');
+  const isOpening = panel.hidden;
+  panel.hidden = !isOpening;
+  button.setAttribute('aria-expanded', String(isOpening));
+  button.textContent = isOpening ? 'رابطے بند کریں' : 'ہم سے رابطہ';
+});
 // Show the student's latest reviewed payment decision on the dashboard.
 loadStudentPaymentNotice();
 dashboard.querySelector('#dashboardLogout').addEventListener('click', async () => {
