@@ -131,6 +131,8 @@ const SUPABASE_URL = 'https://ywffwyxnmigjgtywbpil.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3ZmZ3eXhubWlnamd0eXdicGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NjgxMDEsImV4cCI6MjEwOTM0NDEwMX0.dU9AUEEE78zbrzPlDNGpBrSDYcw03ry7stUlAE7FX90';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+window.__ctlpSupabaseReferenceInsert = async payload => await supabase.from('persian_reference_entries').insert(payload);
+window.__ctlpRefreshReferenceAdmin = () => loadPersianReferenceAdmin();
 const message = document.getElementById('message');
   message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
 document.getElementById('signupBtn').onclick = function() {
@@ -961,6 +963,68 @@ async function showMyProfile() {
   });
 }
 
+
+const PERSIAN_VOCAB_SEED = [['آب','پانی، جَل','āb'],['نان','روٹی، نان','nān'],['چای','چائے','chāy'],['کتاب','کتاب','ketāb']];
+const PERSIAN_REFERENCE_SEED = [
+['آمدن','آنا','آمد','آی'],['داشتن','رکھنا','داشت','دار'],['رفتن','جانا','رفت','رو'],['بودن','ہونا','بود','باش'],['دیدن','دیکھنا','دید','بین'],['شدن','ہونا','شد','شو'],['گفتن','کہنا','گفت','گو'],['کردن','کرنا','کرد','کن'],['شنیدن','سننا','شنید','شنو'],['شکستن','توڑنا','شکست','شکن'],['خوردن','کھانا','خورد','خور'],['ساختن','بنانا','ساخت','ساز'],['نوشیدن','پینا','نوشید','نوش'],['خریدن','خریدنا','خرید','خر'],['خوابیدن','سونا','خوابید','خواب'],['فروختن','بیچنا','فروخت','فروش'],['پوشیدن','پہننا','پوشید','پوش'],['فرستادن','بھیجنا','فرستاد','فرست'],['برداشتن','اٹھانا','برداشت','بردار'],['خندیدن','ہنسنا','خندید','خند'],['گذاشتن','رکھنا','گذاشت','گذار'],['گریستن','رونا','گریست','گری'],['دادن','دینا','داد','ده'],['ایستادن','کھڑا ہونا','ایستاد','ایست'],['گرفتن','پکڑنا','گرفت','گیر'],['نشستن','بیٹھنا','نشست','نشین'],['آوردن','لانا','آورد','آور'],['پریدن','چھلانگنا','پرید','پر'],['خواندن','پڑھنا','خواند','خوان'],['دویدن','دوڑنا','دوید','دو'],['نوشتن','لکھنا','نوشت','نویس'],['بردن','لے جانا','برد','بر'],['فهمیدن','سمجھنا','فهمید','فهم'],['زدن','مارنا','زد','زن'],['دانستن','جاننا','دانست','دان'],['باز کردن','کھولنا','باز کرد','باز کن'],['توانستن','سکنا','توانست','توان'],['بستن','بند کرنا','بست','بند'],['خواستن','چاہنا','خواست','خواه'],['جستجو کردن','تلاش کرنا','جستجو کرد','جستجو کن'],['پیدا کردن','ڈھونڈنا','پیدا کرد','پیدا کن'],['اجازه گرفتن','اجازت لینا','اجازه گرفت','اجازه گیر'],['تمیز کردن','صاف کرنا','تمیز کرد','تمیز کن'],['دعا کردن','دعا کرنا','دعا کرد','دعا کن'],['شستن','دھونا','شست','شوی'],['نماز خواندن','نماز پڑھنا','نماز خواند','نماز خوان'],['تماشا کردن','دیکھنا','تماشا کرد','تماشا کن'],['پرسیدن','پوچھنا','پرسید','پرس'],['استفاده کردن','استعمال کرنا','استفاده کرد','استفاده کن'],['جواب دادن','جواب دینا','جواب داد','جواب ده'],['شروع کردن','شروع کرنا','شروع کرد','شروع کن'],['ترجمه کردن','ترجمہ کرنا','ترجمه کرد','ترجمه کن'],['تمام کردن','ختم کرنا','تمام کرد','تمام کن'],['نگاه کردن','دیکھنا','نگاه کرد','نگاه کن'],['امتحان دادن','امتحان دینا','امتحان داد','امتحان ده'],['رسیدن','پہنچنا','رسید','رس'],['قبول کردن','قبول کرنا','قبول کرد','قبول کن'],['شروع شدن','شروع ہونا','شروع شد','شروع شو'],['رد کردن','رد کرنا','رد کرد','رد کن'],['حرکت کردن','روانہ ہونا','حرکت کرد','حرکت کن'],['کمک کردن','مدد کرنا','کمک کرد','کمک کن'],['برگشتن','واپس آنا','برگشت','برگرد'],['یاد گرفتن','سیکھنا','یاد گرفت','یاد گیر'],['بازگشتن','لوٹ جانا','بازگشت','بازگرد'],['یاد دادن','پڑھانا','یاد داد','یاد ده'],['خاموش کردن','بجھانا','خاموش کرد','خاموش کن'],['سکوت کردن','خاموش ہونا','سکوت کرد','سکوت کن'],['روشن کردن','روشن کرنا','روشن کرد','روشن کن'],['صحبت کردن','بات کرنا','صحبت کرد','صحبت کن'],['چرخیدن','گھومنا','چرخید','چرخ'],['تماس گرفتن','فون کرنا','تماس گرفت','تماس گیر'],['نگاه داشتن','محفوظ رکھنا','نگاه داشت','نگاه دار'],['امید داشتن','امید رکھنا','امید داشت','امید دار'],['برپا کردن','قائم کرنا','برپا کرد','برپا کن'],['باور کردن','یقین کرنا','باور کرد','باور کن'],['آماده کردن','تیار کرنا','آماده کرد','آماده کن'],['فکر کردن','سوچنا','فکر کرد','فکر کن'],['قبول شدن','منظور ہونا','قبول شد','قبول شو'],['تصمیم گرفتن','فیصلہ کرنا','تصمیم گرفت','تصمیم گیر'],['یاد کردن','یاد کرنا','یاد کرد','یاد کن'],['اجازه دادن','اجازت دینا','اجازه داد','اجازه ده'],['گم کردن','گم کرنا','گم کرد','گم کن']
+];
+
+async function loadPersianReferenceRows() {
+  const { data, error } = await supabase.from('persian_reference_entries').select('*').order('created_at', {ascending:true});
+  if (error) throw error;
+  if (!data || !data.length) {
+    const seed = [...PERSIAN_REFERENCE_SEED.map(r => ({entry_type:'masdar', term:r[0], translation:r[1], past_stem:r[2], present_stem:r[3]})), ...PERSIAN_VOCAB_SEED.map(r => ({entry_type:'vocab',term:r[0],translation:r[1],pronunciation:r[2]}))];
+    const { error: seedError } = await supabase.from('persian_reference_entries').insert(seed);
+    if (seedError) throw seedError;
+    const { data: seeded, error: reloadError } = await supabase.from('persian_reference_entries').select('*').order('created_at',{ascending:true});
+    if (reloadError) throw reloadError;
+    return seeded || [];
+  }
+  return data;
+}
+
+async function openPersianReference(type) {
+  const dashboard = document.getElementById('studentDashboard');
+  const view = dashboard.querySelector('#persianReferenceView');
+  dashboard.querySelectorAll(':scope > section, :scope > h2, :scope > h3, :scope > p, :scope > hr, :scope > div').forEach(el => { if (el !== view) el.hidden = true; });
+  view.hidden = false;
+  const heading = dashboard.querySelector('#persianReferenceHeading');
+  const search = dashboard.querySelector('#persianReferenceSearch');
+  const results = dashboard.querySelector('#persianReferenceResults');
+  heading.textContent = type === 'vocab' ? 'فارسی لغت' : 'فارسی مصادر';
+  search.placeholder = type === 'vocab' ? 'فارسی یا اردو لفظ تلاش کریں...' : 'مصدر یا اردو ترجمہ تلاش کریں...';
+  results.innerHTML = '<p>فہرست لوڈ ہو رہی ہے...</p>';
+  try {
+    const rows = await loadPersianReferenceRows();
+    const render = () => {
+      const q = search.value.trim().toLocaleLowerCase();
+      const filtered = rows.filter(r => r.entry_type === type && (!q || [r.term,r.translation,r.past_stem,r.present_stem,r.pronunciation].some(v => String(v||'').toLocaleLowerCase().includes(q))));
+      if (!filtered.length) { results.innerHTML = '<p>کوئی لفظ نہیں ملا۔</p>'; return; }
+      results.innerHTML = filtered.map(r => type === 'vocab'
+        ? `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><p style="margin:4px 0;">${escapeReferenceHtml(r.translation||'')}</p><i>${escapeReferenceHtml(r.pronunciation||'')}</i></article>`
+        : `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><p>ترجمہ: ${escapeReferenceHtml(r.translation||'')}</p><p>بنِ ماضی: <b lang="fa">${escapeReferenceHtml(r.past_stem||'')}</b></p><p>بنِ مضارع: <b lang="fa">${escapeReferenceHtml(r.present_stem||'')}</b></p></article>`).join('');
+    };
+    search.value=''; search.oninput=render; render();
+  } catch (e) { results.innerHTML = `<p style="color:#b42318;">فہرست لوڈ نہیں ہو سکی: ${escapeReferenceHtml(e.message)}. براہ کرم منتظم سے رابطہ کریں۔</p>`; }
+  view.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function escapeReferenceHtml(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+async function loadPersianReferenceAdmin() {
+  const list = document.getElementById('persianReferenceAdminList');
+  if (!list) return;
+  list.innerHTML = '<p>ریکارڈ لوڈ ہو رہے ہیں...</p>';
+  try {
+    const rows = await loadPersianReferenceRows();
+    list.innerHTML = rows.map(r => `<div class="card" style="padding:12px;box-shadow:none;border:1px solid #dce7df;"><b>${escapeReferenceHtml(r.term)}</b> — ${escapeReferenceHtml(r.translation||'')}<br><small>${r.entry_type==='masdar'?'ماضی: '+escapeReferenceHtml(r.past_stem||'')+' | مضارع: '+escapeReferenceHtml(r.present_stem||''):'تلفظ: '+escapeReferenceHtml(r.pronunciation||'')}</small><button type="button" data-delete-reference="${r.id}" style="background:#a83232;">حذف کریں</button></div>`).join('') || '<p>ابھی کوئی ریکارڈ نہیں۔</p>';
+    list.querySelectorAll('[data-delete-reference]').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm('کیا آپ واقعی یہ ریکارڈ حذف کرنا چاہتے ہیں؟')) return;
+      const {error}=await supabase.from('persian_reference_entries').delete().eq('id',btn.dataset.deleteReference);
+      if(error){alert('حذف نہیں ہو سکا: '+error.message);return;} loadPersianReferenceAdmin();
+    }));
+  } catch(e) { list.innerHTML = `<p style="color:#b42318;">${escapeReferenceHtml(e.message)} — پہلے نیچے دیا گیا SQL Supabase میں چلائیں۔</p>`; }
+}
+
 async function handleLogin(existingUser = null) {
   const currentRenderToken = ++loginRenderToken;
   let data;
@@ -1011,6 +1075,7 @@ if (adminProfile.role === 'admin') {
   loadCourses();
   loadPaymentAdmin();
   loadClassRegistrationsAdmin();
+  loadPersianReferenceAdmin();
   return;
 }
   document.querySelectorAll('main > .card').forEach(card => {
@@ -1053,6 +1118,8 @@ if (adminProfile.role === 'admin') {
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 18px;">
     <button id="profileBtn" type="button" style="margin:0;min-height:54px;">👤 My Profile / میرا پروفائل</button>
     <button id="persianLanguageCourseBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 Persian Language Course</button>
+    <button id="persianVocabBtn" type="button" style="margin:0;min-height:54px;background:#345b75;">📖 فارسی لغت</button>
+    <button id="persianMasdarBtn" type="button" style="margin:0;min-height:54px;background:#76522b;">📝 فارسی مصادر</button>
   </div>
 
   <section id="persianCourseChooser" hidden>
@@ -1068,6 +1135,13 @@ if (adminProfile.role === 'admin') {
       <p>روزمرہ گفتگو اور مکالمے سیکھیں۔</p>
       <button id="conversationBtn" type="button">کورس کھولیں</button>
     </div>
+  </section>
+
+  <section id="persianReferenceView" class="card" hidden style="padding:16px;box-shadow:none;border:1px solid #dce7df;">
+    <button id="persianReferenceBack" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button>
+    <h2 id="persianReferenceHeading">فارسی لغت</h2>
+    <input id="persianReferenceSearch" type="search" placeholder="فارسی یا اردو لفظ تلاش کریں..." autocomplete="off">
+    <div id="persianReferenceResults" aria-live="polite"></div>
   </section>
 
   <hr>
@@ -1139,6 +1213,13 @@ dashboard.querySelector('#persianLanguageCourseBtn').addEventListener('click', (
 });
 dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showClassRegistrationForm);
 dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
+dashboard.querySelector('#persianVocabBtn').addEventListener('click', () => openPersianReference('vocab'));
+dashboard.querySelector('#persianMasdarBtn').addEventListener('click', () => openPersianReference('masdar'));
+dashboard.querySelector('#persianReferenceBack').addEventListener('click', () => {
+  dashboard.querySelector('#persianReferenceView').hidden = true;
+  dashboard.querySelectorAll('main > #studentDashboard > section, main > #studentDashboard > h2, main > #studentDashboard > h3, main > #studentDashboard > p, main > #studentDashboard > hr, main > #studentDashboard > div').forEach(el => { if (el.id !== 'persianReferenceView') el.hidden = false; });
+});
+
 dashboard.querySelector('#academyContactToggle').addEventListener('click', event => {
   const button = event.currentTarget;
   const panel = dashboard.querySelector('#academyContactPanel');
@@ -3562,7 +3643,7 @@ if (savePaymentPricingBtn) {
         values[`${key}_price_${currency}`] = !input || input.value === '' ? null : Number(input.value);
       }
     }
-    if (Object.entries(values).some(([key, value]) => key !== 'updated_at' && value !== null && (!Number.isFinite(value) || value < 0))) {
+    if (Object.values(values).some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
       alert('قیمت صفر یا اس سے زیادہ درست عدد میں درج کریں۔');
       return;
     }
@@ -3921,6 +4002,22 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <div id="topicList"></div>
 </div>
 <!-- CONVERSATION TOPICS END -->
+<div class="card">
+  <h3>📚 فارسی لغت اور فارسی مصادر کا انتظام</h3>
+  <p>یہاں سے مفت لغت اور مصادر شامل یا حذف کریں۔ طلبہ صرف دیکھ اور تلاش کر سکیں گے۔</p>
+  <label class="form-field">قسم
+    <select id="referenceEntryType"><option value="vocab">فارسی لغت</option><option value="masdar">فارسی مصادر</option></select>
+  </label>
+  <input id="referenceTerm" placeholder="فارسی لفظ یا مصدر">
+  <input id="referenceTranslation" placeholder="اردو ترجمہ / معنی">
+  <input id="referencePronunciation" placeholder="رومن تلفظ (صرف لغت کے لیے)">
+  <input id="referencePastStem" placeholder="بنِ ماضی (صرف مصدر کے لیے)">
+  <input id="referencePresentStem" placeholder="بنِ مضارع (صرف مصدر کے لیے)">
+  <button id="addReferenceEntryBtn" type="button">ریکارڈ شامل کریں</button>
+  <p id="referenceAdminMessage"></p>
+  <button id="refreshReferenceAdminBtn" type="button" style="background:#52645b;">فہرست تازہ کریں</button>
+  <div id="persianReferenceAdminList"></div>
+</div>
   <div class="card">
     <h3>Bundles</h3>
     <p>مکمل کورس پیکج اور رعایت کا انتظام کریں۔</p>
@@ -3932,6 +4029,19 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <!-- ADMIN PANEL END -->
 
 <script>
+document.getElementById('addReferenceEntryBtn')?.addEventListener('click', async () => {
+  const type=document.getElementById('referenceEntryType').value;
+  const term=document.getElementById('referenceTerm').value.trim();
+  const translation=document.getElementById('referenceTranslation').value.trim();
+  const message=document.getElementById('referenceAdminMessage');
+  if(!term || !translation){message.textContent='براہ کرم فارسی لفظ/مصدر اور اردو ترجمہ درج کریں۔';return;}
+  const payload={entry_type:type,term,translation,pronunciation:document.getElementById('referencePronunciation').value.trim()||null,past_stem:document.getElementById('referencePastStem').value.trim()||null,present_stem:document.getElementById('referencePresentStem').value.trim()||null};
+  const {error}=await window.__ctlpSupabaseReferenceInsert?.(payload) || {error:new Error('سیشن تیار نہیں۔ صفحہ تازہ کریں۔')};
+  if(error){message.textContent='محفوظ نہیں ہو سکا: '+error.message;return;}
+  ['referenceTerm','referenceTranslation','referencePronunciation','referencePastStem','referencePresentStem'].forEach(id=>document.getElementById(id).value='');
+  message.textContent='ریکارڈ شامل ہوگیا۔'; document.getElementById('refreshReferenceAdminBtn')?.click();
+});
+document.getElementById('refreshReferenceAdminBtn')?.addEventListener('click',()=>window.__ctlpRefreshReferenceAdmin?.());
 (function () {
   const translations = {
     "☀ دن": "☀ Day",
