@@ -392,80 +392,73 @@ async function searchStudentLessons() {
   if (!input || !results) return;
   const query = input.value.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
   if (!query) { results.textContent = 'فارسی یا اردو میں کوئی لفظ لکھ کر تلاش کریں۔'; return; }
-  results.textContent = 'تلاش جاری ہے...';
-
-  const fields = ['title', 'persian_text', 'urdu_explanation', 'english_explanation', 'shenasay'];
-  const filters = fields.map(field => `${field}.ilike.%${query}%`).join(',');
-  const [{ data: lessons, error: lessonError }, { data: grants, error: grantError }] = await Promise.all([
-    supabase.from('lessons')
-      .select('id,module_id,title,lesson_order,is_free,persian_text,urdu_explanation,english_explanation,shenasay')
-      .eq('is_published', true)
-      .or(filters)
-      .order('lesson_order')
-      .limit(100),
-    supabase.from('student_access_grants').select('access_type,target_id').eq('student_id', activeStudentId)
+  results.textContent = 'پورے ایپ میں تلاش جاری ہے...';
+  const safeQuery = query.replace(/[%_,]/g, ' ').trim();
+  const pattern = `%${safeQuery}%`;
+  const lessonFields = ['title','persian_text','urdu_explanation','english_explanation','shenasay'];
+  const lessonFilter = lessonFields.map(field => `${field}.ilike.${pattern}`).join(',');
+  const [{data: lessons, error: lessonError},{data: grants,error:grantError},{data: references,error:referenceError},{data: modules,error:moduleError},{data:courses,error:courseError}] = await Promise.all([
+    supabase.from('lessons').select('id,module_id,title,lesson_order,is_free,persian_text,urdu_explanation,english_explanation,shenasay').eq('is_published',true).or(lessonFilter).order('lesson_order').limit(100),
+    supabase.from('student_access_grants').select('access_type,target_id').eq('student_id',activeStudentId),
+    supabase.from('persian_reference_entries').select('id,entry_type,term,translation,pronunciation,past_stem,present_stem').or(`term.ilike.${pattern},translation.ilike.${pattern},pronunciation.ilike.${pattern},past_stem.ilike.${pattern},present_stem.ilike.${pattern}`).limit(200),
+    supabase.from('modules').select('id,title,course_id'),
+    supabase.from('courses').select('id,title,published')
   ]);
-  if (lessonError || grantError) {
-    results.textContent = 'تلاش میں مسئلہ آیا: ' + (lessonError || grantError).message;
-    return;
-  }
-  if (!lessons || lessons.length === 0) { results.textContent = 'اس لفظ کے لیے کوئی شائع شدہ سبق نہیں ملا۔'; return; }
+  const firstError = lessonError || grantError || referenceError || moduleError || courseError;
+  if (firstError) { results.textContent = 'تلاش میں مسئلہ آیا: ' + firstError.message; return; }
 
-  const moduleIds = [...new Set(lessons.map(lesson => lesson.module_id))];
-  const { data: modules, error: moduleError } = await supabase.from('modules')
-    .select('id,title,course_id').in('id', moduleIds);
-  if (moduleError) { results.textContent = 'کورس کی معلومات حاصل نہیں ہو سکیں: ' + moduleError.message; return; }
-  const courseIds = [...new Set((modules || []).map(module => module.course_id))];
-  const { data: courses, error: courseError } = await supabase.from('courses')
-    .select('id,title').in('id', courseIds);
-  if (courseError) { results.textContent = 'کورس کے نام حاصل نہیں ہو سکے: ' + courseError.message; return; }
-
-  const moduleById = new Map((modules || []).map(module => [module.id, module]));
-  const courseById = new Map((courses || []).map(course => [course.id, course]));
+  const moduleById = new Map((modules||[]).map(m=>[m.id,m]));
+  const courseById = new Map((courses||[]).map(c=>[c.id,c]));
   const grantRows = grants || [];
-  const grantedCourses = new Set(grantRows.filter(row => row.access_type === 'course').map(row => row.target_id));
-  const grantedModules = new Set(grantRows.filter(row => row.access_type === 'chapter').map(row => row.target_id));
-  const grantedLessons = new Set(grantRows.filter(row => row.access_type === 'lesson').map(row => row.target_id));
-  const hasFullBook = grantRows.some(row => row.access_type === 'full_book');
-  const visibleLessons = lessons.filter(lesson => {
-    const module = moduleById.get(lesson.module_id);
+  const grantedCourses = new Set(grantRows.filter(r=>r.access_type==='course').map(r=>r.target_id));
+  const grantedModules = new Set(grantRows.filter(r=>r.access_type==='chapter').map(r=>r.target_id));
+  const grantedLessons = new Set(grantRows.filter(r=>r.access_type==='lesson').map(r=>r.target_id));
+  const hasFullBook = grantRows.some(r=>r.access_type==='full_book');
+  const visibleLessons = (lessons||[]).filter(lesson=>{
+    const module=moduleById.get(lesson.module_id);
     return module && (lesson.is_free || hasFullBook || grantedCourses.has(module.course_id) || grantedModules.has(module.id) || grantedLessons.has(lesson.id));
   });
   results.replaceChildren();
-  if (!visibleLessons.length) { results.textContent = 'یہ لفظ ملا، لیکن اس سبق تک رسائی کے لیے خریداری درکار ہے۔'; return; }
-  const heading = document.createElement('p');
-  heading.textContent = `${visibleLessons.length} دستیاب سبق ملے:`;
-  results.appendChild(heading);
-  for (const lesson of visibleLessons) {
-    const module = moduleById.get(lesson.module_id);
-    const course = courseById.get(module.course_id);
-    const card = document.createElement('div');
-    card.className = 'card student-search-result';
-    const title = document.createElement('strong');
-    title.textContent = lesson.title || `سبق ${lesson.lesson_order}`;
-    const location = document.createElement('p');
-    location.textContent = `${course?.title || 'فارسی کورس'} — ${module.title} — سبق ${lesson.lesson_order}`;
-    const snippet = document.createElement('p');
-    const matchingText = [lesson.persian_text, lesson.urdu_explanation, lesson.english_explanation, lesson.shenasay]
-      .find(text => text && text.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-    snippet.textContent = matchingText ? (matchingText.length > 180 ? matchingText.slice(0, 180) + '…' : matchingText) : '';
-    card.appendChild(createStudentFavoriteButton({
-      key: `lesson:${lesson.id}`, kind: 'lesson', title: lesson.title || `سبق ${lesson.lesson_order}`,
-      location: `${course?.title || 'فارسی کورس'} — ${module.title}`, courseId: module.course_id,
-      courseName: course?.title || 'فارسی کورس', moduleId: module.id, lessonId: lesson.id
-    }));
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.textContent = 'کورس کھولیں';
-    open.onclick = () => openStudentFavorite({
-      kind: 'lesson', courseId: module.course_id, courseName: course?.title || 'فارسی کورس',
-      moduleId: module.id, lessonId: lesson.id
-    });
-    card.append(title, location);
-    if (snippet.textContent) card.appendChild(snippet);
-    card.appendChild(open);
-    results.appendChild(card);
+  let total = 0;
+  const addHeading = label => { const h=document.createElement('h3'); h.textContent=label; results.appendChild(h); };
+  if (visibleLessons.length) {
+    addHeading(`📚 اسباق (${visibleLessons.length})`); total += visibleLessons.length;
+    for (const lesson of visibleLessons) {
+      const module=moduleById.get(lesson.module_id); const course=courseById.get(module?.course_id);
+      const card=document.createElement('div'); card.className='card student-search-result';
+      const title=document.createElement('strong'); title.textContent=lesson.title||`سبق ${lesson.lesson_order}`;
+      const location=document.createElement('p'); location.textContent=`${course?.title||'فارسی کورس'} — ${module?.title||''} — سبق ${lesson.lesson_order}`;
+      const matchingText=[lesson.persian_text,lesson.urdu_explanation,lesson.english_explanation,lesson.shenasay].find(t=>t&&t.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+      const snippet=document.createElement('p'); snippet.textContent=matchingText?(matchingText.length>180?matchingText.slice(0,180)+'…':matchingText):'';
+      card.append(title,location); if(snippet.textContent) card.appendChild(snippet);
+      card.appendChild(createStudentFavoriteButton({key:`lesson:${lesson.id}`,kind:'lesson',title:lesson.title||`سبق ${lesson.lesson_order}`,location:`${course?.title||'فارسی کورس'} — ${module?.title||''}`,courseId:module.course_id,courseName:course?.title||'فارسی کورس',moduleId:module.id,lessonId:lesson.id}));
+      const open=document.createElement('button'); open.type='button'; open.textContent='سبق کھولیں';
+      open.onclick=()=>openStudentFavorite({kind:'lesson',courseId:module.course_id,courseName:course?.title||'فارسی کورس',moduleId:module.id,lessonId:lesson.id});
+      card.appendChild(open); results.appendChild(card);
+    }
   }
+  const vocab=(references||[]).filter(r=>r.entry_type==='vocab');
+  const masdars=(references||[]).filter(r=>r.entry_type==='masdar');
+  for (const [type, rows, label] of [['vocab',vocab,'📖 فارسی لغت'],['masdar',masdars,'📝 فارسی مصادر']]) {
+    if (!rows.length) continue;
+    addHeading(`${label} (${rows.length})`); total += rows.length;
+    for (const r of rows) {
+      const card=document.createElement('div'); card.className='card student-search-result'; card.style.padding='12px';
+      const title=document.createElement('strong'); title.textContent=r.term;
+      const detail=document.createElement('p'); detail.textContent=type==='masdar'?`${r.translation||''} | بنِ ماضی: ${r.past_stem||'—'} | بنِ مضارع: ${r.present_stem||'—'}`:`${r.translation||''} | تلفظ: ${r.pronunciation||'—'}`;
+      const open=document.createElement('button'); open.type='button'; open.textContent='فہرست میں کھولیں'; open.onclick=()=>openPersianReference(type);
+      card.append(title,detail,open); results.appendChild(card);
+    }
+  }
+  const matchingModules=(modules||[]).filter(m=>(m.title||'').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const matchingCourses=(courses||[]).filter(c=>(c.title||'').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  if(matchingCourses.length||matchingModules.length){
+    addHeading('📂 کورس اور ابواب');
+    for(const c of matchingCourses){const p=document.createElement('p');p.textContent=`کورس: ${c.title}`;results.appendChild(p);total++;}
+    for(const m of matchingModules){const p=document.createElement('p');p.textContent=`باب / ماڈیول: ${m.title}`;results.appendChild(p);total++;}
+  }
+  if (!total) results.textContent='پورے ایپ میں اس لفظ کا کوئی نتیجہ نہیں ملا۔';
+  else { const note=document.createElement('p'); note.textContent=`کل ${total} نتائج ملے۔`; results.prepend(note); }
 }
 
 function escapePaymentText(value) {
@@ -4002,21 +3995,23 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <div id="topicList"></div>
 </div>
 <!-- CONVERSATION TOPICS END -->
-<div class="card">
-  <h3>📚 فارسی لغت اور فارسی مصادر کا انتظام</h3>
-  <p>یہاں سے مفت لغت اور مصادر شامل یا حذف کریں۔ طلبہ صرف دیکھ اور تلاش کر سکیں گے۔</p>
-  <label class="form-field">قسم
-    <select id="referenceEntryType"><option value="vocab">فارسی لغت</option><option value="masdar">فارسی مصادر</option></select>
-  </label>
-  <input id="referenceTerm" placeholder="فارسی لفظ یا مصدر">
-  <input id="referenceTranslation" placeholder="اردو ترجمہ / معنی">
-  <input id="referencePronunciation" placeholder="رومن تلفظ (صرف لغت کے لیے)">
-  <input id="referencePastStem" placeholder="بنِ ماضی (صرف مصدر کے لیے)">
-  <input id="referencePresentStem" placeholder="بنِ مضارع (صرف مصدر کے لیے)">
-  <button id="addReferenceEntryBtn" type="button">ریکارڈ شامل کریں</button>
-  <p id="referenceAdminMessage"></p>
-  <button id="refreshReferenceAdminBtn" type="button" style="background:#52645b;">فہرست تازہ کریں</button>
-  <div id="persianReferenceAdminList"></div>
+<div class="card" id="adminPersianReferencesFolder" style="margin-top:14px;">
+  <button id="togglePersianReferencesFolder" type="button" aria-expanded="false" style="width:100%;text-align:right;background:#76522b;">📁 فارسی لغت اور مصادر کا انتظام — فولڈر کھولیں</button>
+  <div id="persianReferencesFolderContent" hidden style="padding-top:14px;">
+    <p>یہاں سے مفت لغت اور مصادر شامل یا حذف کریں۔ طلبہ صرف دیکھ اور تلاش کر سکیں گے۔</p>
+    <label class="form-field">قسم
+      <select id="referenceEntryType"><option value="vocab">فارسی لغت</option><option value="masdar">فارسی مصادر</option></select>
+    </label>
+    <input id="referenceTerm" placeholder="فارسی لفظ یا مصدر">
+    <input id="referenceTranslation" placeholder="اردو ترجمہ / معنی">
+    <input id="referencePronunciation" placeholder="رومن تلفظ (صرف لغت کے لیے)">
+    <input id="referencePastStem" placeholder="بنِ ماضی (صرف مصدر کے لیے)">
+    <input id="referencePresentStem" placeholder="بنِ مضارع (صرف مصدر کے لیے)">
+    <button id="addReferenceEntryBtn" type="button">ریکارڈ شامل کریں</button>
+    <p id="referenceAdminMessage"></p>
+    <button id="refreshReferenceAdminBtn" type="button" style="background:#52645b;">فہرست تازہ کریں</button>
+    <div id="persianReferenceAdminList"></div>
+  </div>
 </div>
   <div class="card">
     <h3>Bundles</h3>
@@ -4029,6 +4024,13 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
 <!-- ADMIN PANEL END -->
 
 <script>
+document.getElementById('togglePersianReferencesFolder')?.addEventListener('click', () => {
+  const content=document.getElementById('persianReferencesFolderContent');
+  const opening=content.hidden; content.hidden=!opening;
+  const button=document.getElementById('togglePersianReferencesFolder');
+  button.setAttribute('aria-expanded',String(opening));
+  button.textContent=opening?'📂 فارسی لغت اور مصادر کا انتظام — فولڈر بند کریں':'📁 فارسی لغت اور مصادر کا انتظام — فولڈر کھولیں';
+});
 document.getElementById('addReferenceEntryBtn')?.addEventListener('click', async () => {
   const type=document.getElementById('referenceEntryType').value;
   const term=document.getElementById('referenceTerm').value.trim();
