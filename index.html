@@ -3562,7 +3562,7 @@ if (savePaymentPricingBtn) {
         values[`${key}_price_${currency}`] = !input || input.value === '' ? null : Number(input.value);
       }
     }
-    if (Object.values(values).some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
+    if (Object.entries(values).some(([key, value]) => key !== 'updated_at' && value !== null && (!Number.isFinite(value) || value < 0))) {
       alert('قیمت صفر یا اس سے زیادہ درست عدد میں درج کریں۔');
       return;
     }
