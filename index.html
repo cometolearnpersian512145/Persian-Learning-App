@@ -12,7 +12,8 @@ main{max-width:480px;margin:25px auto;padding:15px}
 .card{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 12px #0001;margin-bottom:18px}
 input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
 button{width:100%;padding:12px;margin-top:9px;border:0;border-radius:7px;background:#176b50;color:white;font-size:16px}
-.logout-button{width:calc(100% - 44px);display:block;box-sizing:content-box;padding:12px;margin:9px auto 0;font-size:16px;min-width:0}
+.logout-button{width:calc(100% - 44px);display:none;box-sizing:content-box;padding:12px;margin:9px auto 0;font-size:16px;min-width:0}
+body.authenticated .logout-button{display:block}
 .note{text-align:center;line-height:1.8}
 #message{white-space:pre-wrap;text-align:center;margin-top:15px}
 .form-field{display:block;margin:12px 0;font-weight:600}
@@ -88,8 +89,6 @@ body[data-theme="night"] main a{color:#a9d9ff}
 
 <main>
 <div class="card" id="languageChoice">
-  <h2>اپنی زبان منتخب کریں</h2>
-  <p>ایپ استعمال کرنے سے پہلے اپنی پسند کی زبان منتخب کریں۔</p>
   <div class="language-buttons" aria-label="Language selector">
     <button type="button" id="langUr" class="active">اردو</button>
     <button type="button" id="langEn">English</button>
@@ -98,17 +97,14 @@ body[data-theme="night"] main a{color:#a9d9ff}
 
 <div class="card">
 <h2>نیا اکاؤنٹ بنائیں</h2>
-<input id="name" placeholder="آپ کا مکمل نام">
-<input id="father" placeholder="والد کا نام">
-<input id="whatsapp" placeholder="WhatsApp نمبر">
-<input id="country" placeholder="ملک">
-<input id="city" placeholder="شہر">
-<input id="gender" placeholder="جنس">
-<label class="form-field">ملکی کوڈ / Country code
-  <input id="signupCountryCode" type="tel" inputmode="tel" value="+92" placeholder="مثلاً +92" autocomplete="tel-country-code">
+<input id="name" placeholder="آپ کا مکمل نام" autocomplete="name" required>
+<input id="father" placeholder="والد کا نام" required>
+<label class="form-field">ملک منتخب کریں
+  <select id="signupCountry" required><option value="">ملک منتخب کریں</option></select>
 </label>
-<input id="signupPhone" type="tel" inputmode="tel" placeholder="موبائل نمبر، ملکی کوڈ کے بغیر" autocomplete="tel-national">
-<input id="signupPassword" type="password" placeholder="Password">
+<p id="signupCallingCodeLine" style="margin:4px 0 0;">ملکی کوڈ: <strong id="signupCountryCode">—</strong></p>
+<input id="signupPhone" type="tel" inputmode="tel" placeholder="فون نمبر" autocomplete="tel-national" required>
+<input id="signupPassword" type="password" placeholder="Password (کم از کم 5 حروف)" minlength="5" autocomplete="new-password" required>
 <button id="signupBtn" type="button">فون نمبر سے اکاؤنٹ بنائیں / Sign Up</button>
 <div id="phoneVerificationBox" hidden>
   <p>آپ کے نمبر پر SMS تصدیقی کوڈ بھیجا گیا ہے۔</p>
@@ -133,6 +129,7 @@ body[data-theme="night"] main a{color:#a9d9ff}
 <p id="message"></p>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.11/build/js/intlTelInput.min.js"></script>
 <script type="module">
 import { createClient } from
 'https://esm.sh/@supabase/supabase-js@2';
@@ -146,7 +143,27 @@ window.__ctlpSupabaseReferenceInsert = async payload => await supabase.from('per
 window.__ctlpSupabaseReferenceUpdate = async (id,payload) => await supabase.from('persian_reference_entries').update(payload).eq('id',id);
 window.__ctlpRefreshReferenceAdmin = () => loadPersianReferenceAdmin();
 const message = document.getElementById('message');
-  message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
+message.textContent = '';
+const signupCountrySelect = document.getElementById('signupCountry');
+const signupCallingCode = document.getElementById('signupCountryCode');
+const fallbackSignupCountries = [
+  {name:'پاکستان',iso2:'pk',dialCode:'92'}, {name:'بھارت',iso2:'in',dialCode:'91'},
+  {name:'افغانستان',iso2:'af',dialCode:'93'}, {name:'بنگلہ دیش',iso2:'bd',dialCode:'880'},
+  {name:'ایران',iso2:'ir',dialCode:'98'}, {name:'سعودی عرب',iso2:'sa',dialCode:'966'},
+  {name:'متحدہ عرب امارات',iso2:'ae',dialCode:'971'}, {name:'ترکی',iso2:'tr',dialCode:'90'},
+  {name:'برطانیہ',iso2:'gb',dialCode:'44'}, {name:'امریکہ',iso2:'us',dialCode:'1'},
+  {name:'کینیڈا',iso2:'ca',dialCode:'1'}, {name:'آسٹریلیا',iso2:'au',dialCode:'61'}
+];
+const signupCountries = window.intlTelInput?.getAllCountries?.() || fallbackSignupCountries;
+signupCountries.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(country => {
+  const option=document.createElement('option'); option.value=country.iso2; option.textContent=`${country.name} (+${country.dialCode})`; signupCountrySelect.appendChild(option);
+});
+function updateSignupCountryCode() {
+  const country=signupCountries.find(item=>item.iso2===signupCountrySelect.value);
+  signupCallingCode.textContent=country?`+${country.dialCode}`:'—';
+}
+signupCountrySelect.addEventListener('change',updateSignupCountryCode);
+updateSignupCountryCode();
 let pendingPhoneSignup = null;
 function normalizeSignupPhone(countryCode, phone) {
   const code = String(countryCode || '').trim().replace(/[\s()-]/g, '');
@@ -162,23 +179,21 @@ function normalizeSignupPhone(countryCode, phone) {
 document.getElementById('signupBtn').addEventListener('click', async () => {
   const full_name = document.getElementById('name').value.trim();
   const father_name = document.getElementById('father').value.trim();
-  const country = document.getElementById('country').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const gender = document.getElementById('gender').value.trim();
+  const selectedCountry = signupCountries.find(item=>item.iso2===signupCountrySelect.value);
+  const country = selectedCountry?.name || '';
   const password = document.getElementById('signupPassword').value;
+  if (!full_name || !father_name || !country || !password) { message.textContent = 'نام، والد کا نام، ملک اور Password لازمی ہیں۔'; return; }
+  if (password.length < 5) { message.textContent = 'Password کم از کم 5 حروف یا اعداد کا ہونا چاہیے۔'; return; }
   let phone;
-  try { phone = normalizeSignupPhone(document.getElementById('signupCountryCode').value, document.getElementById('signupPhone').value); }
+  try { phone = normalizeSignupPhone(selectedCountry ? `+${selectedCountry.dialCode}` : '', document.getElementById('signupPhone').value); }
   catch (error) { message.textContent = error.message; return; }
-  if (!full_name || !password) { message.textContent = 'نام اور Password لازمی ہیں۔'; return; }
-  if (password.length < 6) { message.textContent = 'Password کم از کم 6 حروف یا اعداد کا ہونا چاہیے۔'; return; }
-  const whatsapp = document.getElementById('whatsapp').value.trim() || phone;
   message.textContent = 'فون نمبر سے اکاؤنٹ بنایا جا رہا ہے...';
   document.getElementById('signupBtn').disabled = true;
   try {
     const { data, error } = await supabase.auth.signUp({
       phone,
       password,
-      options: { data: { full_name, father_name, whatsapp, phone, country, city, gender } }
+      options: { data: { full_name, father_name, phone, country } }
     });
     if (error) throw error;
     if (data.session) {
@@ -1324,6 +1339,8 @@ if (adminProfileError) {
   message.textContent = 'اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
   return;
 }
+
+document.body.classList.add('authenticated');
 
 if (adminProfile.role === 'admin') {
   document.querySelectorAll('main > .card').forEach(card => {
@@ -4354,13 +4371,25 @@ document.getElementById('refreshReferenceAdminBtn')?.addEventListener('click',()
     "عیسوی": "Gregorian",
     "ایرانی": "Iranian",
     "آؤ فارسی سیکھیں": "Come To Learn Persian",
-    "اپنی زبان منتخب کریں": "Choose your language",
-    "ایپ استعمال کرنے سے پہلے اپنی پسند کی زبان منتخب کریں۔": "Choose your preferred language before using the app.",
     "Learn Persian Easily & Step by Step": "Learn Persian Easily & Step by Step",
     "نیا اکاؤنٹ بنائیں": "Create a New Account",
     "آپ کا مکمل نام": "Your Full Name",
     "والد کا نام": "Father's Name",
     "ملک": "Country",
+    "ملک منتخب کریں": "Select Country",
+    "ملکی کوڈ:": "Country code:",
+    "ملکی کوڈ: ": "Calling code: ",
+    "فون نمبر": "Phone number",
+    "Password (کم از کم 5 حروف)": "Password (at least 5 characters)",
+    "فون نمبر سے اکاؤنٹ بنائیں / Sign Up": "Sign up with phone number",
+    "نام، والد کا نام، ملک اور Password لازمی ہیں۔": "Name, father's name, country, and password are required.",
+    "Password کم از کم 5 حروف یا اعداد کا ہونا چاہیے۔": "Password must contain at least 5 characters.",
+    "فون نمبر سے اکاؤنٹ بنایا جا رہا ہے...": "Creating your account with your phone number...",
+    "آپ کے نمبر پر SMS تصدیقی کوڈ بھیجا گیا ہے۔": "An SMS verification code has been sent to your number.",
+    "SMS تصدیقی کوڈ": "SMS verification code",
+    "کوڈ کی تصدیق کریں": "Verify code",
+    "فون نمبر میں ملکی کوڈ شامل نہ کریں؛ وہ اوپر الگ درج کریں۔": "Enter the phone number without the country code; it is shown above.",
+    "درست فون نمبر اور ملکی کوڈ درج کریں، مثلاً +92 اور 3001234567۔": "Enter a valid phone and country code, for example +92 and 3001234567.",
     "شہر": "City",
     "جنس": "Gender",
     "Sign Up / رجسٹریشن": "Sign Up",
