@@ -104,16 +104,24 @@ body[data-theme="night"] main a{color:#a9d9ff}
 <input id="country" placeholder="ملک">
 <input id="city" placeholder="شہر">
 <input id="gender" placeholder="جنس">
-<input id="signupEmail" type="email" placeholder="Email">
+<label class="form-field">ملکی کوڈ / Country code
+  <input id="signupCountryCode" type="tel" inputmode="tel" value="+92" placeholder="مثلاً +92" autocomplete="tel-country-code">
+</label>
+<input id="signupPhone" type="tel" inputmode="tel" placeholder="موبائل نمبر، ملکی کوڈ کے بغیر" autocomplete="tel-national">
 <input id="signupPassword" type="password" placeholder="Password">
-<button id="signupBtn">Sign Up / رجسٹریشن</button>
+<button id="signupBtn" type="button">فون نمبر سے اکاؤنٹ بنائیں / Sign Up</button>
+<div id="phoneVerificationBox" hidden>
+  <p>آپ کے نمبر پر SMS تصدیقی کوڈ بھیجا گیا ہے۔</p>
+  <input id="phoneVerificationCode" inputmode="numeric" autocomplete="one-time-code" placeholder="SMS تصدیقی کوڈ">
+  <button id="verifyPhoneBtn" type="button">کوڈ کی تصدیق کریں</button>
+</div>
 </div>
 
 <div class="card">
 <h2>اکاؤنٹ میں داخل ہوں</h2>
-<input id="loginEmail" type="email" placeholder="Email">
+<input id="loginEmail" type="text" autocomplete="username" placeholder="فون نمبر (ملکی کوڈ سمیت) یا پرانی Email ID">
 <input id="loginPassword" type="password" placeholder="Password">
-<button id="loginBtn">Login / داخل ہوں</button>
+<button id="loginBtn" type="button">فون نمبر یا پرانی Email سے Login</button>
 </div>
 
 <div class="card note">
@@ -139,43 +147,65 @@ window.__ctlpSupabaseReferenceUpdate = async (id,payload) => await supabase.from
 window.__ctlpRefreshReferenceAdmin = () => loadPersianReferenceAdmin();
 const message = document.getElementById('message');
   message.textContent = 'JavaScript کامیابی سے چل رہا ہے!';
-document.getElementById('signupBtn').onclick = function() {
-};
+let pendingPhoneSignup = null;
+function normalizeSignupPhone(countryCode, phone) {
+  const code = String(countryCode || '').trim().replace(/[\s()-]/g, '');
+  let local = String(phone || '').trim().replace(/[\s()-]/g, '');
+  if (!/^\+[1-9]\d{0,3}$/.test(code)) throw new Error('ملکی کوڈ +92 کی طرح درج کریں۔');
+  if (local.startsWith('00')) local = local.slice(2);
+  if (local.startsWith('+')) throw new Error('فون نمبر میں ملکی کوڈ شامل نہ کریں؛ وہ اوپر الگ درج کریں۔');
+  local = local.replace(/^0+/, '');
+  const full = code + local;
+  if (!/^\+[1-9]\d{7,14}$/.test(full)) throw new Error('درست فون نمبر اور ملکی کوڈ درج کریں، مثلاً +92 اور 3001234567۔');
+  return full;
+}
 document.getElementById('signupBtn').addEventListener('click', async () => {
-  full_name = document.getElementById('name').value.trim();
-  father_name = document.getElementById('father').value.trim();
-  whatsapp = document.getElementById('whatsapp').value.trim();
-  country = document.getElementById('country').value.trim();
-  city = document.getElementById('city').value.trim();
-  gender = document.getElementById('gender').value.trim();
-  email = document.getElementById('signupEmail').value.trim();
-  password = document.getElementById('signupPassword').value;
-
-  if (!full_name || !email || !password) {
-    message.textContent = 'نام، Email اور Password لازمی ہیں۔';
-    return;
-  }
-
-  message.textContent = 'اکاؤنٹ بنایا جا رہا ہے...';
-
-const { error } = await supabase.auth.signUp({
-  email,
-    password,
-    options: {
-      data: {
-        full_name,
-        father_name,
-        whatsapp,
-        country,
-        city,
-        gender
-      }
+  const full_name = document.getElementById('name').value.trim();
+  const father_name = document.getElementById('father').value.trim();
+  const country = document.getElementById('country').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const gender = document.getElementById('gender').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  let phone;
+  try { phone = normalizeSignupPhone(document.getElementById('signupCountryCode').value, document.getElementById('signupPhone').value); }
+  catch (error) { message.textContent = error.message; return; }
+  if (!full_name || !password) { message.textContent = 'نام اور Password لازمی ہیں۔'; return; }
+  if (password.length < 6) { message.textContent = 'Password کم از کم 6 حروف یا اعداد کا ہونا چاہیے۔'; return; }
+  const whatsapp = document.getElementById('whatsapp').value.trim() || phone;
+  message.textContent = 'فون نمبر سے اکاؤنٹ بنایا جا رہا ہے...';
+  document.getElementById('signupBtn').disabled = true;
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      phone,
+      password,
+      options: { data: { full_name, father_name, whatsapp, phone, country, city, gender } }
+    });
+    if (error) throw error;
+    if (data.session) {
+      message.textContent = 'اکاؤنٹ بن گیا۔ آپ کو داخل کیا جا رہا ہے...';
+      await handleLogin(data.user);
+    } else {
+      pendingPhoneSignup = phone;
+      document.getElementById('phoneVerificationBox').hidden = false;
+      document.getElementById('phoneVerificationCode').focus();
+      message.textContent = 'SMS تصدیقی کوڈ بھیجا گیا ہے۔ اکاؤنٹ فعال کرنے کے لیے کوڈ درج کریں۔';
     }
-  });
-
-  message.textContent = error
-    ? error.message
-    : 'رجسٹریشن کی درخواست کامیاب! اگر Email confirmation فعال ہے تو اپنے Email کی تصدیق کریں۔';
+  } catch (error) {
+    message.textContent = 'رجسٹریشن مکمل نہیں ہوئی: ' + (error.message || 'دوبارہ کوشش کریں۔');
+  } finally {
+    document.getElementById('signupBtn').disabled = false;
+  }
+});
+document.getElementById('verifyPhoneBtn').addEventListener('click', async () => {
+  const token = document.getElementById('phoneVerificationCode').value.trim();
+  if (!pendingPhoneSignup || !token) { message.textContent = 'SMS میں آیا ہوا تصدیقی کوڈ درج کریں۔'; return; }
+  message.textContent = 'فون نمبر کی تصدیق ہو رہی ہے...';
+  const { data, error } = await supabase.auth.verifyOtp({ phone: pendingPhoneSignup, token, type: 'sms' });
+  if (error) { message.textContent = 'کوڈ کی تصدیق نہیں ہو سکی: ' + error.message; return; }
+  pendingPhoneSignup = null;
+  document.getElementById('phoneVerificationBox').hidden = true;
+  message.textContent = 'فون نمبر کی تصدیق ہوگئی۔ آپ کو داخل کیا جا رہا ہے...';
+  await handleLogin(data.user);
 });
 
 let loginRenderToken = 0;
@@ -904,8 +934,8 @@ async function showMyProfile() {
         <label class="form-field">جنس
           <input id="profileGender" type="text">
         </label>
-        <label class="form-field">Email
-          <input id="profileEmail" type="email" disabled>
+        <label class="form-field">فون نمبر / Email ID
+          <input id="profileEmail" type="text" disabled>
         </label>
         <button id="saveMyProfileBtn" type="submit">تبدیلیاں محفوظ کریں</button>
       </form>
@@ -927,7 +957,7 @@ async function showMyProfile() {
   document.getElementById('profileCountry').value = details.country || '';
   document.getElementById('profileCity').value = details.city || '';
   document.getElementById('profileGender').value = details.gender || '';
-  document.getElementById('profileEmail').value = user.email || '';
+  document.getElementById('profileEmail').value = user.phone || user.email || '';
   profileMessage.textContent = 'اپنی معلومات دیکھیں یا تبدیل کرکے محفوظ کریں۔';
 
   document.getElementById('myProfileForm').addEventListener('submit', async (event) => {
@@ -1164,16 +1194,17 @@ async function handleLogin(existingUser = null) {
   if (existingUser) {
     data = { user: existingUser };
   } else {
-    const email = document.getElementById('loginEmail').value.trim();
+    const identifier = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
+
+    if (!identifier || !password) { message.textContent = 'فون نمبر یا Email اور Password درج کریں۔'; return; }
 
     message.textContent = 'Login ہو رہا ہے، انتظار کریں...';
 
-    const { data: loginData, error: loginError } =
-      await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+    const credential = identifier.includes('@')
+      ? { email: identifier, password }
+      : { phone: identifier.startsWith('+') ? identifier.replace(/[\s()-]/g, '') : '+' + identifier.replace(/\D/g, ''), password };
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword(credential);
 
     if (loginError) {
       message.textContent = 'Login میں مسئلہ: ' + loginError.message;
