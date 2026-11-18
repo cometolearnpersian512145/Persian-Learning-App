@@ -1048,14 +1048,47 @@ function showPersianConversationLibrary() {
   dashboard.innerHTML = `
     <button id="conversationDashboardBack" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button>
     <h2>🗣️ فارسی بول چال</h2>
-    <p>روزمرہ زندگی کے مختصر فارسی مکالمے سنیں، پڑھیں اور اردو ترجمے کے ساتھ سیکھیں۔</p>
+    <p>اپنی پسند کا فارسی بول چال فولڈر منتخب کریں۔</p>
     <article class="card" style="padding:15px;box-shadow:none;border:1px solid #dce7df;">
-      <button id="persianConversation01Btn" type="button" style="text-align:right;background:#a04b68;">فارسی بول چال 01 — احوال پرسی</button>
-      <p>سلام، خیریت پوچھنا اور نام بتانا</p>
+      <button id="persianConversation01Btn" type="button" style="text-align:right;background:#a04b68;">فارسی بول چال 01</button>
+      <p>ابتدائی روزمرہ گفتگوئیں</p>
     </article>
-    <p>مزید گفتگوئیں اسی نمبر وار ترتیب میں شامل ہوں گی۔</p>`;
+    <p>آئندہ گفتگوؤں کے لیے اسی ترتیب سے فارسی بول چال 02، 03 وغیرہ شامل ہوں گے۔</p>`;
   dashboard.querySelector('#conversationDashboardBack').onclick = restoreStudentDashboard;
-  dashboard.querySelector('#persianConversation01Btn').onclick = showPersianConversationLesson01;
+  dashboard.querySelector('#persianConversation01Btn').onclick = showPersianConversationLessons;
+}
+
+function showPersianConversationLessons() {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard) return;
+  const lessonNames = ['درس اول','درس دوم','درس سوم','درس چہارم','درس پنجم','درس ششم','درس ہفتم','درس ہشتم','درس نہم','درس دہم','درس یازدہم','درس دوازدہم'];
+  dashboard.innerHTML = `
+    <button id="conversationFolderBack" type="button" style="background:#52645b;">← فارسی بول چال</button>
+    <h2>فارسی بول چال 01</h2>
+    <p>اپنا درس منتخب کریں۔ ابھی درس اول کا مکالمہ اور آڈیو شامل ہے؛ باقی دروس کا مواد بعد میں شامل کیا جا سکتا ہے۔</p>
+    <div id="persianConversationLessonButtons"></div>`;
+  dashboard.querySelector('#conversationFolderBack').onclick = showPersianConversationLibrary;
+  const lessonList = dashboard.querySelector('#persianConversationLessonButtons');
+  lessonNames.forEach((name,index) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.style.cssText = 'padding:12px 14px;margin:9px 0;box-shadow:none;border:1px solid #dce7df;';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = name;
+    button.style.textAlign = 'right';
+    button.style.background = index === 0 ? '#a04b68' : '#526d78';
+    button.onclick = () => index === 0 ? showPersianConversationLesson01() : showPersianConversationPlaceholder(index+1,name);
+    card.appendChild(button);
+    lessonList.appendChild(card);
+  });
+}
+
+function showPersianConversationPlaceholder(number,title) {
+  const dashboard = document.getElementById('studentDashboard');
+  if (!dashboard) return;
+  dashboard.innerHTML = `<button id="conversationLessonsBack" type="button" style="background:#52645b;">← فارسی بول چال 01 کے اسباق</button><h2>فارسی بول چال 01 — ${escapeReferenceHtml(title)}</h2><p>اس درس کی گفتگو اور آڈیو ابھی شامل نہیں کی گئی۔ مواد ملنے پر اسی جگہ دکھایا جائے گا۔</p>`;
+  dashboard.querySelector('#conversationLessonsBack').onclick = showPersianConversationLessons;
 }
 
 function showPersianConversationLesson01() {
@@ -1089,7 +1122,7 @@ function showPersianConversationLesson01() {
     <h3>مکالمہ</h3>
     ${lines}
     <details class="card" style="padding:12px;box-shadow:none;border:1px solid #dce7df;"><summary style="cursor:pointer;font-weight:700;">اہم الفاظ</summary><p lang="fa" dir="rtl">حال — حال | خوب — اچھا / ٹھیک | اسم — نام | متشکرم — شکریہ | خدا حافظ — الوداع</p></details>`;
-  dashboard.querySelector('#conversationLibraryBack').onclick = showPersianConversationLibrary;
+  dashboard.querySelector('#conversationLibraryBack').onclick = showPersianConversationLessons;
   dashboard.querySelector('#conversation01Favorite').appendChild(createStudentFavoriteButton({
     key:'conversation:persian-01', kind:'conversation', title:'فارسی بول چال 01 — احوال پرسی', location:'فارسی بول چال', lessonId:'persian-01'
   }));
