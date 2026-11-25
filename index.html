@@ -432,6 +432,106 @@ body[data-theme="night"] #meenaLessonProgress{border-color:#46534e}
   #meenaLessonResources section{padding:12px!important;border-radius:13px!important}
 }
 
+
+
+/* Payment and class-registration screens — visual styling only */
+#studentDashboard:has(#paymentCountry)>.card,
+#studentDashboard:has(#classCountry)>.card{
+  position:relative;overflow:hidden;
+  border:1px solid #dce7df!important;
+  border-radius:22px!important;
+  background:linear-gradient(155deg,#fffefa 0%,#f7faf6 100%)!important;
+  box-shadow:0 12px 34px rgba(18,61,53,.09)!important;
+  padding:clamp(18px,4vw,28px)!important;
+}
+#studentDashboard:has(#paymentCountry)>.card>h2,
+#studentDashboard:has(#classCountry)>.card>h2{
+  margin:-2px -2px 18px;padding:17px 18px;
+  border-radius:16px;
+  color:#fff!important;
+  background:linear-gradient(125deg,#0b302a,#176e61);
+  font-size:clamp(20px,4vw,25px);line-height:1.55;
+  box-shadow:inset 0 -2px 0 rgba(215,182,107,.55);
+}
+#studentDashboard:has(#paymentCountry)>.card>p:first-of-type{
+  padding:13px 15px;border:1px solid #e8d8ad;border-radius:13px;
+  background:#fff8e8;color:#514322;line-height:1.9;
+}
+#studentDashboard:has(#paymentCountry) label,
+#studentDashboard:has(#classCountry) label.form-field{
+  display:block;margin:14px 0 7px;color:#294b40;font-weight:700;line-height:1.8;
+}
+#studentDashboard:has(#paymentCountry) input,
+#studentDashboard:has(#paymentCountry) select,
+#studentDashboard:has(#classCountry) input,
+#studentDashboard:has(#classCountry) select{
+  width:100%;box-sizing:border-box;min-height:47px;margin:7px 0 12px;
+  padding:12px 14px;border:1px solid #d3dfd7;border-radius:12px;
+  background:#fff;color:#203b35;font:inherit;outline:none;
+  transition:border-color .18s,box-shadow .18s;
+}
+#studentDashboard:has(#paymentCountry) input:focus,
+#studentDashboard:has(#paymentCountry) select:focus,
+#studentDashboard:has(#classCountry) input:focus,
+#studentDashboard:has(#classCountry) select:focus{
+  border-color:#438a72;box-shadow:0 0 0 3px rgba(67,138,114,.13);
+}
+#paymentAccountDetails{
+  margin:12px 0!important;padding:17px!important;
+  border:1px solid #d9e5dc!important;border-radius:15px!important;
+  background:linear-gradient(145deg,#f3f8f3,#edf4ee)!important;
+  color:#25463b;line-height:2!important;overflow-wrap:anywhere;
+}
+#paymentAmountText{
+  padding:13px 15px;border:1px solid #e7d39f;border-radius:13px;
+  background:#fff8e7;color:#604d20;font-size:17px;line-height:1.8;
+}
+#paymentReceipt{padding:10px!important;background:#f6f9f6!important;border-style:dashed!important}
+#submitPaymentRequestBtn,#submitClassRegistrationBtn{
+  min-height:50px;margin-top:15px;border:1px solid #d6b96f;
+  border-radius:13px;background:linear-gradient(120deg,#12483e,#197461);
+  color:#fff;font-weight:800;box-shadow:0 6px 15px rgba(18,72,62,.15);
+}
+#paymentBackBtn,#classRegistrationBackBtn{
+  min-height:45px;border-radius:12px!important;background:#e9efeb!important;
+  color:#29483e!important;border:1px solid #d3dfd7!important;font-weight:700;
+}
+#paymentFormMessage,#classRegistrationMessage{padding:8px 10px;border-radius:10px;line-height:1.8}
+#classFeePreview,#classScheduleInfo,#registrationPaymentDetailsWrap,
+#selectedIndividualDays{
+  padding:14px!important;border:1px solid #dce7df!important;
+  border-radius:14px!important;background:#f4f8f4!important;
+  color:#29483e;line-height:1.9;
+}
+#registrationPaymentWhatsapp{font-weight:700;box-shadow:0 4px 12px rgba(22,131,74,.15)}
+#individualDayChoices .individual-day-option{border-color:#d3dfd7!important;border-radius:11px!important;background:#f7faf7!important}
+#individualDayChoices .individual-day-option:has(input:checked){border-color:#b99545!important;background:#fff7e5!important}
+#studentDashboard:has(#paymentCountry)>.card>button:hover,
+#studentDashboard:has(#classCountry)>.card>button:hover{filter:brightness(1.04)}
+body[data-theme="night"] #studentDashboard:has(#paymentCountry)>.card,
+body[data-theme="night"] #studentDashboard:has(#classCountry)>.card{
+  background:linear-gradient(155deg,#1c2927,#192723)!important;border-color:#40564d!important;
+}
+body[data-theme="night"] #studentDashboard:has(#paymentCountry)>.card>h2,
+body[data-theme="night"] #studentDashboard:has(#classCountry)>.card>h2{color:#fff!important}
+body[data-theme="night"] #studentDashboard:has(#paymentCountry) label,
+body[data-theme="night"] #studentDashboard:has(#classCountry) label.form-field{color:#e1ece5!important}
+body[data-theme="night"] #paymentAccountDetails,
+body[data-theme="night"] #classFeePreview,
+body[data-theme="night"] #classScheduleInfo,
+body[data-theme="night"] #registrationPaymentDetailsWrap,
+body[data-theme="night"] #selectedIndividualDays{
+  background:#202f2a!important;color:#e8f0ec!important;border-color:#465a50!important;
+}
+body[data-theme="night"] #paymentAmountText{background:#332d1d!important;color:#f5dfa4!important;border-color:#75663c!important}
+body[data-theme="night"] #paymentBackBtn,body[data-theme="night"] #classRegistrationBackBtn{background:#2a3a34!important;color:#e8f0ec!important;border-color:#52635a!important}
+@media(max-width:520px){
+  #studentDashboard:has(#paymentCountry)>.card,
+  #studentDashboard:has(#classCountry)>.card{padding:16px!important;border-radius:17px!important}
+  #studentDashboard:has(#paymentCountry)>.card>h2,
+  #studentDashboard:has(#classCountry)>.card>h2{padding:14px 13px}
+}
+
 </style>
 </head>
 <body>
