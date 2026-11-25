@@ -247,6 +247,53 @@ body[data-theme="night"] .dashboard-unlock-panel{background:#302b1e!important;bo
   .dashboard-quick-actions button{font-size:13px!important;padding:9px 5px!important}
 }
 
+
+/* Course and chapter selection visual refresh */
+#studentDashboard:has(#grammarFolderChooser){padding:clamp(14px,3vw,26px)!important;border:1px solid #e0e8df!important;border-radius:24px!important;background:#fffefa!important;box-shadow:0 16px 42px #123d3512!important}
+#studentDashboard:has(#grammarFolderChooser)>div:first-child{position:relative;overflow:hidden;padding:27px 22px!important;border:1px solid #315e4d;border-radius:20px!important;background:radial-gradient(circle at 12% 15%,#ffffff22,transparent 35%),linear-gradient(135deg,#0b302a,#176b56 68%,#218575)!important;box-shadow:0 10px 25px #0b302a20}
+#studentDashboard:has(#grammarFolderChooser)>div:first-child h2{margin:0 0 5px;color:#f4d58d!important;font-size:clamp(24px,4vw,32px)}
+#studentDashboard:has(#grammarFolderChooser)>div:first-child h3{margin:0 0 8px;color:#fff!important;font-size:19px}
+#studentDashboard:has(#grammarFolderChooser)>div:first-child p{margin:0;color:#edf5ef!important;line-height:1.9}
+#grammarFolderChooser> .card{position:relative;overflow:hidden;min-height:155px;padding:22px!important;border:1px solid #d9e6da!important;border-radius:19px!important;background:linear-gradient(145deg,#fbfefa,#edf5ee)!important;box-shadow:0 7px 18px #123d3509!important}
+#grammarFolderChooser> .card h3{margin:0 0 10px;color:#17483d;font-size:19px;line-height:1.6}
+#grammarFolderChooser> .card p{color:#63766b;line-height:1.9;min-height:48px}
+#grammarFolderChooser> .card button,#studentDashboard:has(#grammarFolderChooser) button{border-radius:12px!important;font-weight:700;transition:transform .16s,box-shadow .16s}
+#grammarFolderChooser> .card button{background:#176b50!important;color:white!important;padding:11px 18px!important}
+#grammarLessonsFolder>button:first-child,#grammarPdfFolder>button:first-child,#backToStudentDashboard{background:#eaf3ed!important;color:#245542!important;border:1px solid #d2e1d5!important}
+#grammarLessonsFolder>.card,#studentPdfFolderContent>.card{padding:18px!important;border:1px solid #e4d5a9!important;border-radius:17px!important;background:linear-gradient(145deg,#fffdf7,#fff7e7)!important}
+#grammarLessonsFolder>.card h3,#studentPdfFolderContent>.card h3{color:#76591b!important}
+#grammarLessonsFolder>.card button,#studentPdfFolderContent>.card button{background:#8a641e!important;color:#fff!important}
+#studentCourseMessage{margin:18px 2px 10px;padding:13px 16px;border:1px solid #dce9df;border-radius:13px;background:#f2f8f3;color:#315b49;font-weight:700}
+#studentModuleList>[data-module-id]{padding:19px!important;margin:14px 0!important;border:1px solid #dce8de!important;border-radius:18px!important;background:linear-gradient(145deg,#fff,#f5faf5)!important;box-shadow:0 5px 16px #123d3509!important}
+#studentModuleList>[data-module-id]>h3{margin:0 0 10px;color:#17483d;font-size:20px;line-height:1.7}
+#studentModuleList>[data-module-id]>.student-module-open{background:#176b50!important;color:#fff!important;padding:11px 19px!important}
+#studentModuleList>[data-module-id]>button:not(.student-module-open){border-radius:11px!important}
+#studentModuleList>[data-module-id]>button[style*="138a16"],#studentModuleList>[data-module-id]>button[style*="8a5b16"]{background:#8a641e!important;color:#fff!important}
+#studentModuleList [data-lesson-id]{padding:15px!important;margin:11px 0!important;border:1px solid #e1e9e2!important;border-radius:15px!important;background:#fff!important;box-shadow:0 3px 10px #123d3507!important}
+#studentModuleList [data-lesson-id] h4{margin:0 0 8px;color:#244f40;font-size:16px;line-height:1.8}
+#studentModuleList [data-lesson-id] p{line-height:1.8}
+#studentModuleList [data-lesson-id] .student-open-lesson{min-width:145px;padding:10px 16px!important;border-radius:11px!important;background:#176b50!important;color:#fff!important}
+#studentModuleList [data-lesson-id] .student-open-lesson:disabled{opacity:.7}
+#studentModuleList [data-lesson-id] .student-favorite-button{background:#fff7e5!important;color:#715719!important;border:1px solid #ead9a9!important}
+#studentModuleList [id="courseProgressText"]{color:#315b49;font-weight:700}
+#studentModuleList [id="courseProgressPercent"]{color:#8a641e;font-weight:800}
+#studentModuleList [id="courseProgressBar"]{background:linear-gradient(90deg,#176b50,#d0a94e)!important}
+body[data-theme="night"] #studentDashboard:has(#grammarFolderChooser){background:#172421!important;border-color:#40544c!important}
+body[data-theme="night"] #grammarFolderChooser>.card,body[data-theme="night"] #studentModuleList>[data-module-id]{background:linear-gradient(145deg,#233a32,#1c302b)!important;border-color:#496255!important}
+body[data-theme="night"] #grammarFolderChooser>.card h3,body[data-theme="night"] #studentModuleList>[data-module-id]>h3,body[data-theme="night"] #studentModuleList [data-lesson-id] h4{color:#f0d99f!important}
+body[data-theme="night"] #grammarFolderChooser>.card p,body[data-theme="night"] #studentModuleList [data-lesson-id] p{color:#c0cec6!important}
+body[data-theme="night"] #studentModuleList [data-lesson-id]{background:#202f2a!important;border-color:#465a50!important}
+body[data-theme="night"] #studentCourseMessage{background:#20352c;border-color:#496255;color:#e3eee6}
+body[data-theme="night"] #grammarLessonsFolder>.card,body[data-theme="night"] #studentPdfFolderContent>.card{background:#302b1e!important;border-color:#76683d!important}
+@media(max-width:560px){
+ #studentDashboard:has(#grammarFolderChooser){padding:12px!important;border-radius:18px!important}
+ #studentDashboard:has(#grammarFolderChooser)>div:first-child{padding:23px 16px!important;border-radius:17px!important}
+ #grammarFolderChooser{grid-template-columns:1fr!important}
+ #grammarFolderChooser>.card{min-height:0}
+ #studentModuleList>[data-module-id]{padding:14px!important}
+ #studentModuleList [data-lesson-id]{padding:12px!important}
+}
+
 </style>
 </head>
 <body>
