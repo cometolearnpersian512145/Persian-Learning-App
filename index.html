@@ -77,39 +77,159 @@ body[data-theme="night"] main a{color:#a9d9ff}
 #languageChoice .language-buttons{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 #languageChoice button{width:auto;min-width:110px;margin:5px;padding:10px 18px;cursor:pointer}
 #languageChoice button.active{background:#123b32;outline:2px solid #d5b66a}
+
+/* Welcome screen visual refresh — presentation only */
+:root{
+  color-scheme:light;
+  --ctlp-forest:#123d35;
+  --ctlp-deep:#0b2d29;
+  --ctlp-teal:#167568;
+  --ctlp-gold:#d7b66b;
+  --ctlp-ink:#203b35;
+  --ctlp-muted:#687b74;
+  --ctlp-paper:#fffefa;
+}
+body{
+  font-family:Tahoma,Arial,sans-serif;
+  background:
+    radial-gradient(ellipse at 8% 10%,rgba(215,182,107,.13),transparent 30%),
+    radial-gradient(ellipse at 92% 34%,rgba(22,117,104,.10),transparent 28%),
+    #f3f6f3;
+  color:var(--ctlp-ink);
+}
+.welcome-hero{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  padding:42px 20px 48px;
+  background:linear-gradient(135deg,#0a2926 0%,#12483e 54%,#176e61 100%);
+  color:#fff;
+  text-align:center;
+}
+.welcome-hero:before,.welcome-hero:after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  border:1px solid rgba(232,204,139,.22);
+  border-radius:50%;
+  pointer-events:none;
+}
+.welcome-hero:before{width:310px;height:310px;top:-205px;right:-85px;box-shadow:0 0 0 24px rgba(255,255,255,.025),0 0 0 50px rgba(255,255,255,.018)}
+.welcome-hero:after{width:230px;height:230px;bottom:-175px;left:-55px;box-shadow:0 0 0 22px rgba(255,255,255,.025)}
+.hero-inner{max-width:760px;margin:0 auto}
+.hero-mark{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:66px;height:66px;margin:0 auto 14px;
+  border:1px solid rgba(232,204,139,.72);border-radius:22px;
+  color:#f4d994;background:rgba(255,255,255,.075);
+  font-size:21px;font-weight:800;letter-spacing:1px;
+  box-shadow:inset 0 0 0 5px rgba(255,255,255,.025);
+}
+.hero-eyebrow{margin:0 0 8px;color:#e8d29d;font-size:14px;letter-spacing:.5px}
+.welcome-hero h1{margin:0;color:#fff;font-size:clamp(30px,6vw,43px);line-height:1.45;font-weight:800}
+.welcome-hero h2{margin:2px 0 0;color:#f4dfae;font-size:clamp(17px,3.5vw,22px);font-weight:600;direction:ltr}
+.hero-tagline{margin:12px 0 0;color:rgba(255,255,255,.82);font-size:14px;direction:ltr;letter-spacing:.2px}
+.hero-teacher{display:inline-block;margin-top:20px;padding:8px 17px;border:1px solid rgba(255,255,255,.2);border-radius:30px;background:rgba(255,255,255,.08);color:#fff;font-size:14px}
+main{width:min(100% - 30px,700px);max-width:700px;margin:26px auto 42px;padding:0}
+main>.card{
+  border:1px solid rgba(25,69,57,.08);
+  border-radius:20px;
+  background:var(--ctlp-paper);
+  box-shadow:0 8px 26px rgba(20,55,45,.065);
+  padding:23px;
+  margin-bottom:15px;
+}
+.welcome-language-card{padding:11px 16px!important;border-radius:16px!important;box-shadow:0 4px 16px rgba(20,55,45,.045)!important}
+#languageChoice .language-buttons{gap:7px}
+#languageChoice button{
+  min-width:116px;margin:0;padding:10px 19px;border-radius:12px;
+  background:#edf3ef;color:#23483e;font-weight:700;
+  transition:background .2s,transform .2s;
+}
+#languageChoice button.active{background:var(--ctlp-forest);color:#fff;outline:2px solid #e5cf9b;outline-offset:2px}
+.welcome-student-card{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(215,182,107,.42)!important;
+  background:linear-gradient(135deg,#fffefa,#f4f8f3)!important;
+  padding:28px 25px!important;
+}
+.welcome-student-card:before{
+  content:"";position:absolute;width:150px;height:150px;border-radius:50%;
+  background:rgba(215,182,107,.10);top:-85px;left:-45px;pointer-events:none;
+}
+.welcome-student-card h2{position:relative;margin:0 0 10px;color:#17483d;font-size:22px;line-height:1.55}
+.welcome-student-card p{position:relative;color:#63766e;line-height:1.9;margin:0 auto 12px;max-width:540px}
+.welcome-student-card #guestStartBtn{
+  position:relative;max-width:390px;margin:13px auto 0;padding:15px 20px;
+  border-radius:14px;background:linear-gradient(110deg,#176b50,#168477);
+  box-shadow:0 7px 16px rgba(16,100,77,.2);font-weight:700;
+}
+.welcome-admin-card{padding:20px 23px!important}
+.welcome-admin-card h2{margin:0 0 9px;color:#294c42;font-size:18px}
+.welcome-admin-card input{border-radius:11px;border:1px solid #d6e0d9;background:#fff;padding:13px 14px}
+.welcome-admin-card button{border-radius:11px;background:#e9efeb;color:#25483d;font-weight:700;border:1px solid #d4e0d7}
+.welcome-contact-card{text-align:center;line-height:1.9;background:#f0f5f1!important;box-shadow:none!important}
+.welcome-contact-card h3{margin:0 0 7px;color:#17483d}
+.welcome-contact-card p{margin:4px 0;color:#5e7169}
+button{cursor:pointer;transition:filter .18s,transform .18s,box-shadow .18s}
+button:hover{filter:brightness(1.035);transform:translateY(-1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid rgba(215,182,107,.8);outline-offset:2px}
+#message{color:#8a3d35}
+@media(min-width:760px){
+  .welcome-hero{padding:52px 24px 58px}
+  main{margin-top:30px}
+}
+@media(max-width:520px){
+  .welcome-hero{padding:32px 16px 38px}
+  .hero-mark{width:58px;height:58px;border-radius:19px}
+  main{width:calc(100% - 24px);margin:18px auto 30px}
+  main>.card{padding:18px;border-radius:17px}
+  .welcome-student-card{padding:23px 18px!important}
+  .welcome-student-card h2{font-size:20px}
+}
+body[data-theme="night"] .welcome-student-card{background:linear-gradient(135deg,#1d302b,#1b2927)!important;border-color:#6b6040!important}
+body[data-theme="night"] .welcome-student-card h2{color:#f0d99f!important}
+body[data-theme="night"] .welcome-student-card p,body[data-theme="night"] .welcome-contact-card p{color:#c2d0c8!important}
+body[data-theme="night"] .welcome-admin-card button{background:#29443b!important;color:#e8f0ec!important;border-color:#53635d!important}
+
 </style>
 </head>
 <body>
 
-<header>
-<h2>آؤ فارسی سیکھیں</h2>
-<h1>Come To Learn Persian</h1>
-<p>Learn Persian Easily & Step by Step</p>
+<header class="welcome-hero">
+  <div class="hero-inner">
+    <div class="hero-mark" aria-hidden="true">فارسی</div>
+    <p class="hero-eyebrow">مرکز آموزش زبان فارسی</p>
+    <h1>آؤ فارسی سیکھیں</h1>
+    <h2>Come To Learn Persian</h2>
+    <p class="hero-tagline">Learn Persian Easily &amp; Step by Step</p>
+    <div class="hero-teacher">قاری محمد آصف اصفہانی</div>
+  </div>
 </header>
 
 <main>
-<div class="card" id="languageChoice">
+<div class="card welcome-language-card" id="languageChoice">
   <div class="language-buttons" aria-label="Language selector">
     <button type="button" id="langUr" class="active">اردو</button>
     <button type="button" id="langEn">English</button>
   </div>
 </div>
 
-<div class="card" style="text-align:center;">
+<div class="card welcome-student-card" style="text-align:center;">
   <h2>طالب علم کے طور پر ایپ استعمال کریں</h2>
   <p>اکاؤنٹ یا SMS تصدیق کے بغیر مفت اسباق پڑھیں۔ Paid مواد خریدنے کے بعد Unlock Code استعمال کریں۔</p>
   <button id="guestStartBtn" type="button">Guest Student — بغیر اکاؤنٹ داخل ہوں</button>
 </div>
 
-<div class="card">
+<div class="card welcome-admin-card">
 <h2>Admin Login</h2>
 <input id="loginEmail" type="text" autocomplete="username" placeholder="فون نمبر (ملکی کوڈ سمیت) یا پرانی Email ID">
 <input id="loginPassword" type="password" placeholder="Password">
 <button id="loginBtn" type="button">Admin فون نمبر یا Email سے Login</button>
 </div>
 
-<div class="card note">
-<h3>مرکز آموزش زبان فارسی</h3>
+<div class="card note welcome-contact-card">
+<h3>ہم سے رابطہ</h3>
 <p>معلم: قاری محمد آصف اصفہانی</p>
 <p>WhatsApp: 00923049788712</p>
 </div>
