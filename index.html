@@ -532,6 +532,74 @@ body[data-theme="night"] #paymentBackBtn,body[data-theme="night"] #classRegistra
   #studentDashboard:has(#classCountry)>.card>h2{padding:14px 13px}
 }
 
+
+
+/* Admin panel visual refresh v6 — CSS only; all existing admin controls and logic remain intact */
+#adminPanel{
+  width:min(1180px,calc(100% - 28px));box-sizing:border-box;margin:24px auto 42px!important;padding:clamp(14px,2.8vw,30px)!important;
+  border:1px solid #dce8df;border-radius:26px;background:#f7faf6;box-shadow:0 18px 48px #123d3512;color:#263c33;line-height:1.85
+}
+#adminPanel>h2{
+  position:relative;overflow:hidden;margin:0!important;padding:27px 24px 8px!important;border-radius:20px 20px 0 0;
+  background:radial-gradient(circle at 12% 12%,#ffffff20,transparent 35%),linear-gradient(135deg,#0b302a,#176b56 70%,#218575);
+  color:#f5d995!important;font-size:clamp(25px,4vw,34px)!important;text-align:center
+}
+#adminPanel>h3{
+  margin:0 0 8px!important;padding:0 20px 23px!important;border-radius:0 0 20px 20px;
+  background:linear-gradient(135deg,#0b302a,#176b56 70%,#218575);color:#fff!important;text-align:center;font-size:19px!important
+}
+#adminPanel>p:first-of-type{margin:0 0 20px!important;padding:15px 18px;text-align:center;color:#687c70;background:#fff;border:1px solid #e2ebe3;border-radius:0 0 16px 16px}
+#adminPanel>.card{
+  box-sizing:border-box;margin:16px 0!important;padding:clamp(16px,2.2vw,24px)!important;border:1px solid #dce8df!important;border-radius:19px!important;
+  background:#fffefa!important;box-shadow:0 7px 22px #123d3509!important
+}
+#adminPanel>.card>h3,#adminPanel>.card>h4{color:#17483d!important;margin-top:0!important;padding-bottom:9px;border-bottom:1px solid #e7eee8}
+#adminPanel h4{color:#315b4b}
+#adminPanel h5{margin:17px 0 8px;padding:8px 12px;border-radius:10px;background:#edf4ed;color:#315b4b;font-size:15px}
+#adminPanel p{color:#687a70;line-height:1.9}
+#adminPanel button{
+  min-height:42px;padding:10px 16px!important;border:1px solid #1b654f!important;border-radius:12px!important;
+  background:linear-gradient(135deg,#176b56,#218575)!important;color:#fff!important;font-weight:700!important;
+  box-shadow:0 4px 11px #176b561b;transition:transform .16s,filter .16s,box-shadow .16s
+}
+#adminPanel button:hover{filter:brightness(1.06);box-shadow:0 7px 16px #176b5628}
+#adminPanel button:active{transform:scale(.985)}
+#adminPanel button:focus-visible,#adminPanel input:focus-visible,#adminPanel select:focus-visible,#adminPanel textarea:focus-visible{outline:3px solid #d7b85e;outline-offset:2px}
+#adminPanel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#adminPanel select,#adminPanel textarea{
+  box-sizing:border-box;width:100%;max-width:100%;min-height:43px;margin:6px 0 12px;padding:11px 13px;
+  border:1px solid #d7e3d9;border-radius:11px;background:#fff;color:#263c33;font:inherit
+}
+#adminPanel textarea{min-height:94px;resize:vertical}
+#adminPanel input[type="file"]{max-width:100%;padding:9px;border:1px dashed #b8cdbd;border-radius:11px;background:#f7faf6}
+#adminPanel input[type="checkbox"],#adminPanel input[type="radio"]{accent-color:#176b56}
+#adminPanel label{display:block;margin:8px 0;color:#40594d;font-weight:600}
+#adminPanel hr{margin:22px 0;border:0;border-top:1px solid #e5ece6}
+#adminPanel [id$="List"],#adminPanel [id$="Nav"],#adminPanel [id$="RequestsList"],#adminPanel [id$="AdminList"]{overflow-wrap:anywhere}
+#adminPanel #guestRequestsAdminSection{border-top:4px solid #c9a653!important}
+#adminPanel #adminPaymentsSection{border-top:4px solid #c9a653!important}
+#adminPanel .reg-view-heading,#adminPanel .reg-nav-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#adminPanel .reg-course-grid,#adminPanel .reg-student-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+#adminPanel .reg-course-grid>*,#adminPanel .reg-student-list>*{min-width:0}
+#adminPanel [hidden]{display:none!important}
+body[data-theme="night"] #adminPanel{background:#14221e;border-color:#40584d;color:#e5eee8;box-shadow:0 18px 48px #0004}
+body[data-theme="night"] #adminPanel>p:first-of-type{background:#1c3029;border-color:#40584d;color:#c0cec6}
+body[data-theme="night"] #adminPanel>.card{background:#1b2b26!important;border-color:#40584d!important;box-shadow:none!important}
+body[data-theme="night"] #adminPanel>.card>h3,body[data-theme="night"] #adminPanel>.card>h4,body[data-theme="night"] #adminPanel h4{color:#f0d99f!important;border-color:#40584d}
+body[data-theme="night"] #adminPanel h5{background:#293b32;color:#f0d99f}
+body[data-theme="night"] #adminPanel p,body[data-theme="night"] #adminPanel label{color:#c0cec6}
+body[data-theme="night"] #adminPanel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),body[data-theme="night"] #adminPanel select,body[data-theme="night"] #adminPanel textarea{background:#14221e;border-color:#50665a;color:#edf5ef}
+body[data-theme="night"] #adminPanel input[type="file"]{background:#14221e;border-color:#50665a;color:#edf5ef}
+@media(max-width:680px){
+  #adminPanel{width:calc(100% - 16px);margin:12px auto 26px!important;padding:11px!important;border-radius:19px}
+  #adminPanel>h2{padding:22px 14px 7px!important;border-radius:15px 15px 0 0}
+  #adminPanel>h3{padding:0 12px 19px!important;border-radius:0 0 15px 15px}
+  #adminPanel>.card{padding:15px!important;border-radius:15px!important}
+  #adminPanel button{max-width:100%;white-space:normal}
+  #adminPanel .reg-view-heading,#adminPanel .reg-nav-controls{align-items:stretch}
+  #adminPanel .reg-view-heading button,#adminPanel .reg-nav-controls button{flex:1 1 145px}
+}
+
 </style>
 </head>
 <body>
