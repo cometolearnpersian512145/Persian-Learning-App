@@ -95,29 +95,17 @@ body[data-theme="night"] main a{color:#a9d9ff}
   </div>
 </div>
 
-<div class="card">
-<h2>نیا اکاؤنٹ بنائیں</h2>
-<input id="name" placeholder="آپ کا مکمل نام" autocomplete="name" required>
-<input id="father" placeholder="والد کا نام" required>
-<label class="form-field">ملک منتخب کریں
-  <select id="signupCountry" required><option value="">ملک منتخب کریں</option></select>
-</label>
-<p id="signupCallingCodeLine" style="margin:4px 0 0;">ملکی کوڈ: <strong id="signupCountryCode">—</strong></p>
-<input id="signupPhone" type="tel" inputmode="tel" placeholder="فون نمبر" autocomplete="tel-national" required>
-<input id="signupPassword" type="password" placeholder="Password (کم از کم 5 حروف)" minlength="5" autocomplete="new-password" required>
-<button id="signupBtn" type="button">فون نمبر سے اکاؤنٹ بنائیں / Sign Up</button>
-<div id="phoneVerificationBox" hidden>
-  <p>آپ کے نمبر پر SMS تصدیقی کوڈ بھیجا گیا ہے۔</p>
-  <input id="phoneVerificationCode" inputmode="numeric" autocomplete="one-time-code" placeholder="SMS تصدیقی کوڈ">
-  <button id="verifyPhoneBtn" type="button">کوڈ کی تصدیق کریں</button>
-</div>
+<div class="card" style="text-align:center;">
+  <h2>طالب علم کے طور پر ایپ استعمال کریں</h2>
+  <p>اکاؤنٹ یا SMS تصدیق کے بغیر مفت اسباق پڑھیں۔ Paid مواد خریدنے کے بعد Unlock Code استعمال کریں۔</p>
+  <button id="guestStartBtn" type="button">Guest Student — بغیر اکاؤنٹ داخل ہوں</button>
 </div>
 
 <div class="card">
-<h2>اکاؤنٹ میں داخل ہوں</h2>
+<h2>Admin Login</h2>
 <input id="loginEmail" type="text" autocomplete="username" placeholder="فون نمبر (ملکی کوڈ سمیت) یا پرانی Email ID">
 <input id="loginPassword" type="password" placeholder="Password">
-<button id="loginBtn" type="button">فون نمبر یا پرانی Email سے Login</button>
+<button id="loginBtn" type="button">Admin فون نمبر یا Email سے Login</button>
 </div>
 
 <div class="card note">
@@ -129,7 +117,6 @@ body[data-theme="night"] main a{color:#a9d9ff}
 <p id="message"></p>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.11/build/js/intlTelInput.min.js"></script>
 <script type="module">
 import { createClient } from
 'https://esm.sh/@supabase/supabase-js@2';
@@ -144,92 +131,169 @@ window.__ctlpSupabaseReferenceUpdate = async (id,payload) => await supabase.from
 window.__ctlpRefreshReferenceAdmin = () => loadPersianReferenceAdmin();
 const message = document.getElementById('message');
 message.textContent = '';
-const signupCountrySelect = document.getElementById('signupCountry');
-const signupCallingCode = document.getElementById('signupCountryCode');
-const fallbackSignupCountries = [
-  {name:'پاکستان',iso2:'pk',dialCode:'92'}, {name:'بھارت',iso2:'in',dialCode:'91'},
-  {name:'افغانستان',iso2:'af',dialCode:'93'}, {name:'بنگلہ دیش',iso2:'bd',dialCode:'880'},
-  {name:'ایران',iso2:'ir',dialCode:'98'}, {name:'سعودی عرب',iso2:'sa',dialCode:'966'},
-  {name:'متحدہ عرب امارات',iso2:'ae',dialCode:'971'}, {name:'ترکی',iso2:'tr',dialCode:'90'},
-  {name:'برطانیہ',iso2:'gb',dialCode:'44'}, {name:'امریکہ',iso2:'us',dialCode:'1'},
-  {name:'کینیڈا',iso2:'ca',dialCode:'1'}, {name:'آسٹریلیا',iso2:'au',dialCode:'61'}
-];
-const signupCountries = window.intlTelInput?.getAllCountries?.() || fallbackSignupCountries;
-signupCountries.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(country => {
-  const option=document.createElement('option'); option.value=country.iso2; option.textContent=`${country.name} (+${country.dialCode})`; signupCountrySelect.appendChild(option);
-});
-function updateSignupCountryCode() {
-  const country=signupCountries.find(item=>item.iso2===signupCountrySelect.value);
-  signupCallingCode.textContent=country?`+${country.dialCode}`:'—';
-}
-signupCountrySelect.addEventListener('change',updateSignupCountryCode);
-updateSignupCountryCode();
-let pendingPhoneSignup = null;
-function normalizeSignupPhone(countryCode, phone) {
-  const code = String(countryCode || '').trim().replace(/[\s()-]/g, '');
-  let local = String(phone || '').trim().replace(/[\s()-]/g, '');
-  if (!/^\+[1-9]\d{0,3}$/.test(code)) throw new Error('ملکی کوڈ +92 کی طرح درج کریں۔');
-  if (local.startsWith('00')) local = local.slice(2);
-  if (local.startsWith('+')) throw new Error('فون نمبر میں ملکی کوڈ شامل نہ کریں؛ وہ اوپر الگ درج کریں۔');
-  local = local.replace(/^0+/, '');
-  const full = code + local;
-  if (!/^\+[1-9]\d{7,14}$/.test(full)) throw new Error('درست فون نمبر اور ملکی کوڈ درج کریں، مثلاً +92 اور 3001234567۔');
-  return full;
-}
-document.getElementById('signupBtn').addEventListener('click', async () => {
-  const full_name = document.getElementById('name').value.trim();
-  const father_name = document.getElementById('father').value.trim();
-  const selectedCountry = signupCountries.find(item=>item.iso2===signupCountrySelect.value);
-  const country = selectedCountry?.name || '';
-  const password = document.getElementById('signupPassword').value;
-  if (!full_name || !father_name || !country || !password) { message.textContent = 'نام، والد کا نام، ملک اور Password لازمی ہیں۔'; return; }
-  if (password.length < 5) { message.textContent = 'Password کم از کم 5 حروف یا اعداد کا ہونا چاہیے۔'; return; }
-  let phone;
-  try { phone = normalizeSignupPhone(selectedCountry ? `+${selectedCountry.dialCode}` : '', document.getElementById('signupPhone').value); }
-  catch (error) { message.textContent = error.message; return; }
-  message.textContent = 'فون نمبر سے اکاؤنٹ بنایا جا رہا ہے...';
-  document.getElementById('signupBtn').disabled = true;
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      phone,
-      password,
-      options: { data: { full_name, father_name, phone, country } }
-    });
-    if (error) throw error;
-    if (data.session) {
-      message.textContent = 'اکاؤنٹ بن گیا۔ آپ کو داخل کیا جا رہا ہے...';
-      await handleLogin(data.user);
-    } else {
-      pendingPhoneSignup = phone;
-      document.getElementById('phoneVerificationBox').hidden = false;
-      document.getElementById('phoneVerificationCode').focus();
-      message.textContent = 'SMS تصدیقی کوڈ بھیجا گیا ہے۔ اکاؤنٹ فعال کرنے کے لیے کوڈ درج کریں۔';
-    }
-  } catch (error) {
-    message.textContent = 'رجسٹریشن مکمل نہیں ہوئی: ' + (error.message || 'دوبارہ کوشش کریں۔');
-  } finally {
-    document.getElementById('signupBtn').disabled = false;
-  }
-});
-document.getElementById('verifyPhoneBtn').addEventListener('click', async () => {
-  const token = document.getElementById('phoneVerificationCode').value.trim();
-  if (!pendingPhoneSignup || !token) { message.textContent = 'SMS میں آیا ہوا تصدیقی کوڈ درج کریں۔'; return; }
-  message.textContent = 'فون نمبر کی تصدیق ہو رہی ہے...';
-  const { data, error } = await supabase.auth.verifyOtp({ phone: pendingPhoneSignup, token, type: 'sms' });
-  if (error) { message.textContent = 'کوڈ کی تصدیق نہیں ہو سکی: ' + error.message; return; }
-  pendingPhoneSignup = null;
-  document.getElementById('phoneVerificationBox').hidden = true;
-  message.textContent = 'فون نمبر کی تصدیق ہوگئی۔ آپ کو داخل کیا جا رہا ہے...';
-  await handleLogin(data.user);
-});
 
 let loginRenderToken = 0;
 let activeStudentId = null;
+let guestModeActive = false;
 let studentClockInterval = null;
+
+function getGuestDeviceToken() {
+  let token = localStorage.getItem('ctlp-guest-device-token');
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    token = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem('ctlp-guest-device-token', token);
+  }
+  return token;
+}
+
+async function getCurrentAccessRows() {
+  if (activeStudentId) {
+    const { data, error } = await supabase.from('student_access_grants')
+      .select('access_type,target_id').eq('student_id', activeStudentId);
+    if (error) throw error;
+    return data || [];
+  }
+  if (!guestModeActive) return [];
+  const { data, error } = await supabase.functions.invoke('check-device-access', {
+    body: { device_token: getGuestDeviceToken() }
+  });
+  if (error) throw error;
+  return data?.grants || [];
+}
+
+async function createStudentSignedUrl(bucket, path, expiresIn = 3600, lessonId = null) {
+  if (activeStudentId) {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
+    if (error) throw error;
+    return data.signedUrl;
+  }
+  if (!guestModeActive) throw new Error('براہ کرم Guest Dashboard سے دوبارہ کوشش کریں۔');
+  const { data, error } = await supabase.functions.invoke('guest-create-signed-url', {
+    body: { device_token: getGuestDeviceToken(), bucket, path, lesson_id: lessonId }
+  });
+  if (error) throw error;
+  if (!data?.success || !data.signed_url) throw new Error(data?.error || 'فائل تک رسائی کی اجازت نہیں۔');
+  return data.signed_url;
+}
+
+const guestCourseCatalogCache = new Map();
+async function getGuestCourseCatalog(courseId) {
+  if (guestCourseCatalogCache.has(courseId)) return guestCourseCatalogCache.get(courseId);
+  const { data, error } = await supabase.functions.invoke('guest-course-catalog', { body: { course_id: courseId } });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || 'کورس کی فہرست حاصل نہیں ہو سکی۔');
+  guestCourseCatalogCache.set(courseId, data);
+  return data;
+}
+async function getGuestLessonContent(lessonId) {
+  const { data, error } = await supabase.functions.invoke('guest-get-lesson-content', {
+    body: { device_token: getGuestDeviceToken(), lesson_id: lessonId }
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || 'سبق تک رسائی کی اجازت نہیں۔');
+  return data;
+}
+
+async function returnToDashboard() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) return handleLogin(session.user);
+  return showGuestDashboard();
+}
+
+function showGuestDashboard() {
+  guestModeActive = true;
+  activeStudentId = null;
+  document.body.classList.remove('authenticated');
+  document.querySelectorAll('main > .card').forEach(card => { card.style.display = 'none'; });
+  document.querySelectorAll('#studentDashboard').forEach(item => item.remove());
+  const dashboard = document.createElement('div');
+  dashboard.id = 'studentDashboard';
+  dashboard.className = 'card';
+  dashboard.style.maxWidth = '900px';
+  dashboard.innerHTML = `
+    <div class="card" style="background:#172B4D;color:white;text-align:center;">
+      <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
+      <h3>Guest Student Dashboard</h3>
+      <p>مفت اسباق بغیر اکاؤنٹ کے پڑھیں۔ خریداری کے بعد ملنے والا Unlock Code اسی ڈیوائس پر استعمال کریں۔</p>
+    </div>
+    <div class="student-utility-controls">
+      <button id="guestLangUr" type="button">اردو</button>
+      <button id="guestLangEn" type="button">English</button>
+      <button id="guestRedeemToggle" type="button">🔐 Unlock Code</button>
+    </div>
+    <div id="guestRedeemPanel" class="card" hidden>
+      <h3>خریدی ہوئی سہولت کھولیں</h3>
+      <input id="guestUnlockCode" type="text" autocomplete="one-time-code" placeholder="اپنا Unlock Code درج کریں">
+      <button id="guestRedeemBtn" type="button">کوڈ کی تصدیق کریں</button>
+      <p id="guestRedeemMessage" aria-live="polite"></p>
+    </div>
+    <h3>📚 فارسی کورسز</h3>
+    <div class="reg-course-grid">
+      <button id="guestGrammarBtn" class="reg-course-button" type="button"><strong>فارسی گرامر</strong><span>مفت تعارف اور دستیاب اسباق</span></button>
+      <button id="guestConversationBtn" class="reg-course-button" type="button"><strong>فارسی گفتگو</strong><span>مینا کی کتابیں اور گفتگو کے اسباق</span></button>
+    </div>
+    <div class="reg-course-grid">
+      <button id="guestVocabBtn" class="reg-course-button" type="button"><strong>📖 فارسی لغت</strong><span>فارسی اور اردو معنی تلاش کریں</span></button>
+      <button id="guestMasdarBtn" class="reg-course-button" type="button"><strong>📝 فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
+    </div>
+    <button id="guestFavoritesBtn" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
+    <hr>
+    <h3>🎓 Live Classes</h3>
+    <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
+    <button id="guestClassRegistrationBtn" type="button">کلاس رجسٹریشن فارم</button>
+    <hr>
+    <section id="persianReferenceView" class="card" hidden style="padding:16px;box-shadow:none;border:1px solid #dce7df;">
+      <button id="persianReferenceBack" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button>
+      <h2 id="persianReferenceHeading">فارسی لغت</h2>
+      <div class="reference-search-row"><input id="persianReferenceSearch" type="search" placeholder="فارسی یا اردو لفظ تلاش کریں..." autocomplete="off"><button id="persianReferenceSearchBtn" type="button">تلاش</button></div>
+      <div id="persianReferenceResults" aria-live="polite"></div>
+    </section>
+    <div class="card"><h3>📞 ہم سے رابطہ</h3><p>WhatsApp: 00923049788712</p><a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer">WhatsApp پر رابطہ کریں</a></div>
+  `;
+  document.querySelector('main').prepend(dashboard);
+  dashboard.querySelector('#guestLangUr').onclick = () => document.getElementById('langUr')?.click();
+  dashboard.querySelector('#guestLangEn').onclick = () => document.getElementById('langEn')?.click();
+  dashboard.querySelector('#guestGrammarBtn').onclick = () => showStudentCourse('bba71536-3e37-4827-8f6e-f9e8d89aaff3', 'فارسی گرامر');
+  dashboard.querySelector('#guestConversationBtn').onclick = () => showStudentCourse('947a9182-8328-4506-b2b0-50ada2b709fa', 'فارسی بول چال');
+  dashboard.querySelector('#guestVocabBtn').onclick = () => openPersianReference('vocab');
+  dashboard.querySelector('#guestMasdarBtn').onclick = () => openPersianReference('masdar');
+  dashboard.querySelector('#guestFavoritesBtn').onclick = showStudentFavorites;
+  dashboard.querySelector('#persianReferenceBack').onclick = returnToDashboard;
+  dashboard.querySelector('#guestClassRegistrationBtn').onclick = showClassRegistrationForm;
+  dashboard.querySelector('#guestRedeemToggle').onclick = () => {
+    const panel = dashboard.querySelector('#guestRedeemPanel'); panel.hidden = !panel.hidden;
+  };
+  dashboard.querySelector('#guestRedeemBtn').onclick = async () => {
+    const codeInput = dashboard.querySelector('#guestUnlockCode');
+    const msg = dashboard.querySelector('#guestRedeemMessage');
+    const code = codeInput.value.trim().toUpperCase();
+    if (!code) { msg.textContent = 'براہ کرم Unlock Code درج کریں۔'; return; }
+    const btn = dashboard.querySelector('#guestRedeemBtn'); btn.disabled = true; msg.textContent = 'کوڈ کی تصدیق ہو رہی ہے...';
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-unlock-code', { body: { code, device_token: getGuestDeviceToken() } });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'کوڈ قبول نہیں ہوا۔');
+      msg.textContent = 'کوڈ کامیابی سے فعال ہوگیا۔ خریدی ہوئی سہولت اب اسی ڈیوائس پر دستیاب ہے۔';
+      codeInput.value = '';
+    } catch (error) { msg.textContent = 'کوڈ فعال نہیں ہو سکا: ' + (error.message || String(error)); }
+    finally { btn.disabled = false; }
+  };
+}
+
 let pendingFavoriteNavigation = null;
 
 function studentFavoritesStorageKey() {
   return `ctlp-favorites-${activeStudentId || 'guest'}`;
+}
+
+function getGuestCompletedLessonIds() {
+  try { return new Set(JSON.parse(localStorage.getItem('ctlp-guest-progress') || '[]')); }
+  catch (_) { return new Set(); }
+}
+function saveGuestCompletedLesson(lessonId) {
+  const ids = getGuestCompletedLessonIds(); ids.add(lessonId);
+  localStorage.setItem('ctlp-guest-progress', JSON.stringify([...ids]));
 }
 
 function getStudentFavorites() {
@@ -284,15 +348,18 @@ function createLessonResourceFavorite(lesson, module, courseId, courseName, reso
 }
 
 async function appendStudentLessonResources(container, lesson, module, courseId, courseName) {
-  const { data: rows, error } = await supabase.from('lesson_resources')
-    .select('id,resource_type,title,storage_path,external_url,display_order')
-    .eq('lesson_id', lesson.id).order('display_order', { ascending: true });
-  if (error) {
-    const note = document.createElement('p'); note.textContent = 'اضافی مواد حاصل نہیں ہو سکا: ' + error.message; container.appendChild(note); return;
+  let rows = [], error = null, contentLesson = lesson;
+  if (guestModeActive) {
+    try { const contentData = await getGuestLessonContent(lesson.id); rows = contentData.resources || []; contentLesson = contentData.lesson || lesson; }
+    catch (contentError) { const note = document.createElement('p'); note.textContent = 'اضافی مواد حاصل نہیں ہو سکا: ' + contentError.message; container.appendChild(note); return; }
+  } else {
+    const result = await supabase.from('lesson_resources').select('id,resource_type,title,storage_path,external_url,display_order').eq('lesson_id', lesson.id).order('display_order', { ascending: true });
+    rows = result.data || []; error = result.error;
   }
+  if (error) { const note = document.createElement('p'); note.textContent = 'اضافی مواد حاصل نہیں ہو سکا: ' + error.message; container.appendChild(note); return; }
   const resources = [...(rows || [])];
   [['pdf_url','pdf','PDF'], ['audio_url','audio_explanation','آڈیو'], ['video_url','video','ویڈیو']].forEach(([field,type,title]) => {
-    if (lesson[field] && !resources.some(item => item.resource_type === type)) resources.push({ resource_type:type, title, external_url:lesson[field] });
+    if (contentLesson[field] && !resources.some(item => item.resource_type === type)) resources.push({ resource_type:type, title, external_url:contentLesson[field] });
   });
   if (!resources.length) return;
   const section = document.createElement('section');
@@ -304,12 +371,10 @@ async function appendStudentLessonResources(container, lesson, module, courseId,
     const type = resource.resource_type;
     let url = resource.external_url || '';
     if (resource.storage_path) {
-      const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(resource.storage_path, 3600);
-      if (signed.error) { const errorText = document.createElement('span'); errorText.textContent = 'فائل نہیں کھلی: ' + signed.error.message; row.appendChild(errorText); }
-      else url = signed.data.signedUrl;
+      try { url = await createStudentSignedUrl('meena-lesson-files', resource.storage_path, 3600, lesson.id); }
+      catch (signError) { const errorText = document.createElement('span'); errorText.textContent = 'فائل نہیں کھلی: ' + signError.message; row.appendChild(errorText); }
     } else if (url.startsWith('storage://')) {
-      const signed = await supabase.storage.from('meena-lesson-files').createSignedUrl(url.slice('storage://'.length), 3600);
-      url = signed.error ? '' : signed.data.signedUrl;
+      try { url = await createStudentSignedUrl('meena-lesson-files', url.slice('storage://'.length), 3600, lesson.id); } catch (_) { url = ''; }
     }
     const title = resource.title || 'سبق کا مواد';
     if (url) {
@@ -366,9 +431,7 @@ async function openStudentFavorite(favorite) {
     try {
       let url = favorite.externalUrl || '';
       if (favorite.storagePath) {
-        const { data, error } = await supabase.storage.from(favorite.bucket || 'meena-lesson-files').createSignedUrl(favorite.storagePath, 3600);
-        if (error) throw error;
-        url = data.signedUrl;
+        url = await createStudentSignedUrl(favorite.bucket || 'meena-lesson-files', favorite.storagePath, 3600, favorite.lessonId || null);
       }
       if (!url) throw new Error('فائل کا لنک دستیاب نہیں۔');
       if (popup) popup.location.href = url;
@@ -389,10 +452,7 @@ function showStudentFavorites() {
   const dashboard = document.getElementById('studentDashboard');
   if (!dashboard) return;
   dashboard.innerHTML = '<button id="backFromStudentFavorites" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button><h2>⭐ میرے پسندیدہ</h2><p>یہ فہرست اسی ڈیوائس اور طالب علم کے لیے محفوظ ہے۔</p><div id="studentFavoritesList"></div>';
-  dashboard.querySelector('#backFromStudentFavorites').onclick = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) await handleLogin(session.user);
-  };
+  dashboard.querySelector('#backFromStudentFavorites').onclick = returnToDashboard;
   const list = dashboard.querySelector('#studentFavoritesList');
   const favorites = getStudentFavorites();
   if (!favorites.length) { list.textContent = 'ابھی پسندیدہ فہرست خالی ہے۔ سبق یا فائل کے ستارے پر کلک کرکے اسے یہاں محفوظ کریں۔'; return; }
@@ -452,7 +512,7 @@ async function searchStudentLessons() {
   const lessonFilter = lessonFields.map(field => `${field}.ilike.${pattern}`).join(',');
   const [{data: lessons, error: lessonError},{data: grants,error:grantError},{data: references,error:referenceError},{data: modules,error:moduleError},{data:courses,error:courseError}] = await Promise.all([
     supabase.from('lessons').select('id,module_id,title,lesson_order,is_free,persian_text,urdu_explanation,english_explanation,shenasay').eq('is_published',true).or(lessonFilter).order('lesson_order').limit(100),
-    supabase.from('student_access_grants').select('access_type,target_id').eq('student_id',activeStudentId),
+    getCurrentAccessRows().then(data => ({ data, error: null })).catch(error => ({ data: null, error })),
     supabase.from('persian_reference_entries').select('id,entry_type,term,translation,pronunciation,past_stem,present_stem').or(`term.ilike.${pattern},translation.ilike.${pattern},pronunciation.ilike.${pattern},past_stem.ilike.${pattern},present_stem.ilike.${pattern}`).limit(200),
     supabase.from('modules').select('id,title,course_id'),
     supabase.from('courses').select('id,title,published')
@@ -466,10 +526,9 @@ async function searchStudentLessons() {
   const grantedCourses = new Set(grantRows.filter(r=>r.access_type==='course').map(r=>r.target_id));
   const grantedModules = new Set(grantRows.filter(r=>r.access_type==='chapter').map(r=>r.target_id));
   const grantedLessons = new Set(grantRows.filter(r=>r.access_type==='lesson').map(r=>r.target_id));
-  const hasFullBook = grantRows.some(r=>r.access_type==='full_book');
   const visibleLessons = (lessons||[]).filter(lesson=>{
     const module=moduleById.get(lesson.module_id);
-    return module && (lesson.is_free || hasFullBook || grantedCourses.has(module.course_id) || grantedModules.has(module.id) || grantedLessons.has(lesson.id));
+    return module && (lesson.is_free || grantedCourses.has(module.course_id) || grantedModules.has(module.id) || grantedLessons.has(lesson.id));
   });
   results.replaceChildren();
   let total = 0;
@@ -522,12 +581,14 @@ function escapePaymentText(value) {
 
 async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumber = null, priceKey = null }) {
   const dashboard = document.getElementById('studentDashboard');
-  if (!dashboard || !activeStudentId) return;
+  if (!dashboard || (!activeStudentId && !guestModeActive)) return;
 
+  const isGuestPayment = !activeStudentId;
   dashboard.innerHTML = `
     <div class="card">
       <h2>💳 ادائیگی کی درخواست</h2>
       <p><strong>آپ کی خریداری:</strong> ${escapePaymentText(targetTitle)}</p>
+      ${isGuestPayment ? '<label>طالب علم کا نام<input id="guestPaymentName" maxlength="120" placeholder="اپنا مکمل نام" required></label><label>WhatsApp نمبر<input id="guestPaymentWhatsapp" maxlength="40" placeholder="مثلاً +923001234567" required></label>' : ''}
       <label>اپنا ملک منتخب کریں / Select your country</label>
       <select id="paymentCountry" style="width:100%;padding:12px;margin:8px 0;">
         <option value="">ملک منتخب کریں</option>
@@ -696,10 +757,7 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
     formMessage.textContent = 'ملک منتخب کرتے ہی ادائیگی کے طریقے دستیاب ہو جائیں گے۔';
   }
 
-  document.getElementById('paymentBackBtn').onclick = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) await handleLogin(session.user);
-  };
+  document.getElementById('paymentBackBtn').onclick = returnToDashboard;
 
   document.getElementById('submitPaymentRequestBtn').onclick = async () => {
     const submitButton = submitPaymentButton;
@@ -726,6 +784,39 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
     }
     submitButton.disabled = true;
     formMessage.textContent = 'رسید اپ لوڈ ہو رہی ہے...';
+    if (isGuestPayment) {
+      const studentName = document.getElementById('guestPaymentName').value.trim();
+      const whatsappNumber = document.getElementById('guestPaymentWhatsapp').value.trim();
+      const digits = whatsappNumber.replace(/\D/g, '');
+      if (!studentName || digits.length < 8 || digits.length > 15) {
+        formMessage.textContent = 'درست نام اور WhatsApp نمبر ملکی کوڈ سمیت درج کریں۔';
+        submitButton.disabled = false; return;
+      }
+      const selected = countryOptions.find(item => item.code === countrySelect.value);
+      const payload = new FormData();
+      payload.append('student_name', studentName);
+      payload.append('whatsapp_number', whatsappNumber);
+      payload.append('country', selected?.name || countrySelect.value);
+      payload.append('country_code', countrySelect.value);
+      payload.append('payment_method', methodSelect.value);
+      payload.append('access_type', accessType);
+      payload.append('target_id', targetId);
+      payload.append('currency', currentCurrency);
+      payload.append('transaction_reference', document.getElementById('paymentReference').value.trim());
+      payload.append('receipt', receipt);
+      try {
+        const { data, error } = await supabase.functions.invoke('guest-payment-submit', { body: payload });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'درخواست جمع نہیں ہوئی۔');
+        localStorage.setItem('ctlp-guest-last-payment-request', data.payment_request_id);
+        formMessage.textContent = `درخواست جمع ہوگئی۔ رقم: ${data.amount} ${data.currency}۔ منظوری کے بعد Unlock Code WhatsApp پر بھیجا جائے گا۔`;
+        submitButton.textContent = 'درخواست جمع ہوگئی';
+      } catch (error) {
+        formMessage.textContent = 'درخواست جمع نہیں ہو سکی: ' + (error.message || String(error));
+        submitButton.disabled = false;
+      }
+      return;
+    }
     const safeName = receipt.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const receiptPath = `${activeStudentId}/${crypto.randomUUID()}_${safeName}`;
     const { error: uploadError } = await supabase.storage
@@ -772,7 +863,8 @@ function registrationCountryOptions() {
 }
 async function showClassRegistrationForm() {
   const dashboard = document.getElementById('studentDashboard');
-  if (!dashboard || !activeStudentId) return;
+  if (!dashboard || (!activeStudentId && !guestModeActive)) return;
+  const isGuestClassRegistration = !activeStudentId;
   const now = new Date();
   const currentYear = now.getFullYear();
   dashboard.innerHTML = `
@@ -886,7 +978,7 @@ async function showClassRegistrationForm() {
   }
   countryEl.addEventListener('change',()=>{updateClassRegistrationPreview();updateRegistrationPaymentDetails();}); modeEl.addEventListener('change',updateClassRegistrationPreview);
   document.getElementById('otherCountryName').addEventListener('input',()=>{if(paymentTimingEl.value==='advance')updateRegistrationPaymentDetails();});
-  document.getElementById('classRegistrationBackBtn').onclick=async()=>{const {data:{session}}=await supabase.auth.getSession();if(session?.user)await handleLogin(session.user);};
+  document.getElementById('classRegistrationBackBtn').onclick=returnToDashboard;
   document.getElementById('submitClassRegistrationBtn').onclick=async()=>{
     const country=countryEl.value==='Other'?document.getElementById('otherCountryName').value.trim():countryEl.value;
     const course=document.getElementById('classCourse').value, mode=modeEl.value;
@@ -905,9 +997,18 @@ async function showClassRegistrationForm() {
       days=getSelectedIndividualDays();
       preferredTime=document.getElementById('individualTime').value.trim()||null;
       if(days.length!==3){msg.textContent='انفرادی کلاس کے لیے ہفتے کے بالکل تین دن منتخب کریں۔';return;}
+      if(!preferredTime){msg.textContent='انفرادی کلاس کے لیے اپنی پسند کا وقت بھی درج کریں۔';return;}
     }
     const fee=classFeeFor(country,mode), requiredDemo=mode==='group'?3:mode==='individual'?2:null;
     const btn=document.getElementById('submitClassRegistrationBtn');btn.disabled=true;msg.textContent='درخواست محفوظ ہو رہی ہے...';
+    if (isGuestClassRegistration) {
+      const payload={student_name:studentName,father_name:fatherName,country,whatsapp_number:whatsappNumber,course_type:course,class_mode:mode,enrollment_year:year,enrollment_month:month,payment_timing:timing,preferred_days:days,preferred_time:preferredTime};
+      const {data,error}=await supabase.functions.invoke('guest-class-register',{body:payload});
+      if(error||!data?.success){msg.textContent='درخواست محفوظ نہیں ہو سکی: '+(error?.message||data?.error||'دوبارہ کوشش کریں۔');btn.disabled=false;return;}
+      msg.textContent=`درخواست جمع ہوگئی۔ ماہانہ فیس: ${data.monthly_fee} ${data.currency}۔ اکیڈمی WhatsApp پر رابطہ کرے گی۔`;
+      localStorage.setItem('ctlp-guest-last-class-application',data.application_id);
+      btn.textContent='درخواست جمع ہوگئی';return;
+    }
     const {error}=await supabase.from('class_registrations').insert({student_id:activeStudentId,student_name:studentName,father_name:fatherName,country,whatsapp_number:whatsappNumber,course_type:course,class_mode:mode,enrollment_year:year,enrollment_month:month,payment_timing:timing,preferred_days:days,preferred_time:preferredTime,monthly_fee:fee.amount,currency:fee.currency,demo_classes_required:requiredDemo,demo_classes_completed:0,status:'pending',payment_status:'unpaid'});
     if(error){msg.textContent='درخواست محفوظ نہیں ہو سکی: '+error.message+'۔ پہلے Supabase میں Class Registration SQL چلائیں۔';btn.disabled=false;return;}
     msg.textContent='آپ کی رجسٹریشن درخواست کامیابی سے جمع ہوگئی ہے۔ اکیڈمی کی منظوری اور شیڈول کی اطلاع آپ کو ایپ میں ملے گی۔';btn.textContent='درخواست جمع ہوگئی';
@@ -1044,6 +1145,7 @@ async function loadPersianReferenceRows() {
   }
   if (!data.length) {
     const seed = [...PERSIAN_REFERENCE_SEED.map(r => ({entry_type:'masdar', term:r[0], translation:r[1], past_stem:r[2], present_stem:r[3]})), ...PERSIAN_VOCAB_SEED.map(r => ({entry_type:'vocab',term:r[0],translation:r[1],pronunciation:r[2]}))];
+    if (guestModeActive && !activeStudentId) return seed;
     const { error: seedError } = await supabase.from('persian_reference_entries').insert(seed);
     if (seedError) throw seedError;
     return loadPersianReferenceRows();
@@ -1137,7 +1239,7 @@ function showPersianConversationLesson01() {
     <h3>مکالمہ</h3>
     ${lines}
     <details class="card" style="padding:12px;box-shadow:none;border:1px solid #dce7df;"><summary style="cursor:pointer;font-weight:700;">اہم الفاظ</summary><p lang="fa" dir="rtl">حال — حال | خوب — اچھا / ٹھیک | اسم — نام | متشکرم — شکریہ | خدا حافظ — الوداع</p></details>`;
-  dashboard.querySelector('#conversationLibraryBack').onclick = showPersianConversationLessons;
+  dashboard.querySelector('#conversationLibraryBack').onclick = () => guestModeActive ? returnToDashboard() : showPersianConversationLessons();
   dashboard.querySelector('#conversation01Favorite').appendChild(createStudentFavoriteButton({
     key:'conversation:persian-01', kind:'conversation', title:'فارسی بول چال 01 — احوال پرسی', location:'فارسی بول چال', lessonId:'persian-01'
   }));
@@ -1298,7 +1400,77 @@ async function importPersianDictionaryToDatabase() {
     button.disabled=false;
   }
 }
+async function loadGuestAdminRequests() {
+  const status = document.getElementById('guestAdminMessage');
+  const classesBox = document.getElementById('guestClassRequestsList');
+  const paymentsBox = document.getElementById('guestPaymentRequestsList');
+  if (!status || !classesBox || !paymentsBox) return;
+  status.textContent = 'Guest درخواستیں لوڈ ہو رہی ہیں...';
+  const { data, error } = await supabase.functions.invoke('admin-list-guest-requests', { body: {} });
+  if (error || !data?.success) {
+    status.textContent = 'Guest درخواستیں حاصل نہیں ہو سکیں: ' + (error?.message || data?.error || 'نامعلوم مسئلہ');
+    return;
+  }
+  classesBox.replaceChildren(); paymentsBox.replaceChildren();
+  const makeText = (tag, value) => { const el=document.createElement(tag); el.textContent=value ?? ''; return el; };
+  const makeWhatsAppLink = (phone, message, label='WhatsApp پر رابطہ') => { const digits=String(phone||'').replace(/\D/g,''); if(digits.length<8)return null; const a=document.createElement('a');a.href='https://wa.me/'+digits+'?text='+encodeURIComponent(message);a.target='_blank';a.rel='noopener noreferrer';a.textContent=label;return a; };
+  const classRows = data.class_registrations || [], paymentRows = data.payment_requests || [];
+  if (!classRows.length) classesBox.append(makeText('p','ابھی کوئی نئی Guest کلاس رجسٹریشن نہیں۔'));
+  for (const row of classRows) {
+    const card=document.createElement('div'); card.className='card';
+    card.append(makeText('h4', `${row.student_name} — ${row.father_name}`));
+    card.append(makeText('p', `${row.country} | ${row.whatsapp_number} | ${row.course_type} | ${row.class_mode}`));
+    const classWhatsApp=makeWhatsAppLink(row.whatsapp_number,`Assalam-o-Alaikum ${row.student_name}. We received your Persian class registration request.`, 'طالب علم کو WhatsApp کریں'); if(classWhatsApp)card.append(classWhatsApp);
+    card.append(makeText('p', `فیس: ${row.monthly_fee} ${row.currency} | ادائیگی: ${row.payment_timing} | Status: ${row.status}`));
+    if (row.preferred_days?.length) card.append(makeText('p', `پسندیدہ دن: ${row.preferred_days.join('، ')}`));
+    if (row.preferred_time) card.append(makeText('p', `پسندیدہ وقت: ${row.preferred_time}`));
+    const statusSelect=document.createElement('select');
+    for (const value of ['pending','approved','rejected']) { const op=document.createElement('option'); op.value=value; op.textContent='درخواست: '+value; statusSelect.append(op); }
+    statusSelect.value=row.status;
+    const paymentSelect=document.createElement('select');
+    for (const value of ['unpaid','pending','paid','rejected']) { const op=document.createElement('option'); op.value=value; op.textContent='ادائیگی: '+value; paymentSelect.append(op); }
+    paymentSelect.value=row.payment_status || 'unpaid';
+    const numberField=(label,value)=>{const wrap=document.createElement('label');wrap.style.cssText='display:inline-flex;flex-direction:column;gap:3px;margin:5px;';const text=document.createElement('small');text.textContent=label;const input=document.createElement('input');input.type='number';input.min='0';input.max='1000';input.value=String(value ?? 0);input.style.width='100px';wrap.append(text,input);return {wrap,input};};
+    const demoRequired=numberField('ڈیمو کلاسز',row.demo_classes_required ?? 0);
+    const demoCompleted=numberField('مکمل ڈیمو',row.demo_classes_completed ?? 0);
+    const classesTotal=numberField('کل کلاسز',row.classes_total ?? 0);
+    const classesCompleted=numberField('مکمل کلاسز',row.classes_completed ?? 0);
+    const amountPaid=numberField('ادا شدہ رقم',row.amount_paid ?? 0);
+    amountPaid.input.max='10000000';
+    const schedule=document.createElement('input'); schedule.placeholder='کلاس کا شیڈول / Schedule details'; schedule.value=row.schedule_details || '';
+    const note=document.createElement('input'); note.placeholder='Admin note'; note.value=row.admin_note || '';
+    const save=document.createElement('button'); save.type='button'; save.textContent='کلاس درخواست اپڈیٹ کریں';
+    save.onclick=async()=>{ save.disabled=true; const payload={id:row.id,status:statusSelect.value,payment_status:paymentSelect.value,demo_classes_required:Number(demoRequired.input.value),demo_classes_completed:Number(demoCompleted.input.value),classes_total:Number(classesTotal.input.value),classes_completed:Number(classesCompleted.input.value),amount_paid:Number(amountPaid.input.value),schedule_details:schedule.value,admin_note:note.value}; const {data:updated,error:updateError}=await supabase.functions.invoke('admin-update-guest-class',{body:payload}); if(updateError||!updated?.success){alert('اپڈیٹ نہیں ہوئی: '+(updateError?.message||updated?.error||''));save.disabled=false;return;} alert('کلاس درخواست اپڈیٹ ہوگئی۔'); loadGuestAdminRequests(); };
+    card.append(statusSelect,paymentSelect,demoRequired.wrap,demoCompleted.wrap,classesTotal.wrap,classesCompleted.wrap,amountPaid.wrap,schedule,note,save); classesBox.append(card);
+  }
+  if (!paymentRows.length) paymentsBox.append(makeText('p','ابھی کوئی Guest ادائیگی درخواست نہیں۔'));
+  for (const row of paymentRows) {
+    const card=document.createElement('div'); card.className='card';
+    card.append(makeText('h4', `${row.student_name} — ${row.whatsapp_number}`));
+    card.append(makeText('p', `خریداری: ${row.target_title || row.access_type} | ${row.country} | ${row.payment_method} | ${row.amount} ${row.currency} | Status: ${row.status}`));
+    card.append(makeText('p', `Transaction Reference: ${row.transaction_reference || 'درج نہیں'}`));
+    const paymentWhatsApp=makeWhatsAppLink(row.whatsapp_number,`Assalam-o-Alaikum ${row.student_name}. We received your Persian course payment request.`, 'طالب علم کو WhatsApp کریں'); if(paymentWhatsApp)card.append(paymentWhatsApp);
+    if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='رسید دیکھیں (5 منٹ)';card.append(a);}
+    if(row.status==='pending'){
+      const approve=document.createElement('button');approve.type='button';approve.textContent='منظور کریں اور Unlock Code بنائیں';
+      approve.onclick=async()=>{if(!confirm('کیا ادائیگی کی تصدیق ہو گئی ہے؟'))return;const sendNow=confirm('کیا Unlock Code طالب علم کو WhatsApp پر بھیجنے کے لیے WhatsApp کھولیں؟');const waWindow=sendNow?window.open('about:blank','_blank'):null;approve.disabled=true;const {data:issued,error:issueError}=await supabase.functions.invoke('admin-issue-unlock',{body:{payment_request_id:row.id}});if(issueError||!issued?.success){alert('کوڈ جاری نہیں ہوا: '+(issueError?.message||issued?.error||''));approve.disabled=false;return;}const sendLink=makeWhatsAppLink(row.whatsapp_number,`Assalam-o-Alaikum ${row.student_name}. Your Persian course payment is approved. Your one-time Unlock Code is: ${issued.unlock_code}. Enter it once in the Come To Learn Persian app on the device you will use.`, '');if(sendLink&&waWindow)waWindow.location.href=sendLink.href;else if(waWindow)waWindow.close();alert(`Unlock Code: ${issued.unlock_code}\n${sendLink&&waWindow?'WhatsApp میں پیغام چیک کرکے Send کریں۔':'یہ کوڈ صرف ایک بار دکھایا جائے گا۔'}`);loadGuestAdminRequests();};
+      const reject=document.createElement('button');reject.type='button';reject.textContent='ادائیگی مسترد کریں';reject.style.background='#9b3030';
+      reject.onclick=async()=>{const note=prompt('مسترد کرنے کی وجہ (اختیاری):')||'';reject.disabled=true;const {data:rejected,error:rejectError}=await supabase.functions.invoke('admin-reject-guest-payment',{body:{payment_request_id:row.id,admin_note:note}});if(rejectError||!rejected?.success){alert('درخواست مسترد نہیں ہوئی: '+(rejectError?.message||rejected?.error||''));reject.disabled=false;return;}loadGuestAdminRequests();};
+      card.append(approve,reject);
+    }
+    const activeCode=(row.unlock_codes||[]).find(code=>!code.revoked_at);
+    if(row.status==='approved' && activeCode){
+      const reset=document.createElement('button');reset.type='button';reset.textContent='ڈیوائس ری سیٹ کریں اور نیا Unlock Code جاری کریں';reset.style.background='#80551b';
+      reset.onclick=async()=>{if(!confirm('پرانی ڈیوائس کی رسائی بند کرکے نئی ڈیوائس کے لیے کوڈ جاری کریں؟'))return;const sendNow=confirm('کیا نیا Unlock Code WhatsApp پر بھیجنے کے لیے WhatsApp کھولیں؟');const waWindow=sendNow?window.open('about:blank','_blank'):null;reset.disabled=true;const {data:replacement,error:resetError}=await supabase.functions.invoke('admin-reset-device',{body:{unlock_code_id:activeCode.id}});if(resetError||!replacement?.success){alert('ڈیوائس ری سیٹ نہیں ہوئی: '+(resetError?.message||replacement?.error||''));reset.disabled=false;return;}const sendLink=makeWhatsAppLink(row.whatsapp_number,`Assalam-o-Alaikum ${row.student_name}. Your device access has been reset. Use this new one-time Unlock Code on your new device: ${replacement.unlock_code}.`, '');if(sendLink&&waWindow)waWindow.location.href=sendLink.href;else if(waWindow)waWindow.close();alert(`نیا Unlock Code: ${replacement.unlock_code}\n${sendLink&&waWindow?'WhatsApp میں پیغام چیک کرکے Send کریں۔':''}`);loadGuestAdminRequests();};
+      card.append(makeText('p', activeCode.redeemed_at ? 'Unlock Code استعمال ہو چکا ہے۔' : 'Unlock Code ابھی استعمال نہیں ہوا۔'), reset);
+    }
+    paymentsBox.append(card);
+  }
+  status.textContent=`Guest کلاس درخواستیں: ${classRows.length} | Guest ادائیگیاں: ${paymentRows.length}`;
+}
+
 async function handleLogin(existingUser = null) {
+  guestModeActive = false;
   const currentRenderToken = ++loginRenderToken;
   let data;
 
@@ -1336,7 +1508,17 @@ if (currentRenderToken !== loginRenderToken) return;
 activeStudentId = data.user.id;
 
 if (adminProfileError) {
-  message.textContent = 'اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
+  activeStudentId = null;
+  await supabase.auth.signOut();
+  showGuestDashboard();
+  message.textContent = 'Admin اکاؤنٹ کی معلومات حاصل نہیں ہو سکیں: ' + adminProfileError.message;
+  return;
+}
+if (adminProfile.role !== 'admin') {
+  activeStudentId = null;
+  await supabase.auth.signOut();
+  showGuestDashboard();
+  message.textContent = 'طالب علم Login بند ہے۔ Guest Student کے طور پر مفت استعمال جاری رکھیں؛ پرانا اکاؤنٹ اور ریکارڈ حذف نہیں کیا گیا۔';
   return;
 }
 
@@ -1352,6 +1534,7 @@ if (adminProfile.role === 'admin') {
   loadPaymentAdmin();
   loadClassRegistrationsAdmin();
   loadPersianReferenceAdmin();
+  loadGuestAdminRequests();
   return;
 }
   document.querySelectorAll('main > .card').forEach(card => {
@@ -1697,17 +1880,16 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   const bundleDownloadLinks = dashboard.querySelector('#meenaBundleDownloadLinks');
   const bundleDownloadStatus = dashboard.querySelector('#meenaBundleDownloadStatus');
 
-  dashboard.querySelector('#meenaBackDashboard').onclick = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) await handleLogin(session.user);
-  };
+  dashboard.querySelector('#meenaBackDashboard').onclick = returnToDashboard;
 
-  const { data: modules, error: moduleError } = await supabase
-    .from('modules')
-    .select('id,title,module_order')
-    .eq('course_id', courseId)
-    .in('title', ['Meena 01', 'Meena 02', 'Meena 03'])
-    .order('module_order');
+  let guestCatalog = null, modules = null, moduleError = null;
+  if (guestModeActive) {
+    try { guestCatalog = await getGuestCourseCatalog(courseId); modules = guestCatalog.modules.filter(module => ['Meena 01','Meena 02','Meena 03'].includes(module.title)); }
+    catch (error) { moduleError = error; }
+  } else {
+    const result = await supabase.from('modules').select('id,title,module_order').eq('course_id', courseId).in('title', ['Meena 01', 'Meena 02', 'Meena 03']).order('module_order');
+    modules = result.data; moduleError = result.error;
+  }
 
   if (moduleError) {
     message.textContent = 'کتابوں کی فہرست حاصل نہیں ہو سکی: ' + moduleError.message;
@@ -1718,10 +1900,9 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     return;
   }
 
-  const { data: accessRows, error: accessError } = await supabase
-    .from('student_access_grants')
-    .select('access_type,target_id')
-    .eq('student_id', activeStudentId);
+  let accessRows, accessError;
+  try { accessRows = await getCurrentAccessRows(); accessError = null; }
+  catch (error) { accessRows = null; accessError = error; }
   if (accessError) {
     message.textContent = 'خریداری کی معلومات حاصل نہیں ہو سکیں: ' + accessError.message;
     return;
@@ -1754,12 +1935,9 @@ async function showConversationCourse(dashboard, courseId, courseName) {
         download.disabled = true;
         bundleDownloadStatus.textContent = `${book.label} کا محفوظ لنک تیار ہو رہا ہے...`;
         try {
-          const { data, error } = await supabase.storage
-            .from('Meena Conversation Books PDF')
-            .createSignedUrl(book.path, 300, { download: true });
-          if (error || !data?.signedUrl) throw error || new Error('Download link دستیاب نہیں۔');
+          const signedUrl = await createStudentSignedUrl('Meena Conversation Books PDF', book.path, 300);
           const link = document.createElement('a');
-          link.href = data.signedUrl;
+          link.href = signedUrl;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.download = book.path;
@@ -1791,16 +1969,13 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   };
   const lessonsByBook = new Map();
   for (const module of modules) {
-    const { data: lessons, error } = await supabase
-      .from('lessons')
-      .select('id,title,lesson_order,is_free,is_published,persian_text,urdu_explanation,english_explanation,pdf_url,audio_url,video_url')
-      .eq('module_id', module.id)
-      .eq('is_published', true)
-      .order('lesson_order');
-    if (error) {
-      message.textContent = 'اسباق حاصل کرنے میں مسئلہ: ' + error.message;
-      return;
+    let lessons = [], error = null;
+    if (guestModeActive) lessons = guestCatalog.lessons.filter(lesson => lesson.module_id === module.id);
+    else {
+      const result = await supabase.from('lessons').select('id,title,lesson_order,is_free,is_published,persian_text,urdu_explanation,english_explanation,pdf_url,audio_url,video_url').eq('module_id', module.id).eq('is_published', true).order('lesson_order');
+      lessons = result.data || []; error = result.error;
     }
+    if (error) { message.textContent = 'اسباق حاصل کرنے میں مسئلہ: ' + error.message; return; }
     lessonsByBook.set(module.id, lessons || []);
   }
 
@@ -1833,7 +2008,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     buy.type = 'button';
     buy.style.cssText = 'margin-right:8px;background:#8a5b16;';
     buy.textContent = owned ? '✓ کتاب خریدی جا چکی ہے' : '💳 یہ کتاب الگ خریدیں';
-    buy.disabled = owned;
+    buy.disabled = owned || !!meta.disabled;
     buy.onclick = () => showPaymentForm({
       accessType: 'chapter',
       targetId: module.id,
@@ -1914,6 +2089,12 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       lessonsPanel.style.display = 'block';
     };
     const resources = lessonContent.querySelector('#meenaLessonResources');
+    let lessonContentData = null;
+    if (guestModeActive) {
+      try { lessonContentData = await getGuestLessonContent(lesson.id); }
+      catch (error) { resources.textContent = 'سبق کھولنے میں مسئلہ: ' + error.message; return; }
+    }
+    const contentLesson = lessonContentData?.lesson || lesson;
     const addSection = (heading, body) => {
       const section = document.createElement('section');
       section.style.cssText = 'margin:14px 0;padding:12px;border:1px solid #e1e5e9;border-radius:10px;';
@@ -1921,39 +2102,32 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       if (body) section.appendChild(body);
       resources.appendChild(section);
     };
-    if (lesson.persian_text) { const el = document.createElement('div'); el.textContent = lesson.persian_text; addSection('فارسی متن', el); }
-    if (lesson.urdu_explanation) { const el = document.createElement('div'); el.textContent = lesson.urdu_explanation; addSection('اردو تشریح', el); }
-    if (lesson.english_explanation) { const el = document.createElement('div'); el.textContent = lesson.english_explanation; addSection('English Explanation', el); }
+    if (contentLesson.persian_text) { const el = document.createElement('div'); el.textContent = contentLesson.persian_text; addSection('فارسی متن', el); }
+    if (contentLesson.urdu_explanation) { const el = document.createElement('div'); el.textContent = contentLesson.urdu_explanation; addSection('اردو تشریح', el); }
+    if (contentLesson.english_explanation) { const el = document.createElement('div'); el.textContent = contentLesson.english_explanation; addSection('English Explanation', el); }
     async function getLessonResourceUrl(value) {
       if (!value) return null;
       if (value.startsWith('storage://')) {
         const path = value.slice('storage://'.length);
-        const { data, error } = await supabase.storage.from('meena-lesson-files').createSignedUrl(path, 3600);
-        if (error) throw error;
-        return data.signedUrl;
+        return await createStudentSignedUrl('meena-lesson-files', path, 3600, lesson.id);
       }
       return value;
     }
-    const { data: savedResources, error: resourceError } = await supabase
-      .from('lesson_resources')
-      .select('id,resource_type,title,storage_path,external_url,display_order')
-      .eq('lesson_id', lesson.id)
-      .order('display_order', { ascending: true });
-    if (resourceError) {
-      addSection('موادِ سبق', document.createTextNode('مواد حاصل کرنے میں مسئلہ: ' + resourceError.message));
+    let savedResources = lessonContentData?.resources || [], resourceError = null;
+    if (!guestModeActive) {
+      const result = await supabase.from('lesson_resources').select('id,resource_type,title,storage_path,external_url,display_order').eq('lesson_id', lesson.id).order('display_order', { ascending: true });
+      savedResources = result.data || []; resourceError = result.error;
     }
+    if (resourceError) addSection('موادِ سبق', document.createTextNode('مواد حاصل کرنے میں مسئلہ: ' + resourceError.message));
     const allResources = savedResources || [];
     async function resourceUrl(resource) {
-      if (resource.storage_path) {
-        const { data, error } = await supabase.storage.from('meena-lesson-files').createSignedUrl(resource.storage_path, 3600);
-        if (error) throw error;
-        return data.signedUrl;
-      }
+      if (resource.storage_path) return await createStudentSignedUrl('meena-lesson-files', resource.storage_path, 3600, lesson.id);
+      if (resource.external_url?.startsWith('storage://')) return await createStudentSignedUrl('meena-lesson-files', resource.external_url.slice('storage://'.length), 3600, lesson.id);
       return resource.external_url || '';
     }
     const pdfs = allResources.filter(x => x.resource_type === 'pdf');
     const pageImages = allResources.filter(x => x.resource_type === 'page_image');
-    const legacyPdf = !pdfs.length && lesson.pdf_url ? [{resource_type:'pdf', external_url:lesson.pdf_url, title:'PDF'}] : [];
+    const legacyPdf = !pdfs.length && contentLesson.pdf_url ? [{resource_type:'pdf', external_url:contentLesson.pdf_url, title:'PDF'}] : [];
     const documentResources = [...pdfs, ...legacyPdf];
     if (documentResources.length) {
       const nodes = document.createElement('div');
@@ -1969,13 +2143,13 @@ async function showConversationCourse(dashboard, courseId, courseName) {
         catch(e) { const err=document.createElement('p'); err.textContent='صفحہ کھولنے میں مسئلہ: '+e.message; gallery.appendChild(err); }
       }
       addSection('1۔ سبق کے صفحات', gallery);
-    } else if (lesson.pdf_url) {
-      const a=document.createElement('a'); a.href=lesson.pdf_url; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 PDF کھولیں'; addSection('1۔ سبق کی PDF',a);
+    } else if (contentLesson.pdf_url) {
+      const a=document.createElement('a'); a.href=await getLessonResourceUrl(contentLesson.pdf_url); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 PDF کھولیں'; addSection('1۔ سبق کی PDF',a);
     } else addSection('1۔ سبق کی PDF / تصاویر', document.createTextNode('PDF یا صفحات ابھی شامل نہیں کیے گئے۔'));
 
     const explanationAudios=allResources.filter(x=>x.resource_type==='audio_explanation');
     const homeworkAudios=allResources.filter(x=>x.resource_type==='audio_homework');
-    if (!explanationAudios.length && lesson.audio_url) explanationAudios.push({external_url:lesson.audio_url,title:'آڈیو 01'});
+    if (!explanationAudios.length && contentLesson.audio_url) explanationAudios.push({external_url:contentLesson.audio_url,title:'آڈیو 01'});
     async function renderAudioGroup(items, heading, emptyText) {
       const group=document.createElement('div');
       if (!items.length) { group.textContent=emptyText; addSection(heading,group); return; }
@@ -1991,16 +2165,24 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     await renderAudioGroup(explanationAudios,'2۔ آڈیو: اردو میں سبق کی وضاحت و تشریح','اردو وضاحت کی آڈیو ابھی شامل نہیں کی گئی۔');
     await renderAudioGroup(homeworkAudios,'3۔ ہوم ورک آڈیوز: فارسی','فارسی ہوم ورک آڈیوز ابھی شامل نہیں کی گئیں۔');
     const videos=allResources.filter(x=>x.resource_type==='video');
-    if (!videos.length && lesson.video_url) videos.push({external_url:lesson.video_url,title:'ویڈیو 01'});
+    if (!videos.length && contentLesson.video_url) videos.push({external_url:contentLesson.video_url,title:'ویڈیو 01'});
     const videoGroup=document.createElement('div');
     if (videos.length) {
-      videos.forEach((v,i)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;'; const a=document.createElement('a'); a.href=v.external_url||'#'; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='▶ '+(v.title||`ویڈیو ${String(i+1).padStart(2,'0')}`); row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,v,'video',`ویڈیو ${String(i+1).padStart(2,'0')}`)); videoGroup.appendChild(row); });
+      for (let i=0;i<videos.length;i++) {
+        const v=videos[i], row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;';
+        const a=document.createElement('a'); try { a.href=await resourceUrl(v); } catch (_) { a.href='#'; }
+        a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='▶ '+(v.title||`ویڈیو ${String(i+1).padStart(2,'0')}`);
+        row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,v,'video',`ویڈیو ${String(i+1).padStart(2,'0')}`)); videoGroup.appendChild(row);
+      }
     } else videoGroup.textContent='ویڈیوز ابھی شامل نہیں کی گئیں۔';
     addSection('4۔ ویڈیوز',videoGroup);
 
     const progressArea = lessonContent.querySelector('#meenaLessonProgress');
-    const { data: progress } = await supabase.from('lesson_progress').select('completed').eq('student_id', activeStudentId).eq('lesson_id', lesson.id).maybeSingle();
-    const done = !!progress?.completed;
+    let done = false;
+    if (activeStudentId) {
+      const { data: progress } = await supabase.from('lesson_progress').select('completed').eq('student_id', activeStudentId).eq('lesson_id', lesson.id).maybeSingle();
+      done = !!progress?.completed;
+    } else if (guestModeActive) done = getGuestCompletedLessonIds().has(lesson.id);
     const progressButton = document.createElement('button');
     progressButton.type = 'button';
     progressButton.textContent = done ? '✓ سبق مکمل ہو چکا ہے' : 'سبق مکمل نشان زد کریں';
@@ -2008,6 +2190,11 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     progressButton.style.background = '#28734f';
     progressButton.onclick = async () => {
       progressButton.disabled = true;
+      if (guestModeActive && !activeStudentId) {
+        saveGuestCompletedLesson(lesson.id);
+        progressButton.textContent = '✓ اسی ڈیوائس پر مکمل محفوظ ہوگیا';
+        return;
+      }
       const { error } = await supabase.from('lesson_progress').upsert({ student_id: activeStudentId, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'student_id,lesson_id' });
       if (error) { alert('Progress محفوظ نہیں ہوئی: ' + error.message); progressButton.disabled = false; return; }
       progressButton.textContent = '✓ سبق مکمل ہو چکا ہے';
@@ -2068,13 +2255,7 @@ async function showStudentCourse(courseId, courseName) {
     </button>
   `;
 
-document.getElementById('backToStudentDashboard').onclick = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session && session.user) {
-    await handleLogin(session.user);
-  }
-};
+document.getElementById('backToStudentDashboard').onclick = returnToDashboard;
   const moduleList = document.getElementById('studentModuleList');
   const courseMessage = document.getElementById('studentCourseMessage');
   const folderChooser = document.getElementById('grammarFolderChooser');
@@ -2104,11 +2285,14 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
     targetTitle: 'مکمل فارسی گرامر کورس'
   });
 
-  const { data, error } = await supabase
-    .from('modules')
-    .select('id, title, module_order')
-    .eq('course_id', courseId)
-    .order('module_order');
+  let guestCatalog = null, data = null, error = null;
+  if (guestModeActive) {
+    try { guestCatalog = await getGuestCourseCatalog(courseId); data = guestCatalog.modules; }
+    catch (catalogError) { error = catalogError; }
+  } else {
+    const result = await supabase.from('modules').select('id, title, module_order').eq('course_id', courseId).order('module_order');
+    data = result.data; error = result.error;
+  }
 
   if (error) {
     courseMessage.textContent = 'مسئلہ: ' + error.message;
@@ -2123,10 +2307,9 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
   courseMessage.textContent = 'اپنا باب منتخب کریں';
 
   // Approved purchases: a course grant unlocks every paid lesson in that course.
-  const { data: accessRows, error: accessError } = await supabase
-    .from('student_access_grants')
-    .select('access_type, target_id')
-    .eq('student_id', activeStudentId);
+  let accessRows, accessError;
+  try { accessRows = await getCurrentAccessRows(); accessError = null; }
+  catch (error) { accessRows = null; accessError = error; }
   if (accessError) {
     courseMessage.textContent = 'خریداری کی معلومات حاصل نہیں ہو سکیں: ' + accessError.message;
   }
@@ -2138,11 +2321,12 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
 
   // Student learning progress for all published lessons in this course
   const moduleIds = data.map(module => module.id);
-  const { data: courseLessons, error: courseLessonsError } = await supabase
-    .from('lessons')
-    .select('id')
-    .in('module_id', moduleIds)
-    .eq('is_published', true);
+  let courseLessons = null, courseLessonsError = null;
+  if (guestModeActive) courseLessons = guestCatalog.lessons;
+  else {
+    const result = await supabase.from('lessons').select('id').in('module_id', moduleIds).eq('is_published', true);
+    courseLessons = result.data; courseLessonsError = result.error;
+  }
 
   let completedLessonIds = new Set();
   let totalCourseLessons = courseLessons ? courseLessons.length : 0;
@@ -2157,12 +2341,11 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
       .eq('student_id', activeStudentId)
       .eq('completed', true)
       .in('lesson_id', lessonIds);
-
-    if (progressError) {
-      courseMessage.textContent = 'Progress حاصل کرنے میں مسئلہ: ' + progressError.message;
-    } else {
-      completedLessonIds = new Set((progressRows || []).map(row => row.lesson_id));
-    }
+    if (progressError) courseMessage.textContent = 'Progress حاصل کرنے میں مسئلہ: ' + progressError.message;
+    else completedLessonIds = new Set((progressRows || []).map(row => row.lesson_id));
+  } else if (guestModeActive && totalCourseLessons > 0) {
+    const saved = getGuestCompletedLessonIds();
+    completedLessonIds = new Set((courseLessons || []).map(lesson => lesson.id).filter(id => saved.has(id)));
   }
 
   // Full PDF is a separate product inside the Grammar Course; it never unlocks lessons.
@@ -2189,26 +2372,18 @@ document.getElementById('backToStudentDashboard').onclick = async () => {
       downloadPdfButton.style.display = 'block';
       readPdfButton.onclick = async () => {
         pdfMessage.textContent = 'PDF Reader تیار ہو رہا ہے...';
-        const { data: pdfData, error: pdfError } = await supabase.storage
-          .from('paid-book-pdfs')
-          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300);
-        if (pdfError || !pdfData?.signedUrl) {
-          pdfMessage.textContent = 'PDF Reader نہیں کھل سکا: ' + (pdfError?.message || 'نامعلوم مسئلہ');
-          return;
-        }
-        window.open(pdfData.signedUrl, '_blank', 'noopener');
+        let signedUrl;
+        try { signedUrl = await createStudentSignedUrl('paid-book-pdfs', 'Complete Persian Tens Book (Final Update 02 ).pdf', 300); }
+        catch (error) { pdfMessage.textContent = 'PDF Reader نہیں کھل سکا: ' + error.message; return; }
+        window.open(signedUrl, '_blank', 'noopener');
         pdfMessage.textContent = 'PDF لنک 5 منٹ کے لیے فعال ہے۔';
       };
       downloadPdfButton.onclick = async () => {
         pdfMessage.textContent = 'PDF ڈاؤن لوڈ لنک تیار ہو رہا ہے...';
-        const { data: pdfData, error: pdfError } = await supabase.storage
-          .from('paid-book-pdfs')
-          .createSignedUrl('Complete Persian Tens Book (Final Update 02 ).pdf', 300, { download: true });
-        if (pdfError || !pdfData?.signedUrl) {
-          pdfMessage.textContent = 'PDF ڈاؤن لوڈ نہیں ہو سکی: ' + (pdfError?.message || 'نامعلوم مسئلہ');
-          return;
-        }
-        window.open(pdfData.signedUrl, '_blank', 'noopener');
+        let signedUrl;
+        try { signedUrl = await createStudentSignedUrl('paid-book-pdfs', 'Complete Persian Tens Book (Final Update 02 ).pdf', 300); }
+        catch (error) { pdfMessage.textContent = 'PDF ڈاؤن لوڈ نہیں ہو سکی: ' + error.message; return; }
+        window.open(signedUrl, '_blank', 'noopener');
         pdfMessage.textContent = 'PDF ڈاؤن لوڈ لنک 5 منٹ کے لیے فعال ہے۔';
       };
       pdfCard.appendChild(createStudentFavoriteButton({
@@ -2302,25 +2477,25 @@ const bookChapters = [
       { title: 'فعل امر و نہی', start: 63, end: 68 },
       { title: 'فعل مضارع اخباری', start: 69, end: 73 },
       { title: 'فعل مضارع التزامی', start: 74, end: 79 },
-      { title: 'فعل مضارع ملموس', start: 80, end: 84 }
+      { title: 'فعل مضارع ملموس', start: 80, end: 85 }
     ]
   },
   {
     title: 'باب چہارم: مستقبل',
     lessons: [
-      { title: 'فعل مستقبل', start: 85, end: 90 }
+      { title: 'فعل مستقبل', start: 86, end: 91 }
     ]
   },
   {
     title: 'باب پنجم: مجہول',
     lessons: [
-      { title: 'فعل مجہول', start: 91, end: 98 }
+      { title: 'فعل مجہول', start: 92, end: 99 }
     ]
   },
   {
     title: 'باب ششم: مصادر',
     lessons: [
-      { title: 'بن ماضی، بن مضارع بمع ترجمہ', start: 99, end: 102 }
+      { title: 'بن ماضی، بن مضارع بمع ترجمہ', start: 100, end: 102 }
     ]
   }
 ];
@@ -2328,17 +2503,11 @@ const bookChapters = [
   pageImage.style.display = 'none';
   pageNumber.textContent = 'صفحہ لوڈ ہو رہا ہے...';
 
-  const { data: imageData, error: imageError } =
-    await supabase.storage
-      .from('persian book free')
-      .createSignedUrl(pageFiles[currentPage - 1], 3600);
+  let signedUrl;
+  try { signedUrl = await createStudentSignedUrl('persian book free', pageFiles[currentPage - 1], 3600); }
+  catch (imageError) { pageNumber.textContent = 'Error: ' + imageError.message; return; }
 
-  if (imageError || !imageData) {
-  pageNumber.textContent = 'Error: ' + JSON.stringify(imageError);
-return;
-  }
-
-  pageImage.src = imageData.signedUrl;
+  pageImage.src = signedUrl;
   pageImage.style.display = 'block';
 pageNumber.textContent = `صفحہ ${currentPage} از ${pageFiles.length}`;
   }
@@ -2394,18 +2563,16 @@ instituteButton.onclick = async () => {
   instituteButton.disabled = true;
   instituteButton.textContent = 'صفحہ لوڈ ہو رہا ہے...';
 
-  const { data, error } = await supabase.storage
-    .from('persian book free')
-    .createSignedUrl('103.jpeg', 3600);
-
-  if (error || !data) {
+  let signedUrl;
+  try { signedUrl = await createStudentSignedUrl('persian book free', '103.jpeg', 3600); }
+  catch (_) {
     institutePageNumber.textContent = 'صفحہ 103 ابھی اپ لوڈ نہیں ہوا۔';
     instituteButton.disabled = false;
     instituteButton.textContent = 'دوبارہ کوشش کریں';
     return;
   }
 
-  instituteImage.src = data.signedUrl;
+  instituteImage.src = signedUrl;
   instituteImage.style.display = 'block';
   institutePageNumber.textContent = 'صفحہ 103';
   instituteButton.style.display = 'none';
@@ -2474,12 +2641,12 @@ heading.textContent = chapterInfo
       lessonArea.innerHTML = '';
       lessonArea.textContent = 'اسباق لوڈ ہو رہے ہیں...';
 
-      const { data: lessons, error: lessonError } = await supabase
-        .from('lessons')
-        .select('id, title, lesson_order, is_free, pdf_url, audio_url, video_url')
-        .eq('module_id', module.id)
-        .eq('is_published', true)
-        .order('lesson_order');
+      let lessons = null, lessonError = null;
+      if (guestModeActive) lessons = guestCatalog.lessons.filter(lesson => lesson.module_id === module.id);
+      else {
+        const result = await supabase.from('lessons').select('id, title, lesson_order, is_free, pdf_url, audio_url, video_url').eq('module_id', module.id).eq('is_published', true).order('lesson_order');
+        lessons = result.data; lessonError = result.error;
+      }
 
       if (lessonError) {
         lessonArea.textContent = 'مسئلہ: ' + lessonError.message;
@@ -2537,28 +2704,21 @@ heading.textContent = chapterInfo
         completeButton.disabled = completedLessonIds.has(lesson.id) || !lessonHasAccess;
         completeButton.style.background = '#28734f';
         completeButton.onclick = async () => {
-          if (!activeStudentId) {
-            alert('براہ کرم دوبارہ Login کریں۔');
-            return;
-          }
           completeButton.disabled = true;
           completeButton.textContent = 'محفوظ ہو رہا ہے...';
-          const { error: saveProgressError } = await supabase
-            .from('lesson_progress')
-            .upsert({
-              student_id: activeStudentId,
-              lesson_id: lesson.id,
-              completed: true,
-              completed_at: new Date().toISOString()
-            }, { onConflict: 'student_id,lesson_id' });
-
-          if (saveProgressError) {
-            alert('پیش رفت محفوظ نہیں ہو سکی: ' + saveProgressError.message);
-            completeButton.disabled = false;
-            completeButton.textContent = 'سبق مکمل نشان زد کریں';
-            return;
+          if (guestModeActive && !activeStudentId) {
+            saveGuestCompletedLesson(lesson.id);
+          } else {
+            const { error: saveProgressError } = await supabase
+              .from('lesson_progress')
+              .upsert({ student_id: activeStudentId, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'student_id,lesson_id' });
+            if (saveProgressError) {
+              alert('پیش رفت محفوظ نہیں ہو سکی: ' + saveProgressError.message);
+              completeButton.disabled = false;
+              completeButton.textContent = 'سبق مکمل نشان زد کریں';
+              return;
+            }
           }
-
           completedLessonIds.add(lesson.id);
           progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
           completeButton.textContent = 'سبق مکمل ہو گیا';
@@ -2613,19 +2773,15 @@ openButton.onclick = async () => {
 
     const fileName = currentLessonPage + '.jpeg';
 
-    const { data: imageData, error } = await supabase.storage
-      .from('persian book free')
-      .createSignedUrl(fileName, 3600);
-
-    if (error || !imageData) {
-      pageText.textContent =
-        `صفحہ ${currentLessonPage} ابھی اپ لوڈ نہیں ہوا۔`;
-
+    let signedUrl;
+    try { signedUrl = await createStudentSignedUrl('persian book free', fileName, 3600); }
+    catch (error) {
+      pageText.textContent = `صفحہ ${currentLessonPage} ابھی اپ لوڈ نہیں ہوا یا خریداری درکار ہے۔`;
       console.error('Page loading error:', error);
       return;
     }
 
-    image.src = imageData.signedUrl;
+    image.src = signedUrl;
     image.style.display = 'block';
 
     pageText.textContent =
@@ -2693,6 +2849,7 @@ openButton.onclick = async () => {
     moduleList.appendChild(instituteIntro);
 }
 document.getElementById('loginBtn').addEventListener('click', () => handleLogin());
+document.getElementById('guestStartBtn')?.addEventListener('click', async () => { await supabase.auth.signOut(); showGuestDashboard(); });
   // ADD NEW COURSE
   // SHOW ALL COURSES
 async function loadCourses() {
@@ -3950,6 +4107,7 @@ if (adminPaymentsToggle && adminPaymentsDetails) {
 }
 
 document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', loadPaymentAdmin);
+document.getElementById('refreshGuestAdminBtn')?.addEventListener('click', loadGuestAdminRequests);
 
   // RESTORE LOGIN SESSION AFTER PAGE REFRESH
 (async function restoreLoginSession() {
@@ -3971,6 +4129,14 @@ document.getElementById('refreshPaymentRequestsBtn')?.addEventListener('click', 
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>Admin Panel</h3>
   <p>خوش آمدید، آپ ایپ کے منتظم ہیں۔</p>
+  <div class="card" id="guestRequestsAdminSection">
+    <h3>Guest طلبہ کی درخواستیں</h3>
+    <p>بغیر اکاؤنٹ کلاس رجسٹریشن اور ادائیگی کی درخواستوں کا انتظام۔ ادائیگی منظور کرنے پر ایک مرتبہ استعمال ہونے والا Unlock Code جاری ہوگا۔</p>
+    <button id="refreshGuestAdminBtn" type="button">Guest درخواستیں تازہ کریں</button>
+    <p id="guestAdminMessage" aria-live="polite"></p>
+    <h4>کلاس رجسٹریشنز</h4><div id="guestClassRequestsList"></div>
+    <h4>ادائیگی کی درخواستیں</h4><div id="guestPaymentRequestsList"></div>
+  </div>
 
   <!-- Legacy course management is hidden from the admin interface;
        underlying course records remain available to Chapters and Lessons. -->
