@@ -192,6 +192,61 @@ body[data-theme="night"] .welcome-student-card h2{color:#f0d99f!important}
 body[data-theme="night"] .welcome-student-card p,body[data-theme="night"] .welcome-contact-card p{color:#c2d0c8!important}
 body[data-theme="night"] .welcome-admin-card button{background:#29443b!important;color:#e8f0ec!important;border-color:#53635d!important}
 
+
+/* Student dashboard visual refresh — preserves all existing actions and IDs */
+main:has(#studentDashboard){max-width:960px!important}
+.student-dashboard-shell{width:100%;box-sizing:border-box;padding:clamp(14px,3vw,28px)!important;border:1px solid #e0e8df;border-radius:25px!important;background:#fffefa!important;box-shadow:0 16px 42px #123d3512!important}
+.student-dashboard-hero{position:relative;overflow:hidden;text-align:center;padding:30px 20px 27px;margin:-2px -2px 20px;border-radius:21px;background:radial-gradient(circle at 15% 15%,#ffffff22,transparent 34%),linear-gradient(135deg,#0b302a,#176b56 68%,#218575);color:#fff;box-shadow:0 12px 28px #0b302a26}
+.student-dashboard-emblem{width:72px;height:72px;display:grid;place-items:center;margin:0 auto 12px;border:1px solid #e3c77e;border-radius:22px;background:#ffffff12;color:#f4d58d;font-size:23px;font-weight:800;box-shadow:inset 0 0 0 5px #ffffff08}
+.student-dashboard-eyebrow{margin:0 0 5px;color:#f0d99f!important;font-size:13px;letter-spacing:.5px}
+.student-dashboard-hero h2{margin:0;color:#fff!important;font-size:clamp(25px,5vw,34px);line-height:1.5}
+.student-dashboard-hero h3{margin:2px 0 9px;color:#f4d58d!important;font-size:15px;font-weight:600;letter-spacing:.4px}
+.student-dashboard-hero p:last-child{max-width:600px;margin:0 auto;color:#f1f7f3!important;font-size:14px;line-height:1.9}
+.dashboard-quick-actions{grid-template-columns:1fr 1fr 1.35fr!important;gap:9px!important;margin:0 0 20px!important}
+.dashboard-quick-actions button{min-height:45px;border-radius:12px!important;font-weight:700}
+.dashboard-quick-actions button:last-child{background:#fff7e5!important;color:#654d13!important;border:1px solid #e7d39d!important}
+.dashboard-unlock-panel{border:1px solid #e4d5a9!important;border-radius:17px!important;background:#fffaf0!important}
+.student-dashboard-section-heading{display:flex;align-items:center;gap:12px;margin:22px 2px 12px;padding-bottom:10px;border-bottom:1px solid #e8eee8}
+.student-dashboard-section-heading>span{width:43px;height:43px;display:grid;place-items:center;flex:none;border-radius:14px;background:#eaf3ed;font-size:21px}
+.student-dashboard-section-heading h3{margin:0 0 2px;color:#17483d;font-size:20px}
+.student-dashboard-section-heading p{margin:0;color:#73827b;font-size:13px}
+.dashboard-course-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:13px!important}
+.dashboard-course-button{position:relative;min-height:112px;padding:19px 16px!important;border:1px solid #d7e5d9!important;border-radius:17px!important;background:linear-gradient(145deg,#f8fcf8,#eaf4ed)!important;box-shadow:0 5px 14px #123d3509;text-align:right;transition:transform .18s,box-shadow .18s}
+.dashboard-course-button:active,.dashboard-tool-button:active{transform:scale(.985)}
+.dashboard-course-button strong{color:#17483d;font-size:18px!important;margin-bottom:8px!important}
+.dashboard-course-button span{color:#61766b!important;line-height:1.7}
+.dashboard-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:10px!important}
+.dashboard-tool-button{min-height:75px;padding:14px!important;border-radius:15px!important;background:#fff!important;border:1px solid #e1e9e2!important;text-align:right;box-shadow:0 4px 12px #123d3508}
+.dashboard-tool-button strong{color:#31584b}
+.dashboard-favorites-button{margin:15px 0 5px!important;padding:14px!important;border-radius:14px!important;background:#fff8e8!important;color:#705719!important;border:1px solid #ead9a9!important;font-weight:700}
+.student-dashboard-classes{margin-top:20px;padding:5px 16px 17px;border:1px solid #dce9e0;border-radius:18px;background:linear-gradient(145deg,#fbfefa,#f1f7f1)}
+.student-dashboard-classes>p{color:#65776e;line-height:1.8}
+.student-dashboard-classes>button{border-radius:13px!important;font-weight:700}
+.student-dashboard-contact{margin-top:17px!important;border:1px solid #dce9e0!important;border-radius:17px!important;box-shadow:none!important}
+.student-dashboard-contact h3{color:#17483d}
+.student-dashboard-contact a{color:#176b50;font-weight:700}
+body[data-theme="night"] .student-dashboard-shell{background:#172421!important;border-color:#40544c!important}
+body[data-theme="night"] .student-dashboard-section-heading{border-color:#40544c}
+body[data-theme="night"] .student-dashboard-section-heading h3{color:#f0d99f!important}
+body[data-theme="night"] .student-dashboard-section-heading p,body[data-theme="night"] .dashboard-course-button span{color:#c0cec6!important}
+body[data-theme="night"] .dashboard-course-button{background:linear-gradient(145deg,#233a32,#1c302b)!important;border-color:#496255!important}
+body[data-theme="night"] .dashboard-course-button strong{color:#e9f3ec!important}
+body[data-theme="night"] .dashboard-tool-button{background:#202f2a!important;border-color:#465a50!important}
+body[data-theme="night"] .student-dashboard-classes{background:#1b2c27;border-color:#465a50}
+body[data-theme="night"] .student-dashboard-classes>p{color:#c0cec6!important}
+body[data-theme="night"] .dashboard-favorites-button{background:#443b20!important;color:#ffedb6!important;border-color:#78673a!important}
+body[data-theme="night"] .dashboard-unlock-panel{background:#302b1e!important;border-color:#76683d!important}
+@media(max-width:560px){
+  main:has(#studentDashboard){padding:10px!important}
+  .student-dashboard-shell{padding:12px!important;border-radius:19px!important}
+  .student-dashboard-hero{padding:25px 14px 22px;border-radius:17px}
+  .student-dashboard-emblem{width:62px;height:62px;border-radius:19px}
+  .dashboard-course-grid,.dashboard-tools-grid{grid-template-columns:1fr!important}
+  .dashboard-course-button{min-height:88px}
+  .dashboard-quick-actions{gap:6px!important}
+  .dashboard-quick-actions button{font-size:13px!important;padding:9px 5px!important}
+}
+
 </style>
 </head>
 <body>
@@ -329,47 +384,49 @@ function showGuestDashboard() {
   document.querySelectorAll('#studentDashboard').forEach(item => item.remove());
   const dashboard = document.createElement('div');
   dashboard.id = 'studentDashboard';
-  dashboard.className = 'card';
+  dashboard.className = 'card student-dashboard-shell';
   dashboard.style.maxWidth = '900px';
   dashboard.innerHTML = `
-    <div class="card" style="background:#172B4D;color:white;text-align:center;">
-      <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
-      <h3>Guest Student Dashboard</h3>
+    <div class="student-dashboard-hero">
+      <div class="student-dashboard-emblem" aria-hidden="true">فارسی</div>
+      <p class="student-dashboard-eyebrow">مرکز آموزش زبان فارسی</p>
+      <h2>آؤ فارسی سیکھیں</h2>
+      <h3>Student Learning Dashboard</h3>
       <p>مفت اسباق بغیر اکاؤنٹ کے پڑھیں۔ خریداری کے بعد ملنے والا Unlock Code اسی ڈیوائس پر استعمال کریں۔</p>
     </div>
-    <div class="student-utility-controls">
+    <div class="student-utility-controls dashboard-quick-actions">
       <button id="guestLangUr" type="button">اردو</button>
       <button id="guestLangEn" type="button">English</button>
       <button id="guestRedeemToggle" type="button">🔐 Unlock Code</button>
     </div>
-    <div id="guestRedeemPanel" class="card" hidden>
+    <div id="guestRedeemPanel" class="card dashboard-unlock-panel" hidden>
       <h3>خریدی ہوئی سہولت کھولیں</h3>
       <input id="guestUnlockCode" type="text" autocomplete="one-time-code" placeholder="اپنا Unlock Code درج کریں">
       <button id="guestRedeemBtn" type="button">کوڈ کی تصدیق کریں</button>
       <p id="guestRedeemMessage" aria-live="polite"></p>
     </div>
-    <h3>📚 فارسی کورسز</h3>
-    <div class="reg-course-grid">
-      <button id="guestGrammarBtn" class="reg-course-button" type="button"><strong>فارسی گرامر</strong><span>مفت تعارف اور دستیاب اسباق</span></button>
-      <button id="guestConversationBtn" class="reg-course-button" type="button"><strong>فارسی گفتگو</strong><span>مینا کی کتابیں اور گفتگو کے اسباق</span></button>
+    <div class="student-dashboard-section-heading"><span>📚</span><div><h3>فارسی کورسز</h3><p>اپنا مطلوبہ کورس منتخب کریں</p></div></div>
+    <div class="reg-course-grid dashboard-course-grid">
+      <button id="guestGrammarBtn" class="reg-course-button dashboard-course-button" type="button"><strong>فارسی گرامر</strong><span>مفت تعارف اور دستیاب اسباق</span></button>
+      <button id="guestConversationBtn" class="reg-course-button dashboard-course-button" type="button"><strong>فارسی گفتگو</strong><span>مینا کی کتابیں اور گفتگو کے اسباق</span></button>
     </div>
-    <div class="reg-course-grid">
-      <button id="guestVocabBtn" class="reg-course-button" type="button"><strong>📖 فارسی لغت</strong><span>فارسی اور اردو معنی تلاش کریں</span></button>
-      <button id="guestMasdarBtn" class="reg-course-button" type="button"><strong>📝 فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
+    <div class="reg-course-grid dashboard-tools-grid">
+      <button id="guestVocabBtn" class="reg-course-button dashboard-tool-button" type="button"><strong>📖 فارسی لغت</strong><span>فارسی اور اردو معنی تلاش کریں</span></button>
+      <button id="guestMasdarBtn" class="reg-course-button dashboard-tool-button" type="button"><strong>📝 فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
     </div>
-    <button id="guestFavoritesBtn" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
-    <hr>
-    <h3>🎓 Live Classes</h3>
-    <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
-    <button id="guestClassRegistrationBtn" type="button">کلاس رجسٹریشن فارم</button>
-    <hr>
+    <button id="guestFavoritesBtn" class="dashboard-favorites-button" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
+    <section class="student-dashboard-classes">
+      <div class="student-dashboard-section-heading"><span>🎓</span><div><h3>Live Classes</h3><p>اپنی فارسی کلاس کے لیے رجسٹریشن کریں</p></div></div>
+      <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
+      <button id="guestClassRegistrationBtn" type="button">کلاس رجسٹریشن فارم</button>
+    </section>
     <section id="persianReferenceView" class="card" hidden style="padding:16px;box-shadow:none;border:1px solid #dce7df;">
       <button id="persianReferenceBack" type="button" style="background:#52645b;">← واپس ڈیش بورڈ</button>
       <h2 id="persianReferenceHeading">فارسی لغت</h2>
       <div class="reference-search-row"><input id="persianReferenceSearch" type="search" placeholder="فارسی یا اردو لفظ تلاش کریں..." autocomplete="off"><button id="persianReferenceSearchBtn" type="button">تلاش</button></div>
       <div id="persianReferenceResults" aria-live="polite"></div>
     </section>
-    <div class="card"><h3>📞 ہم سے رابطہ</h3><p>WhatsApp: 00923049788712</p><a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer">WhatsApp پر رابطہ کریں</a></div>
+    <div class="card student-dashboard-contact"><h3>📞 ہم سے رابطہ</h3><p>WhatsApp: 00923049788712</p><a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer">WhatsApp پر رابطہ کریں</a></div>
   `;
   document.querySelector('main').prepend(dashboard);
   dashboard.querySelector('#guestLangUr').onclick = () => document.getElementById('langUr')?.click();
