@@ -2691,10 +2691,11 @@ heading.textContent = chapterInfo
         openButton.disabled = false;
         if (!lessonHasAccess) openButton.title = 'ادائیگی کی درخواست جمع کرنے کے لیے کلک کریں۔';
 
-        const progressLabel = document.createElement('p');
-        progressLabel.textContent = completedLessonIds.has(lesson.id)
-          ? '✅ یہ سبق مکمل ہو چکا ہے۔'
-          : 'یہ سبق ابھی مکمل نہیں ہوا۔';
+        let progressLabel = null;
+        if (completedLessonIds.has(lesson.id)) {
+          progressLabel = document.createElement('p');
+          progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
+        }
 
         const completeButton = document.createElement('button');
         completeButton.type = 'button';
@@ -2720,7 +2721,11 @@ heading.textContent = chapterInfo
             }
           }
           completedLessonIds.add(lesson.id);
-          progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
+          if (!progressLabel) {
+            progressLabel = document.createElement('p');
+            progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
+            completeButton.before(progressLabel);
+          }
           completeButton.textContent = 'سبق مکمل ہو گیا';
           refreshCourseProgress();
         };
@@ -2823,7 +2828,7 @@ openButton.onclick = async () => {
         lessonCard.appendChild(favoriteButton);
         lessonCard.appendChild(status);
         lessonCard.appendChild(openButton);
-        lessonCard.appendChild(progressLabel);
+        if (progressLabel) lessonCard.appendChild(progressLabel);
         lessonCard.appendChild(completeButton);
         lessonArea.appendChild(lessonCard);
       });
