@@ -294,6 +294,144 @@ body[data-theme="night"] #grammarLessonsFolder>.card,body[data-theme="night"] #s
  #studentModuleList [data-lesson-id]{padding:12px!important}
 }
 
+
+
+/* Lesson reader visual refresh v4 — presentation only */
+.lessonContent{
+  gap:14px!important;
+  padding:clamp(14px,3vw,24px)!important;
+  margin-top:18px!important;
+  border:1px solid #d9e5dc!important;
+  border-radius:22px!important;
+  background:linear-gradient(155deg,#fffefa 0%,#f4f8f3 100%)!important;
+  box-shadow:0 10px 28px rgba(18,61,53,.08)!important;
+  color:#203b35!important;
+}
+.lessonContent img{
+  max-width:min(100%,820px)!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  background:#fff!important;
+  border:1px solid #e5e8e2!important;
+  border-radius:15px!important;
+  box-shadow:0 5px 18px rgba(24,48,39,.09)!important;
+}
+.lessonContent p{
+  margin:4px 0 8px!important;
+  color:#53675e!important;
+  font-weight:600;
+  line-height:1.8;
+}
+.lessonContent button{
+  min-height:48px;
+  border-radius:13px!important;
+  font-weight:700;
+  box-shadow:0 3px 9px rgba(18,61,53,.10);
+}
+.lessonContent button:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+.lessonContent button:first-of-type{border:1px solid #c5d8ca}
+.lessonContent button:nth-last-of-type(1){background:#eaf2ec!important;color:#245542!important;border:1px solid #d2e1d5}
+.lessonContent button:nth-last-of-type(2){background:linear-gradient(135deg,#176b50,#0e5945)!important;color:#fff!important}
+#meenaLessonContent{margin-top:12px}
+#meenaLessonContent>#meenaLessonResources{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+#meenaLessonContent>.card{
+  padding:clamp(15px,3vw,25px)!important;
+  border:1px solid #e2d7b8!important;
+  border-radius:22px!important;
+  background:linear-gradient(155deg,#fffefa,#f8f6ed)!important;
+  box-shadow:0 10px 28px rgba(75,61,25,.07)!important;
+}
+#meenaLessonContent>.card>h3{
+  margin:0 0 16px;
+  padding:0 0 13px;
+  color:#73571d;
+  border-bottom:1px solid #e8ddbf;
+  line-height:1.8;
+}
+#meenaLessonResources section{
+  margin:12px 0!important;
+  padding:16px!important;
+  border:1px solid #e3e9e1!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  line-height:2;
+}
+#meenaLessonResources section h4{
+  margin:0 0 10px;
+  padding-bottom:8px;
+  color:#17634d;
+  border-bottom:1px solid #edf0e9;
+  font-size:16px;
+}
+#meenaLessonResources section img{
+  display:block;
+  max-width:100%;
+  height:auto;
+  margin:10px auto;
+  border:1px solid #e1e5dd!important;
+  border-radius:12px!important;
+  box-shadow:0 4px 14px rgba(20,45,35,.08);
+}
+#meenaLessonResources section audio{
+  display:block;
+  width:100%;
+  margin-top:8px;
+  border-radius:12px;
+}
+#meenaLessonResources section a{
+  color:#176b50;
+  font-weight:700;
+  text-decoration:none;
+  line-height:2;
+}
+#meenaLessonResources section a:hover{text-decoration:underline}
+#meenaLessonProgress{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid #e7e3d4;
+}
+#meenaLessonProgress button{
+  min-height:48px;
+  border-radius:13px!important;
+  font-weight:700;
+}
+body[data-theme="night"] .lessonContent{
+  background:linear-gradient(155deg,#1c2927,#202f2a)!important;
+  border-color:#465a50!important;
+  color:#e8f0ec!important;
+  box-shadow:none!important;
+}
+body[data-theme="night"] .lessonContent img{background:#17221f!important;border-color:#465a50!important}
+body[data-theme="night"] .lessonContent p{color:#c0cec6!important}
+body[data-theme="night"] .lessonContent button:nth-last-of-type(1){background:#344a40!important;color:#e8f0ec!important;border-color:#53675b!important}
+body[data-theme="night"] #meenaLessonContent>.card{
+  background:linear-gradient(155deg,#202f2a,#292a21)!important;
+  border-color:#665b3a!important;
+}
+body[data-theme="night"] #meenaLessonContent>.card>h3{color:#f0d99f;border-color:#665b3a}
+body[data-theme="night"] #meenaLessonResources section{
+  background:#202c2b!important;
+  border-color:#46534e!important;
+  color:#e8f0ec!important;
+}
+body[data-theme="night"] #meenaLessonResources section h4{color:#b9e0c8;border-color:#46534e}
+body[data-theme="night"] #meenaLessonResources section a{color:#a9d9bd}
+body[data-theme="night"] #meenaLessonProgress{border-color:#46534e}
+@media(max-width:600px){
+  .lessonContent{padding:12px!important;border-radius:16px!important}
+  .lessonContent img{border-radius:10px!important}
+  #meenaLessonContent>.card{padding:13px!important;border-radius:16px!important}
+  #meenaLessonResources section{padding:12px!important;border-radius:13px!important}
+}
+
 </style>
 </head>
 <body>
