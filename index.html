@@ -57,11 +57,20 @@ body.authenticated .logout-button{display:block}
 .academy-contact-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 .academy-contact-links a,.academy-contact-links button{display:block;box-sizing:border-box;margin:0;text-align:center;text-decoration:none;padding:12px 8px;border-radius:10px;font-size:15px}
 .academy-contact-links button:disabled{background:#e8eeea;color:#718078;cursor:not-allowed}
-.student-utility-controls{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;margin:0 0 16px}
-.student-utility-controls button{margin:0;padding:10px 6px;font-size:14px}
+.student-utility-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:0 0 16px}
+.student-utility-controls button{width:100%;margin:0;padding:9px 6px;font-size:14px;min-height:44px}
 .student-utility-controls button[aria-pressed="true"]{outline:2px solid #d5b66a;outline-offset:1px}
 .student-favorite-button{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;margin:5px 0;padding:0;background:#fff7dc;color:#624d00;border:1px solid #e8d28b;border-radius:12px;font-size:27px;line-height:1;cursor:pointer}
 .student-favorite-button:focus-visible{outline:3px solid #167568;outline-offset:2px}
+.study-tool-card{padding:16px;margin:12px 0;border:1px solid #dce7df;border-radius:14px;background:#fffefa}
+.study-audio-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.study-audio-controls button,.study-audio-controls select{width:auto;margin:0;padding:7px 10px;font-size:14px}
+.study-flashcard{padding:26px 18px;text-align:center;border:1px solid #d7e4d8;border-radius:18px;background:linear-gradient(145deg,#f5fbf5,#fff9e9);}
+body[data-theme="night"] .study-tool-card,body[data-theme="night"] .study-flashcard{background:#202f2a;color:#e8f0ec;border-color:#465a50}
+body[data-student-text-size="large"] #studentDashboard p,body[data-student-text-size="large"] #studentDashboard li,body[data-student-text-size="large"] #studentDashboard label,body[data-student-text-size="large"] #studentDashboard button,body[data-student-text-size="large"] #studentDashboard summary,body[data-student-text-size="large"] #studentDashboard a,body[data-student-text-size="large"] #studentDashboard input,body[data-student-text-size="large"] #studentDashboard small{font-size:calc(16px * var(--ctlp-student-text-scale,1))!important}
+body[data-student-text-size="small"] #studentDashboard p,body[data-student-text-size="small"] #studentDashboard li,body[data-student-text-size="small"] #studentDashboard label,body[data-student-text-size="small"] #studentDashboard button,body[data-student-text-size="small"] #studentDashboard summary,body[data-student-text-size="small"] #studentDashboard a,body[data-student-text-size="small"] #studentDashboard input,body[data-student-text-size="small"] #studentDashboard small{font-size:calc(16px * var(--ctlp-student-text-scale,1))!important}
+body[data-student-text-size="large"] #studentDashboard h2{font-size:calc(24px * var(--ctlp-student-text-scale,1))!important}body[data-student-text-size="large"] #studentDashboard h3{font-size:calc(20px * var(--ctlp-student-text-scale,1))!important}body[data-student-text-size="large"] #studentDashboard h4{font-size:calc(18px * var(--ctlp-student-text-scale,1))!important}
+body[data-student-text-size="small"] #studentDashboard h2{font-size:calc(24px * var(--ctlp-student-text-scale,1))!important}body[data-student-text-size="small"] #studentDashboard h3{font-size:calc(20px * var(--ctlp-student-text-scale,1))!important}body[data-student-text-size="small"] #studentDashboard h4{font-size:calc(18px * var(--ctlp-student-text-scale,1))!important}
 .student-favorite-card{padding:14px;margin:10px 0;border:1px solid #dce7df;box-shadow:none}
 body[data-theme="night"]{background:#101918;color:#e8f0ec}
 body[data-theme="night"] header{background:#0b2823}
@@ -790,6 +799,7 @@ function showGuestDashboard() {
     <div class="card student-dashboard-contact"><h3>📞 ہم سے رابطہ</h3><p>WhatsApp: 00923049788712</p><a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer">WhatsApp پر رابطہ کریں</a></div>
   `;
   document.querySelector('main').prepend(dashboard);
+  ensureStudentUtilityControls();
   dashboard.querySelector('#guestLangUr').onclick = () => document.getElementById('langUr')?.click();
   dashboard.querySelector('#guestLangEn').onclick = () => document.getElementById('langEn')?.click();
   dashboard.querySelector('#guestGrammarBtn').onclick = () => showStudentCourse('bba71536-3e37-4827-8f6e-f9e8d89aaff3', 'فارسی گرامر');
@@ -832,6 +842,34 @@ function getGuestCompletedLessonIds() {
 function saveGuestCompletedLesson(lessonId) {
   const ids = getGuestCompletedLessonIds(); ids.add(lessonId);
   localStorage.setItem('ctlp-guest-progress', JSON.stringify([...ids]));
+  recordLearningActivity(lessonId);
+}
+
+function learningStorageKey(name) { return `ctlp-study-${activeStudentId || 'guest'}-${name}`; }
+function readLearningStorage(name, fallback) {
+  try { return JSON.parse(localStorage.getItem(learningStorageKey(name)) || 'null') ?? fallback; }
+  catch (_) { return fallback; }
+}
+function writeLearningStorage(name, value) { localStorage.setItem(learningStorageKey(name), JSON.stringify(value)); }
+function recordLearningActivity(lessonId) {
+  const days = readLearningStorage('activity-days', []);
+  const today = learningDateKey();
+  if (!days.some(item => item.lessonId === lessonId && item.date === today)) days.push({lessonId, date:today});
+  writeLearningStorage('activity-days', days.slice(-500));
+}
+function learningDateKey(date=new Date()) { return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'); }
+function saveLastOpenedLesson(lesson) {
+  if (!lesson?.lessonId || (!lesson?.courseId && lesson?.kind !== 'conversation') || (!lesson?.moduleId && lesson?.kind !== 'conversation')) return;
+  writeLearningStorage('last-lesson', {...lesson, updatedAt:new Date().toISOString()});
+  const resume = document.getElementById('studentResumeButton');
+  if (resume) { resume.disabled = false; resume.title = lesson.title || 'آخری سبق جاری رکھیں'; }
+}
+function cacheLessonText({lessonId,title,courseName,persian,urdu,english}) {
+  if (!lessonId || !(persian || urdu || english)) return;
+  const saved = readLearningStorage('offline-lessons', []);
+  const next = saved.filter(item => item.lessonId !== lessonId);
+  next.unshift({lessonId,title,courseName,persian:persian||'',urdu:urdu||'',english:english||'',savedAt:new Date().toISOString()});
+  writeLearningStorage('offline-lessons', next.slice(0,100));
 }
 
 function getStudentFavorites() {
@@ -898,6 +936,7 @@ async function appendStudentLessonResources(container, lesson, module, courseId,
     rows = result.data || []; error = result.error;
   }
   if (error) { const note = document.createElement('p'); note.textContent = 'اضافی مواد حاصل نہیں ہو سکا: ' + error.message; container.appendChild(note); return; }
+  cacheLessonText({lessonId:lesson.id,title:lesson.title||`سبق ${lesson.lesson_order}`,courseName,persian:contentLesson.persian_text,urdu:contentLesson.urdu_explanation,english:contentLesson.english_explanation});
   const resources = [...(rows || [])];
   [['pdf_url','pdf','PDF'], ['audio_url','audio_explanation','آڈیو'], ['video_url','video','ویڈیو']].forEach(([field,type,title]) => {
     if (contentLesson[field] && !resources.some(item => item.resource_type === type)) resources.push({ resource_type:type, title, external_url:contentLesson[field] });
@@ -920,18 +959,19 @@ async function appendStudentLessonResources(container, lesson, module, courseId,
     const title = resource.title || 'سبق کا مواد';
     if (url) {
       if (type === 'audio_explanation' || type === 'audio_homework') {
-        const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = url; row.appendChild(audio);
+        const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = url; row.appendChild(audio); addStudyAudioControls(audio,[contentLesson.persian_text,contentLesson.urdu_explanation].filter(Boolean).join('\n\n')); appendStudyDownloadButton(row,url,(title||'lesson-audio')+'.mp3');
       } else if (type === 'page_image') {
-        const image = document.createElement('img'); image.src = url; image.alt = title; image.loading = 'lazy'; image.style.cssText = 'max-width:100%;height:auto;border-radius:8px;'; row.appendChild(image);
+        const image = document.createElement('img'); image.src = url; image.alt = title; image.loading = 'lazy'; image.style.cssText = 'max-width:100%;height:auto;border-radius:8px;'; row.appendChild(image); appendStudyDownloadButton(row,url,(title||'lesson-page')+'.jpg');
       } else {
         const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.textContent = `${type === 'video' ? '▶' : '📄'} ${title}`; row.appendChild(link);
+        link.textContent = `${type === 'video' ? '▶' : '📄'} ${title}`; row.appendChild(link); appendStudyDownloadButton(row,url,title+(type==='video'?'.mp4':'.pdf'));
       }
     }
     row.appendChild(createLessonResourceFavorite(lesson,module,courseId,courseName,resource,type,title));
     section.appendChild(row);
   }
   container.appendChild(section);
+  await appendLessonQuickQuiz(container,lesson.id,contentLesson.persian_text||'');
 }
 
 function ensureStudentUtilityControls() {
@@ -941,14 +981,24 @@ function ensureStudentUtilityControls() {
     controls = document.createElement('div');
     controls.id = 'studentUtilityControls';
     controls.className = 'student-utility-controls';
-    controls.innerHTML = '<button id="themeDayButton" type="button">☀ دن</button><button id="themeNightButton" type="button">🌙 رات</button><button id="studentFavoritesButton" type="button">⭐ پسندیدہ (0)</button>';
+    controls.innerHTML = '<button id="themeDayButton" type="button">☀ دن</button><button id="themeNightButton" type="button">🌙 رات</button><button id="studentFavoritesButton" type="button">⭐ پسندیدہ (0)</button><button id="studentResumeButton" type="button" disabled>▶ آخری سبق</button><button id="studentPracticeButton" type="button">🧠 لغت کی مشق</button><button id="studentReportButton" type="button">📊 تعلیمی رپورٹ</button><button id="studentOfflineButton" type="button">⬇ آف لائن مواد</button><button id="studentTextSmaller" type="button" aria-label="متن چھوٹا کریں">A−</button><button id="studentTextLarger" type="button" aria-label="متن بڑا کریں">A+</button>';
     main.prepend(controls);
     controls.querySelector('#themeDayButton').onclick = () => applyStudentTheme('day');
     controls.querySelector('#themeNightButton').onclick = () => applyStudentTheme('night');
     controls.querySelector('#studentFavoritesButton').onclick = showStudentFavorites;
+    controls.querySelector('#studentResumeButton').onclick = resumeLastLesson;
+    controls.querySelector('#studentPracticeButton').onclick = showVocabularyPractice;
+    controls.querySelector('#studentReportButton').onclick = showLearningReport;
+    controls.querySelector('#studentOfflineButton').onclick = showOfflineLessons;
+    controls.querySelector('#studentTextSmaller').onclick = () => changeStudentTextSize(-1);
+    controls.querySelector('#studentTextLarger').onclick = () => changeStudentTextSize(1);
   }
   main.prepend(controls);
   updateStudentFavoriteCount();
+  const lastLesson = readLearningStorage('last-lesson', null);
+  const resumeButton = controls.querySelector('#studentResumeButton');
+  resumeButton.disabled = !lastLesson;
+  applyStudentTextSize(Number(localStorage.getItem('ctlp-text-size') || 0));
   applyStudentTheme(localStorage.getItem('ctlp-theme') || 'day');
 }
 
@@ -960,6 +1010,75 @@ function applyStudentTheme(theme) {
   const nightButton = document.getElementById('themeNightButton');
   if (dayButton) dayButton.setAttribute('aria-pressed', String(selected === 'day'));
   if (nightButton) nightButton.setAttribute('aria-pressed', String(selected === 'night'));
+}
+
+function resumeLastLesson() {
+  const saved = readLearningStorage('last-lesson', null);
+  if (saved) openStudentFavorite({kind:'lesson', ...saved});
+}
+function changeStudentTextSize(amount) {
+  const next = Math.max(-2, Math.min(3, Number(localStorage.getItem('ctlp-text-size') || 0) + amount));
+  localStorage.setItem('ctlp-text-size', String(next));
+  applyStudentTextSize(next);
+}
+function applyStudentTextSize(step) {
+  const scale = [0.92,0.96,1,1.05,1.1,1.16][Math.max(0,Math.min(5,Number(step)+2))] || 1;
+  document.body.style.setProperty('--ctlp-student-text-scale', String(scale));
+  document.body.dataset.studentTextSize = scale > 1 ? 'large' : scale < 1 ? 'small' : 'normal';
+}
+async function showOfflineLessons() {
+  const dashboard=document.getElementById('studentDashboard'); if(!dashboard)return;
+  const saved=readLearningStorage('offline-lessons',[]);
+  dashboard.innerHTML='<button type="button" id="offlineLessonsBack">← ڈیش بورڈ</button><h2>⬇ آف لائن محفوظ اسباق</h2><p>محفوظ سبق کا متن اس ڈیوائس پر پڑھا جا سکتا ہے۔ PDF اور آڈیو کے لیے سبق میں ڈاؤن لوڈ بٹن دبائیں۔</p><div id="offlineLessonList"></div>';
+  dashboard.querySelector('#offlineLessonsBack').onclick=returnToDashboard;
+  const list=dashboard.querySelector('#offlineLessonList');
+  if(!saved.length){list.textContent='ابھی کوئی سبق محفوظ نہیں۔ سبق کھول کر “متن آف لائن محفوظ کریں” دبائیں۔';return;}
+  saved.forEach(item=>{const card=document.createElement('article');card.className='card study-tool-card';const title=document.createElement('h3');title.textContent=item.title||'محفوظ سبق';card.appendChild(title);if(item.persian){const fa=document.createElement('p');fa.lang='fa';fa.dir='rtl';fa.style.whiteSpace='pre-wrap';fa.textContent=item.persian;card.appendChild(fa);}if(item.urdu){const ur=document.createElement('p');ur.style.whiteSpace='pre-wrap';ur.textContent=item.urdu;card.appendChild(ur);}if(item.english){const en=document.createElement('p');en.lang='en';en.style.whiteSpace='pre-wrap';en.textContent=item.english;card.appendChild(en);}list.appendChild(card);});
+  const mediaHeading=document.createElement('h3');mediaHeading.textContent='محفوظ PDF اور آڈیو';list.appendChild(mediaHeading);
+  try{const media=await getOfflineMediaFiles();if(!media.length){const note=document.createElement('p');note.textContent='ابھی کوئی آڈیو یا PDF ڈاؤن لوڈ نہیں ہوئی۔';list.appendChild(note);}media.forEach(item=>{const row=document.createElement('article');row.className='card study-tool-card';const title=document.createElement('p');title.textContent=item.filename;row.appendChild(title);const url=URL.createObjectURL(item.blob);if(item.blob.type.startsWith('audio/')){const audio=document.createElement('audio');audio.controls=true;audio.src=url;audio.style.width='100%';row.appendChild(audio);addStudyAudioControls(audio);}else if(item.blob.type.startsWith('video/')){const video=document.createElement('video');video.controls=true;video.src=url;video.style.width='100%';row.appendChild(video);}else{const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='فائل کھولیں / دیکھیں';row.appendChild(link);}list.appendChild(row);});}catch(_){const note=document.createElement('p');note.textContent='اس براؤزر میں آف لائن میڈیا محفوظ کرنے کی سہولت دستیاب نہیں۔';list.appendChild(note);}
+}
+async function showLearningReport() {
+  const dashboard=document.getElementById('studentDashboard');if(!dashboard)return;
+  dashboard.innerHTML='<button type="button" id="learningReportBack">← ڈیش بورڈ</button><h2>📊 میری تعلیمی رپورٹ</h2><div id="learningReportContent" class="card study-tool-card">رپورٹ تیار ہو رہی ہے...</div>';
+  dashboard.querySelector('#learningReportBack').onclick=returnToDashboard;
+  const box=dashboard.querySelector('#learningReportContent');let completed=getGuestCompletedLessonIds().size+readLearningStorage('conversation-done',[]).length;let dates=readLearningStorage('activity-days',[]).map(x=>x.date);
+  if(activeStudentId){try{const {data,error}=await supabase.from('lesson_progress').select('lesson_id,completed_at').eq('student_id',activeStudentId).eq('completed',true);if(error)throw error;completed=(data||[]).length;dates=(data||[]).map(x=>x.completed_at).filter(Boolean).map(x=>learningDateKey(new Date(x)));}catch(error){box.textContent='رپورٹ حاصل نہیں ہو سکی: '+error.message;return;}}
+  const start=new Date();start.setDate(start.getDate()-6);start.setHours(0,0,0,0);const recent=new Set(dates.filter(d=>new Date(d+'T12:00:00')>=start));let streak=0;const day=new Date();day.setHours(0,0,0,0);if(!recent.has(learningDateKey(day)))day.setDate(day.getDate()-1);while(recent.has(learningDateKey(day))){streak++;day.setDate(day.getDate()-1);}
+  box.innerHTML='<p><strong>مکمل اسباق:</strong> '+completed+'</p><p><strong>گزشتہ 7 دن میں سیکھنے کے دن:</strong> '+recent.size+'</p><p><strong>مسلسل سیکھنے کے دن:</strong> '+streak+'</p><p><strong>لغت کے کوئز:</strong> '+Number(localStorage.getItem(learningStorageKey('quiz-count'))||0)+' مکمل</p>';
+}
+async function showVocabularyPractice() {
+  const dashboard=document.getElementById('studentDashboard');if(!dashboard)return;
+  dashboard.innerHTML='<button type="button" id="vocabPracticeBack">← ڈیش بورڈ</button><h2>🧠 فارسی الفاظ کی مشق</h2><div id="vocabPracticeCard" class="study-flashcard">الفاظ لوڈ ہو رہے ہیں...</div>';
+  dashboard.querySelector('#vocabPracticeBack').onclick=returnToDashboard;const card=dashboard.querySelector('#vocabPracticeCard');let words=[];
+  try{words=(await loadPersianReferenceRows()).filter(x=>x.entry_type==='vocab'&&x.term&&x.translation);}catch(_){words=PERSIAN_VOCAB_SEED.map(x=>({term:x[0],translation:x[1],pronunciation:x[2]}));}
+  if(!words.length){card.textContent='لغت میں ابھی مشق کے الفاظ موجود نہیں۔';return;}
+  const schedule=readLearningStorage('vocab-schedule',{}),now=Date.now();const due=words.filter(w=>!schedule[w.id||w.term]?.due||schedule[w.id||w.term].due<=now);const queue=(due.length?due:words).slice(0,10);let index=0;
+  const render=()=>{if(index>=queue.length){card.innerHTML='<h3>آج کی مشق مکمل! 🌟</h3><p>'+queue.length+' الفاظ کی مشق ہوگئی۔</p><button id="practiceAgain">دوبارہ مشق کریں</button>';card.querySelector('#practiceAgain').onclick=()=>{index=0;render();};return;}const word=queue[index],key=word.id||word.term;card.innerHTML='<p>لفظ '+(index+1)+' از '+queue.length+'</p><h2 lang="fa" dir="rtl">'+escapeReferenceHtml(word.term)+'</h2><p>'+escapeReferenceHtml(word.pronunciation||'')+'</p><button id="speakPracticeWord">🔊 تلفظ سنیں</button><div id="practiceAnswer" hidden><h3>'+escapeReferenceHtml(word.translation)+'</h3></div><button id="revealPractice">اردو معنی دیکھیں</button><div id="practiceRating" hidden><button id="practiceAgainSoon" style="background:#a04b38">دوبارہ دہرائیں</button><button id="practiceKnown">یاد تھا</button></div>';card.querySelector('#speakPracticeWord').onclick=()=>{if('speechSynthesis'in window){const speech=new SpeechSynthesisUtterance(word.term);speech.lang='fa-IR';speechSynthesis.cancel();speechSynthesis.speak(speech);}};card.querySelector('#revealPractice').onclick=()=>{card.querySelector('#practiceAnswer').hidden=false;card.querySelector('#practiceRating').hidden=false;card.querySelector('#revealPractice').hidden=true;};const rate=known=>{const old=schedule[key]||{streak:0};const days=known?[1,3,7,14][Math.min(old.streak,3)]:0;schedule[key]={streak:known?old.streak+1:0,due:Date.now()+days*86400000};writeLearningStorage('vocab-schedule',schedule);index++;render();};card.querySelector('#practiceAgainSoon').onclick=()=>rate(false);card.querySelector('#practiceKnown').onclick=()=>rate(true);};render();
+}
+
+function addStudyAudioControls(audio, transcriptText='') {
+  if(!audio||audio.dataset.studyControls==='yes')return;audio.dataset.studyControls='yes';audio.setAttribute('aria-label','فارسی آڈیو');
+  const tools=document.createElement('div');tools.className='study-audio-controls';const speed=document.createElement('select');speed.setAttribute('aria-label','آڈیو کی رفتار');[[0.75,'0.75×'],[1,'1×'],[1.25,'1.25×'],[1.5,'1.5×']].forEach(([rate,label])=>{const option=document.createElement('option');option.value=rate;option.textContent=label;speed.appendChild(option);});speed.onchange=()=>{audio.playbackRate=Number(speed.value);};const repeat=document.createElement('button');repeat.type='button';repeat.textContent='🔁 ریپیٹ بند';repeat.setAttribute('aria-pressed','false');repeat.onclick=()=>{audio.loop=!audio.loop;repeat.textContent=audio.loop?'🔁 ریپیٹ چل رہا':'🔁 ریپیٹ بند';repeat.setAttribute('aria-pressed',String(audio.loop));};tools.append(speed,repeat);if(audio.src.startsWith('data:'))appendStudyDownloadButton(tools,audio.src,'farsi-conversation-audio.mp3');audio.insertAdjacentElement('afterend',tools);
+  if(transcriptText){const details=document.createElement('details');details.className='study-tool-card';const summary=document.createElement('summary');summary.textContent='📄 آڈیو کا متن / اردو تشریح';const body=document.createElement('p');body.style.whiteSpace='pre-wrap';body.textContent=transcriptText;details.append(summary,body);tools.insertAdjacentElement('afterend',details);}
+}
+async function downloadStudyFile(url, filename, messageTarget) {
+  try{const response=await fetch(url);if(!response.ok)throw new Error('Download');const blob=await response.blob();await saveOfflineMediaFile(filename||'lesson-file',blob);const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=filename||'lesson-file';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),60000);if(messageTarget)messageTarget.textContent='فائل ڈاؤن لوڈ اور آف لائن فہرست میں محفوظ ہوگئی۔';}
+  catch(_){if(messageTarget){const fallback=document.createElement('a');fallback.href=url;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.textContent='فائل یہاں کھولیں / Download';messageTarget.replaceChildren(fallback);}}
+}
+function openStudyOfflineDatabase(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(new Error('IndexedDB not available'));return;}const request=indexedDB.open('ctlp-offline-media',1);request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('files'))request.result.createObjectStore('files',{keyPath:'id'});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+async function saveOfflineMediaFile(filename,blob){const db=await openStudyOfflineDatabase();return new Promise((resolve,reject)=>{const tx=db.transaction('files','readwrite');const store=tx.objectStore('files');const record={id:Date.now()+'-'+Math.random().toString(36).slice(2),filename,blob,savedAt:Date.now()};store.put(record);const all=store.getAll();all.onsuccess=()=>{const old=all.result.sort((a,b)=>b.savedAt-a.savedAt).slice(30);old.forEach(item=>store.delete(item.id));};tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function getOfflineMediaFiles(){const db=await openStudyOfflineDatabase();return new Promise((resolve,reject)=>{const tx=db.transaction('files','readonly');const request=tx.objectStore('files').getAll();request.onsuccess=()=>{db.close();resolve(request.result.sort((a,b)=>b.savedAt-a.savedAt).slice(0,30));};request.onerror=()=>{db.close();reject(request.error);};});}
+function appendStudyDownloadButton(container,url,filename) {
+  if(!url)return;const button=document.createElement('button');button.type='button';button.textContent='⬇ ڈاؤن لوڈ';button.style.cssText='width:auto;margin:6px 6px 0 0;padding:7px 10px;font-size:14px;';const note=document.createElement('small');note.setAttribute('aria-live','polite');button.onclick=()=>downloadStudyFile(url,filename,note);container.append(button,note);
+}
+
+async function appendLessonQuickQuiz(container, lessonId, sourceText='') {
+  let words=[];try{words=(await loadPersianReferenceRows()).filter(x=>x.entry_type==='vocab'&&x.term&&x.translation);}catch(_){words=PERSIAN_VOCAB_SEED.map(x=>({term:x[0],translation:x[1],pronunciation:x[2]}));}
+  if(words.length<2)return;
+  const seed=String(lessonId||'').split('').reduce((n,c)=>n+c.charCodeAt(0),0);const chosen=[];
+  for(let i=0;i<Math.min(3,words.length);i++)chosen.push(words[(seed+i*7)%words.length]);
+  const card=document.createElement('section');card.className='study-tool-card';const heading=document.createElement('h3');heading.textContent='📝 چھوٹا فارسی لغت کوئز';const prompt=document.createElement('p');const options=document.createElement('div');const result=document.createElement('p');card.append(heading,prompt,options,result);container.appendChild(card);let index=0,score=0;
+  const render=()=>{if(index>=chosen.length){prompt.textContent='کوئز مکمل ہوگیا! آپ کا اسکور: '+score+' / '+chosen.length;options.replaceChildren();result.textContent='لغت کی مشق جاری رکھیں تاکہ الفاظ یاد رہیں۔';localStorage.setItem(learningStorageKey('quiz-count'),String(Number(localStorage.getItem(learningStorageKey('quiz-count'))||0)+1));return;}const answer=chosen[index];prompt.textContent='سوال '+(index+1)+' / '+chosen.length+' — “'+answer.term+'” کا اردو مطلب کیا ہے؟';options.replaceChildren();const choices=[answer,...words.filter(w=>w.term!==answer.term).slice((seed+index)%Math.max(1,words.length-1),(seed+index)%Math.max(1,words.length-1)+2)].slice(0,3).sort(()=>Math.random()-.5);choices.forEach(choice=>{const button=document.createElement('button');button.type='button';button.textContent=choice.translation;button.onclick=()=>{options.querySelectorAll('button').forEach(b=>b.disabled=true);const correct=choice.term===answer.term;if(correct)score++;result.textContent=correct?'درست جواب! بہت خوب۔':'درست معنی: '+answer.translation;setTimeout(()=>{index++;render();},900);};options.appendChild(button);});};render();
 }
 
 async function openStudentFavorite(favorite) {
@@ -1796,6 +1915,12 @@ function showPersianConversationLesson01() {
     ${lines}
     <details class="card" style="padding:12px;box-shadow:none;border:1px solid #dce7df;"><summary style="cursor:pointer;font-weight:700;">اہم الفاظ</summary><p lang="fa" dir="rtl">حال — حال | خوب — اچھا / ٹھیک | اسم — نام | متشکرم — شکریہ | خدا حافظ — الوداع</p></details>`;
   dashboard.querySelector('#conversationLibraryBack').onclick = () => guestModeActive ? returnToDashboard() : showPersianConversationLessons();
+  saveLastOpenedLesson({kind:'conversation',lessonId:'persian-01',title:'فارسی بول چال 01 — احوال پرسی'});
+  addStudyAudioControls(dashboard.querySelector('audio'),dialogue.map(row=>row[1]+' — '+row[2]).join('\n'));
+  const completeConversation=document.createElement('button');completeConversation.type='button';completeConversation.textContent=readLearningStorage('conversation-done',[]).includes('persian-01')?'✓ یہ گفتگو مکمل ہے':'گفتگو مکمل نشان زد کریں';
+  completeConversation.onclick=()=>{const completed=readLearningStorage('conversation-done',[]);if(!completed.includes('persian-01'))completed.push('persian-01');writeLearningStorage('conversation-done',completed);recordLearningActivity('persian-01');completeConversation.textContent='✓ یہ گفتگو مکمل ہے';};
+  dashboard.querySelector('#conversation01Favorite').appendChild(completeConversation);
+  appendLessonQuickQuiz(dashboard,'persian-01');
   dashboard.querySelector('#conversation01Favorite').appendChild(createStudentFavoriteButton({
     key:'conversation:persian-01', kind:'conversation', title:'فارسی بول چال 01 — احوال پرسی', location:'فارسی بول چال', lessonId:'persian-01'
   }));
@@ -2639,6 +2764,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   async function renderLessonContent(module, lesson) {
     lessonsPanel.style.display = 'none';
     lessonContent.style.display = 'block';
+    saveLastOpenedLesson({courseId,courseName,moduleId:module.id,lessonId:lesson.id,title:module.title+' — Lesson '+String(lesson.lesson_order).padStart(2,'0')});
     lessonContent.innerHTML = `<button id="backMeenaLessons" type="button" style="background:#555;">← واپس اسباق</button><div class="card" style="padding:18px;margin-top:12px;"><h3>${escapePaymentText(module.title)} — Lesson ${String(lesson.lesson_order).padStart(2, '0')}</h3><div id="meenaLessonResources"></div><div id="meenaLessonProgress"></div></div>`;
     lessonContent.querySelector('#backMeenaLessons').onclick = () => {
       lessonContent.style.display = 'none';
@@ -2651,6 +2777,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       catch (error) { resources.textContent = 'سبق کھولنے میں مسئلہ: ' + error.message; return; }
     }
     const contentLesson = lessonContentData?.lesson || lesson;
+    cacheLessonText({lessonId:lesson.id,title:module.title+' — Lesson '+String(lesson.lesson_order).padStart(2,'0'),courseName,persian:contentLesson.persian_text,urdu:contentLesson.urdu_explanation,english:contentLesson.english_explanation});
     const addSection = (heading, body) => {
       const section = document.createElement('section');
       section.style.cssText = 'margin:14px 0;padding:12px;border:1px solid #e1e5e9;border-radius:10px;';
@@ -2688,19 +2815,19 @@ async function showConversationCourse(dashboard, courseId, courseName) {
     if (documentResources.length) {
       const nodes = document.createElement('div');
       for (const item of documentResources) {
-        try { const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;'; const a=document.createElement('a'); a.href=await resourceUrl(item); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 '+(item.title||'PDF کھولیں'); row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'pdf','PDF')); nodes.appendChild(row); }
+        try { const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;'; const url=await resourceUrl(item); const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 '+(item.title||'PDF کھولیں'); row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'pdf','PDF')); appendStudyDownloadButton(row,url,(item.title||'lesson')+'.pdf'); nodes.appendChild(row); }
         catch(e) { const p=document.createElement('p'); p.textContent='PDF کھولنے میں مسئلہ: '+e.message; nodes.appendChild(p); }
       }
       addSection('1۔ سبق کی PDF', nodes);
     } else if (pageImages.length) {
       const gallery=document.createElement('div'); gallery.style.cssText='display:grid;grid-template-columns:1fr;gap:12px;';
       for (const item of pageImages) {
-        try { const url=await resourceUrl(item); const wrap=document.createElement('div'); const img=document.createElement('img'); img.src=url; img.alt=item.title||'سبق کا صفحہ'; img.loading='lazy'; img.style.cssText='width:100%;height:auto;border:1px solid #ddd;border-radius:8px;'; wrap.append(img,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'page_image','سبق کا صفحہ')); gallery.appendChild(wrap); }
+         try { const url=await resourceUrl(item); const wrap=document.createElement('div'); const img=document.createElement('img'); img.src=url; img.alt=item.title||'سبق کا صفحہ'; img.loading='lazy'; img.style.cssText='width:100%;height:auto;border:1px solid #ddd;border-radius:8px;'; wrap.append(img,createLessonResourceFavorite(lesson,module,courseId,courseName,item,'page_image','سبق کا صفحہ')); appendStudyDownloadButton(wrap,url,(item.title||'lesson-page')+'.jpg'); gallery.appendChild(wrap); }
         catch(e) { const err=document.createElement('p'); err.textContent='صفحہ کھولنے میں مسئلہ: '+e.message; gallery.appendChild(err); }
       }
       addSection('1۔ سبق کے صفحات', gallery);
     } else if (contentLesson.pdf_url) {
-      const a=document.createElement('a'); a.href=await getLessonResourceUrl(contentLesson.pdf_url); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 PDF کھولیں'; addSection('1۔ سبق کی PDF',a);
+      const a=document.createElement('a'); a.href=await getLessonResourceUrl(contentLesson.pdf_url); a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='📄 PDF کھولیں'; const wrap=document.createElement('div');wrap.appendChild(a);appendStudyDownloadButton(wrap,a.href,'lesson.pdf');addSection('1۔ سبق کی PDF',wrap);
     } else addSection('1۔ سبق کی PDF / تصاویر', document.createTextNode('PDF یا صفحات ابھی شامل نہیں کیے گئے۔'));
 
     const explanationAudios=allResources.filter(x=>x.resource_type==='audio_explanation');
@@ -2712,7 +2839,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       for (let i=0;i<items.length;i++) {
         const row=document.createElement('div'); row.style.cssText='margin:10px 0;padding:10px;background:#f7f8fa;border-radius:8px;';
         const label=document.createElement('p'); label.textContent=items[i].title || `آڈیو ${String(i+1).padStart(2,'0')}`; row.append(label,createLessonResourceFavorite(lesson,module,courseId,courseName,items[i],items[i].resource_type||'audio',label.textContent));
-        try { const audio=document.createElement('audio'); audio.controls=true; audio.preload='none'; audio.src=await resourceUrl(items[i]); audio.style.width='100%'; row.appendChild(audio); }
+        try { const audio=document.createElement('audio'); audio.controls=true; audio.preload='none'; audio.src=await resourceUrl(items[i]); audio.style.width='100%'; row.appendChild(audio); addStudyAudioControls(audio,[contentLesson.persian_text,contentLesson.urdu_explanation].filter(Boolean).join('\n\n')); appendStudyDownloadButton(row,audio.src,(items[i].title||'lesson-audio')+'.mp3'); }
         catch(e) { const err=document.createElement('p'); err.textContent='آڈیو چلانے میں مسئلہ: '+e.message; row.appendChild(err); }
         group.appendChild(row);
       }
@@ -2728,10 +2855,13 @@ async function showConversationCourse(dashboard, courseId, courseName) {
         const v=videos[i], row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0;';
         const a=document.createElement('a'); try { a.href=await resourceUrl(v); } catch (_) { a.href='#'; }
         a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='▶ '+(v.title||`ویڈیو ${String(i+1).padStart(2,'0')}`);
-        row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,v,'video',`ویڈیو ${String(i+1).padStart(2,'0')}`)); videoGroup.appendChild(row);
+        row.append(a,createLessonResourceFavorite(lesson,module,courseId,courseName,v,'video',`ویڈیو ${String(i+1).padStart(2,'0')}`)); appendStudyDownloadButton(row,a.href,(v.title||'lesson-video')+'.mp4'); videoGroup.appendChild(row);
       }
     } else videoGroup.textContent='ویڈیوز ابھی شامل نہیں کی گئیں۔';
     addSection('4۔ ویڈیوز',videoGroup);
+
+    const offlineButton=document.createElement('button');offlineButton.type='button';offlineButton.textContent='⬇ متن آف لائن محفوظ کریں';offlineButton.onclick=()=>{cacheLessonText({lessonId:lesson.id,title:module.title+' — Lesson '+String(lesson.lesson_order).padStart(2,'0'),courseName,persian:contentLesson.persian_text,urdu:contentLesson.urdu_explanation,english:contentLesson.english_explanation});offlineButton.textContent='✓ متن اسی ڈیوائس پر محفوظ ہوگیا';};resources.appendChild(offlineButton);
+    await appendLessonQuickQuiz(resources,lesson.id,contentLesson.persian_text||'');
 
     const progressArea = lessonContent.querySelector('#meenaLessonProgress');
     let done = false;
@@ -2753,6 +2883,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       }
       const { error } = await supabase.from('lesson_progress').upsert({ student_id: activeStudentId, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'student_id,lesson_id' });
       if (error) { alert('Progress محفوظ نہیں ہوئی: ' + error.message); progressButton.disabled = false; return; }
+      recordLearningActivity(lesson.id);
       progressButton.textContent = '✓ سبق مکمل ہو چکا ہے';
     };
     progressArea.appendChild(progressButton);
@@ -3277,6 +3408,7 @@ heading.textContent = chapterInfo
             }
           }
           completedLessonIds.add(lesson.id);
+          recordLearningActivity(lesson.id);
           if (!progressLabel) {
             progressLabel = document.createElement('p');
             progressLabel.textContent = '✅ یہ سبق مکمل ہو چکا ہے۔';
@@ -3295,6 +3427,8 @@ openButton.onclick = async () => {
     });
     return;
   }
+
+  saveLastOpenedLesson({courseId,courseName,moduleId:module.id,lessonId:lesson.id,title:`درس ${lesson.lesson_order}: ${lesson.title}`});
 
   if (!lessonInfo) {
     alert('کتاب کے سبق کی معلومات نہیں مل رہیں۔');
@@ -3315,6 +3449,8 @@ openButton.onclick = async () => {
 
   const pageText = document.createElement('p');
   pageText.style.textAlign = 'center';
+  const downloadPage = document.createElement('button');
+  downloadPage.type='button'; downloadPage.textContent='⬇ صفحہ ڈاؤن لوڈ'; downloadPage.style.cssText='display:block;width:auto;margin:8px auto;';
 
   const prev = document.createElement('button');
   prev.type = 'button';
@@ -3344,6 +3480,7 @@ openButton.onclick = async () => {
 
     image.src = signedUrl;
     image.style.display = 'block';
+    downloadPage.onclick=()=>downloadStudyFile(signedUrl,`farsi-page-${currentLessonPage}.jpg`,pageText);
 
     pageText.textContent =
       `صفحہ ${currentLessonPage} از ${lessonInfo.end}`;
@@ -3368,6 +3505,7 @@ openButton.onclick = async () => {
 
   content.appendChild(image);
   content.appendChild(pageText);
+  content.appendChild(downloadPage);
   // Force Next above Previous, regardless of RTL or other page styles.
   content.appendChild(next);
   content.appendChild(prev);
