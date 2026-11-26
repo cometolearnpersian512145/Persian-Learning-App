@@ -5,8 +5,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Come To Learn Persian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Vazirmatn:wght@400..800&display=swap" rel="stylesheet">
 <style>
-body{font-family:Arial,sans-serif;background:#f3f6f3;margin:0;color:#173d32}
+body{font-family:'Noto Nastaliq Urdu',Tahoma,Arial,serif;background:#f3f6f3;margin:0;color:#173d32}
+button,input,select,textarea{font-family:inherit}
 header{background:#123b32;color:white;text-align:center;padding:25px}
 main{max-width:480px;margin:25px auto;padding:15px}
 .card{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 12px #0001;margin-bottom:18px}
@@ -56,7 +60,8 @@ body.authenticated .logout-button{display:block}
 .student-utility-controls{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;margin:0 0 16px}
 .student-utility-controls button{margin:0;padding:10px 6px;font-size:14px}
 .student-utility-controls button[aria-pressed="true"]{outline:2px solid #d5b66a;outline-offset:1px}
-.student-favorite-button{width:auto;display:inline-block;margin:5px 0;padding:7px 11px;background:#fff7dc;color:#624d00;border:1px solid #e8d28b;border-radius:9px;font-size:14px}
+.student-favorite-button{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;margin:5px 0;padding:0;background:#fff7dc;color:#624d00;border:1px solid #e8d28b;border-radius:12px;font-size:27px;line-height:1;cursor:pointer}
+.student-favorite-button:focus-visible{outline:3px solid #167568;outline-offset:2px}
 .student-favorite-card{padding:14px;margin:10px 0;border:1px solid #dce7df;box-shadow:none}
 body[data-theme="night"]{background:#101918;color:#e8f0ec}
 body[data-theme="night"] header{background:#0b2823}
@@ -69,6 +74,9 @@ body[data-theme="night"] .student-search-form input{background:transparent!impor
 body[data-theme="night"] .student-calendar-date{color:#fff}
 body[data-theme="night"] .lessonContent,body[data-theme="night"] .lessonContent div,body[data-theme="night"] .lessonContent section{background-color:#202c2b!important;color:#e8f0ec!important;border-color:#46534e!important}
 body[data-theme="night"] .student-favorite-button{background:#4b401b!important;color:#fff1b8!important;border-color:#87753d!important}
+:lang(fa){font-family:'Vazirmatn','Noto Naskh Arabic',Tahoma,sans-serif;line-height:1.8}
+html[lang="en"] body{font-family:Arial,sans-serif}
+html[lang="en"] :lang(fa){font-family:'Vazirmatn','Noto Naskh Arabic',Tahoma,sans-serif}
 body[data-theme="night"] main p,body[data-theme="night"] main h1,body[data-theme="night"] main h2,body[data-theme="night"] main h3,body[data-theme="night"] main h4,body[data-theme="night"] main label,body[data-theme="night"] main small{color:#e8f0ec!important}
 body[data-theme="night"] main a{color:#a9d9ff}
 
@@ -90,7 +98,7 @@ body[data-theme="night"] main a{color:#a9d9ff}
   --ctlp-paper:#fffefa;
 }
 body{
-  font-family:Tahoma,Arial,sans-serif;
+  font-family:'Noto Nastaliq Urdu',Tahoma,Arial,serif;
   background:
     radial-gradient(ellipse at 8% 10%,rgba(215,182,107,.13),transparent 30%),
     radial-gradient(ellipse at 92% 34%,rgba(22,117,104,.10),transparent 28%),
@@ -847,7 +855,10 @@ function createStudentFavoriteButton(item) {
   button.className = 'student-favorite-button';
   const refresh = () => {
     const saved = getStudentFavorites().some(favorite => favorite.key === item.key);
-    button.textContent = saved ? '★ پسندیدہ میں شامل' : '☆ پسندیدہ میں رکھیں';
+    button.textContent = saved ? '★' : '☆';
+    const label = saved ? 'پسندیدہ سے ہٹائیں' : 'پسندیدہ میں رکھیں';
+    button.setAttribute('aria-label', label);
+    button.title = label;
     button.setAttribute('aria-pressed', String(saved));
   };
   refresh();
