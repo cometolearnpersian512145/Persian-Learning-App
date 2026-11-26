@@ -66,8 +66,10 @@ body.authenticated .logout-button{display:block}
 .study-audio-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .study-audio-controls button,.study-audio-controls select{width:auto;margin:0;padding:7px 10px;font-size:14px}
 .reference-favorite-slot{display:inline-flex;align-items:center;justify-content:center;min-width:44px}
+.student-pronunciation-button{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin:0 3px;padding:0;border:1px solid #cfe0d4;border-radius:11px;background:#edf7ef;color:#176b50;font-size:21px;cursor:pointer}
+.student-pronunciation-button[aria-pressed="true"]{background:#d7ebdd;outline:2px solid #81b48c}
 .masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
-.masdar-table{width:100%;min-width:650px;border-collapse:collapse;background:#fff}
+.masdar-table{width:100%;min-width:720px;border-collapse:collapse;background:#fff}
 .masdar-table th,.masdar-table td{padding:11px 9px;border-bottom:1px solid #e3eae4;text-align:right;vertical-align:middle;line-height:1.8}
 .masdar-table th{background:#edf5ef;color:#234f40;white-space:nowrap}
 .masdar-table td[lang="fa"]{font-family:'Vazirmatn','Noto Naskh Arabic',Tahoma,sans-serif;font-size:18px}
@@ -927,6 +929,20 @@ function createStudentFavoriteButton(item) {
   return button;
 }
 
+function createPersianSpeechButton(text) {
+  const button=document.createElement('button');button.type='button';button.className='student-pronunciation-button';button.textContent='🔊';button.title='فارسی تلفظ سنیں';button.setAttribute('aria-label','فارسی تلفظ سنیں');button.setAttribute('aria-pressed','false');
+  button.onclick=()=>{
+    if(!('speechSynthesis'in window)||typeof SpeechSynthesisUtterance==='undefined'){alert('اس ڈیوائس یا براؤزر میں آواز سنانے کی سہولت موجود نہیں۔');return;}
+    const synth=window.speechSynthesis;
+    if(synth.speaking&&button.getAttribute('aria-pressed')==='true'){synth.cancel();button.setAttribute('aria-pressed','false');return;}
+    document.querySelectorAll('.student-pronunciation-button[aria-pressed="true"]').forEach(item=>item.setAttribute('aria-pressed','false'));
+    synth.cancel();const utterance=new SpeechSynthesisUtterance(String(text||''));utterance.lang='fa-IR';utterance.rate=0.88;
+    const voice=synth.getVoices().find(item=>/^fa([-_]|$)/i.test(item.lang));if(voice)utterance.voice=voice;
+    utterance.onstart=()=>button.setAttribute('aria-pressed','true');utterance.onend=()=>button.setAttribute('aria-pressed','false');utterance.onerror=()=>button.setAttribute('aria-pressed','false');synth.speak(utterance);
+  };
+  return button;
+}
+
 function createLessonResourceFavorite(lesson, module, courseId, courseName, resource, fallbackType, fallbackTitle) {
   const resourceType = resource.resource_type || fallbackType || 'resource';
   const title = resource.title || fallbackTitle || resourceType;
@@ -1143,6 +1159,7 @@ function showStudentFavorites() {
     const title = document.createElement('strong');
     title.textContent = favorite.title || 'پسندیدہ مواد';
     card.appendChild(title);
+    if (favorite.kind === 'reference' && favorite.term) card.appendChild(createPersianSpeechButton(favorite.term));
     if (favorite.location) { const location = document.createElement('p'); location.textContent = favorite.location; card.appendChild(location); }
     const open = document.createElement('button');
     open.type = 'button'; open.textContent = favorite.kind === 'resource' ? 'فائل کھولیں' : favorite.kind === 'reference' ? 'لغت / مصدر کھولیں' : 'سبق کھولیں';
@@ -1239,6 +1256,7 @@ async function searchStudentLessons() {
       const card=document.createElement('div'); card.className='card student-search-result'; card.style.padding='12px';
       const title=document.createElement('strong'); title.textContent=r.term;
       card.appendChild(title);
+      card.appendChild(createPersianSpeechButton(r.term));
       if(type==='masdar'){
         const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0;';
         [['اردو معنی',r.translation||'—'],['بنِ ماضی',r.past_stem||'—'],['بنِ مضارع',r.present_stem||'—']].forEach(([label,value])=>{const cell=document.createElement('div');cell.style.cssText='padding:8px;border:1px solid #dce7df;border-radius:8px;';const caption=document.createElement('small');caption.textContent=label;const content=document.createElement('div');content.textContent=value;if(label!=='اردو معنی'){content.lang='fa';content.dir='rtl';}cell.append(caption,content);grid.appendChild(cell);});card.appendChild(grid);
@@ -1990,11 +2008,12 @@ async function openPersianReference(type) {
         ? `<p>لغت میں ${rows.length.toLocaleString()} اندراجات ہیں۔ تلاش کریں یا پہلے ${visible.length} الفاظ میں سے پسندیدہ منتخب کریں۔</p>`
         : filtered.length > visible.length ? `<p>کل ${filtered.length.toLocaleString()} نتائج؛ پہلے ${visible.length} دکھائے جا رہے ہیں۔ بہتر تلاش کے لیے پورا لفظ لکھیں۔</p>` : `<p>${filtered.length.toLocaleString()} نتائج ملے۔</p>`;
       if(type==='masdar'){
-        const table=`<div class="masdar-table-scroll"><table class="masdar-table" dir="rtl"><thead><tr><th>مصدر</th><th>اردو معنی</th><th>بنِ ماضی</th><th>بنِ مضارع</th><th>پسندیدہ</th></tr></thead><tbody>${visible.map((r,i)=>`<tr><td lang="fa" dir="rtl">${escapeReferenceHtml(r.term)}</td><td>${escapeReferenceHtml(r.translation||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.past_stem||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.present_stem||'—')}</td><td><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></td></tr>`).join('')}</tbody></table></div>`;
+        const table=`<div class="masdar-table-scroll"><table class="masdar-table" dir="rtl"><thead><tr><th>مصدر</th><th>اردو معنی</th><th>بنِ ماضی</th><th>بنِ مضارع</th><th>سنیں</th><th>پسندیدہ</th></tr></thead><tbody>${visible.map((r,i)=>`<tr><td lang="fa" dir="rtl">${escapeReferenceHtml(r.term)}</td><td>${escapeReferenceHtml(r.translation||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.past_stem||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.present_stem||'—')}</td><td><span data-reference-speech-slot="${i}"></span></td><td><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></td></tr>`).join('')}</tbody></table></div>`;
         results.innerHTML=resultNote+table;
       }else{
-        results.innerHTML = resultNote + visible.map((r,i) => `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></div><p style="margin:4px 0;">${escapeReferenceHtml(r.translation||'')}</p><i>${escapeReferenceHtml(r.pronunciation||'')}</i></article>`).join('');
+        results.innerHTML = resultNote + visible.map((r,i) => `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><span data-reference-speech-slot="${i}"></span><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></div><p style="margin:4px 0;">${escapeReferenceHtml(r.translation||'')}</p><i>${escapeReferenceHtml(r.pronunciation||'')}</i></article>`).join('');
       }
+      results.querySelectorAll('[data-reference-speech-slot]').forEach((slot,i)=>slot.appendChild(createPersianSpeechButton(visible[i].term)));
       results.querySelectorAll('[data-reference-favorite-slot]').forEach((slot,i)=>{const row=visible[i];slot.appendChild(createStudentFavoriteButton({key:referenceFavoriteKey(type,row),kind:'reference',entryType:type,term:row.term,title:row.term,location:type==='masdar'?'فارسی مصادر':'فارسی لغت'}));});
     };
     search.value=pendingReferenceTerm||''; pendingReferenceTerm=null; search.oninput=render; search.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();render();}}; searchButton.onclick=render; render();
