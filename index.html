@@ -931,16 +931,26 @@ function createStudentFavoriteButton(item) {
 
 function createPersianSpeechButton(text) {
   const button=document.createElement('button');button.type='button';button.className='student-pronunciation-button';button.textContent='🔊';button.title='فارسی تلفظ سنیں';button.setAttribute('aria-label','فارسی تلفظ سنیں');button.setAttribute('aria-pressed','false');
-  button.onclick=()=>{
-    if(!('speechSynthesis'in window)||typeof SpeechSynthesisUtterance==='undefined'){alert('اس ڈیوائس یا براؤزر میں آواز سنانے کی سہولت موجود نہیں۔');return;}
-    const synth=window.speechSynthesis;
-    if(synth.speaking&&button.getAttribute('aria-pressed')==='true'){synth.cancel();button.setAttribute('aria-pressed','false');return;}
-    document.querySelectorAll('.student-pronunciation-button[aria-pressed="true"]').forEach(item=>item.setAttribute('aria-pressed','false'));
-    synth.cancel();const utterance=new SpeechSynthesisUtterance(String(text||''));utterance.lang='fa-IR';utterance.rate=0.88;
-    const voice=synth.getVoices().find(item=>/^fa([-_]|$)/i.test(item.lang));if(voice)utterance.voice=voice;
-    utterance.onstart=()=>button.setAttribute('aria-pressed','true');utterance.onend=()=>button.setAttribute('aria-pressed','false');utterance.onerror=()=>button.setAttribute('aria-pressed','false');synth.speak(utterance);
-  };
+  button.onclick=()=>speakPersianText(text,button);
   return button;
+}
+let cachedPersianSpeechVoice=null;
+function refreshAvailablePersianVoice() {
+  if(!('speechSynthesis'in window))return;
+  cachedPersianSpeechVoice=window.speechSynthesis.getVoices().find(item=>/^fa([-_]|$)/i.test(item.lang))||null;
+}
+if('speechSynthesis'in window){refreshAvailablePersianVoice();window.speechSynthesis.addEventListener?.('voiceschanged',refreshAvailablePersianVoice);}
+function speakPersianText(text,button) {
+  if(!('speechSynthesis'in window)||typeof SpeechSynthesisUtterance==='undefined'){alert('اس براؤزر میں آواز سنانے کی سہولت نہیں۔ براہِ کرم Chrome یا Safari میں ایپ کھولیں۔');return;}
+  const synth=window.speechSynthesis;
+  if(synth.speaking&&button?.getAttribute('aria-pressed')==='true'){synth.cancel();button.setAttribute('aria-pressed','false');return;}
+  const voices=synth.getVoices();const voice=voices.find(item=>/^fa([-_]|$)/i.test(item.lang))||cachedPersianSpeechVoice;
+  if(voices.length&&!voice){alert('اس ڈیوائس میں فارسی (fa-IR) آواز انسٹال نہیں ہے۔ ڈیوائس کی Text-to-Speech settings میں Persian voice انسٹال کریں، پھر دوبارہ سنیں۔');return;}
+  document.querySelectorAll('.student-pronunciation-button[aria-pressed="true"]').forEach(item=>item.setAttribute('aria-pressed','false'));
+  synth.cancel();const utterance=new SpeechSynthesisUtterance(String(text||''));utterance.lang='fa-IR';utterance.rate=0.82;if(voice)utterance.voice=voice;
+  let started=false;utterance.onstart=()=>{started=true;button?.setAttribute('aria-pressed','true');};utterance.onend=()=>button?.setAttribute('aria-pressed','false');
+  utterance.onerror=event=>{button?.setAttribute('aria-pressed','false');if(event.error!=='canceled')alert('فارسی آواز نہیں چل سکی۔ ڈیوائس میں Persian Text-to-Speech voice دستیاب یا فعال نہیں ہے۔');};
+  try{synth.speak(utterance);setTimeout(()=>{if(!started&&!synth.speaking)alert('فارسی آواز دستیاب نہیں ہوئی۔ ڈیوائس میں Persian Text-to-Speech voice انسٹال یا فعال کریں۔');},2500);}catch(_){alert('فارسی آواز شروع نہیں ہو سکی۔ براہِ کرم ڈیوائس کی آواز کی settings چیک کریں۔');}
 }
 
 function createLessonResourceFavorite(lesson, module, courseId, courseName, resource, fallbackType, fallbackTitle) {
@@ -1084,7 +1094,7 @@ async function showVocabularyPractice() {
   try{words=(await loadPersianReferenceRows()).filter(x=>x.entry_type==='vocab'&&x.term&&x.translation);}catch(_){words=PERSIAN_VOCAB_SEED.map(x=>({term:x[0],translation:x[1],pronunciation:x[2]}));}
   if(!words.length){card.textContent='لغت میں ابھی مشق کے الفاظ موجود نہیں۔';return;}
   const schedule=readLearningStorage('vocab-schedule',{}),now=Date.now();const due=words.filter(w=>!schedule[w.id||w.term]?.due||schedule[w.id||w.term].due<=now);const queue=(due.length?due:words).slice(0,10);let index=0;
-  const render=()=>{if(index>=queue.length){card.innerHTML='<h3>آج کی مشق مکمل! 🌟</h3><p>'+queue.length+' الفاظ کی مشق ہوگئی۔</p><button id="practiceAgain">دوبارہ مشق کریں</button>';card.querySelector('#practiceAgain').onclick=()=>{index=0;render();};return;}const word=queue[index],key=word.id||word.term;card.innerHTML='<p>لفظ '+(index+1)+' از '+queue.length+'</p><h2 lang="fa" dir="rtl">'+escapeReferenceHtml(word.term)+'</h2><p>'+escapeReferenceHtml(word.pronunciation||'')+'</p><button id="speakPracticeWord">🔊 تلفظ سنیں</button><div id="practiceAnswer" hidden><h3>'+escapeReferenceHtml(word.translation)+'</h3></div><button id="revealPractice">اردو معنی دیکھیں</button><div id="practiceRating" hidden><button id="practiceAgainSoon" style="background:#a04b38">دوبارہ دہرائیں</button><button id="practiceKnown">یاد تھا</button></div>';card.querySelector('#speakPracticeWord').onclick=()=>{if('speechSynthesis'in window){const speech=new SpeechSynthesisUtterance(word.term);speech.lang='fa-IR';speechSynthesis.cancel();speechSynthesis.speak(speech);}};card.querySelector('#revealPractice').onclick=()=>{card.querySelector('#practiceAnswer').hidden=false;card.querySelector('#practiceRating').hidden=false;card.querySelector('#revealPractice').hidden=true;};const rate=known=>{const old=schedule[key]||{streak:0};const days=known?[1,3,7,14][Math.min(old.streak,3)]:0;schedule[key]={streak:known?old.streak+1:0,due:Date.now()+days*86400000};writeLearningStorage('vocab-schedule',schedule);index++;render();};card.querySelector('#practiceAgainSoon').onclick=()=>rate(false);card.querySelector('#practiceKnown').onclick=()=>rate(true);};render();
+  const render=()=>{if(index>=queue.length){card.innerHTML='<h3>آج کی مشق مکمل! 🌟</h3><p>'+queue.length+' الفاظ کی مشق ہوگئی۔</p><button id="practiceAgain">دوبارہ مشق کریں</button>';card.querySelector('#practiceAgain').onclick=()=>{index=0;render();};return;}const word=queue[index],key=word.id||word.term;card.innerHTML='<p>لفظ '+(index+1)+' از '+queue.length+'</p><h2 lang="fa" dir="rtl">'+escapeReferenceHtml(word.term)+'</h2><p>'+escapeReferenceHtml(word.pronunciation||'')+'</p><button id="speakPracticeWord">🔊 تلفظ سنیں</button><div id="practiceAnswer" hidden><h3>'+escapeReferenceHtml(word.translation)+'</h3></div><button id="revealPractice">اردو معنی دیکھیں</button><div id="practiceRating" hidden><button id="practiceAgainSoon" style="background:#a04b38">دوبارہ دہرائیں</button><button id="practiceKnown">یاد تھا</button></div>';card.querySelector('#speakPracticeWord').onclick=()=>speakPersianText(word.term,card.querySelector('#speakPracticeWord'));card.querySelector('#revealPractice').onclick=()=>{card.querySelector('#practiceAnswer').hidden=false;card.querySelector('#practiceRating').hidden=false;card.querySelector('#revealPractice').hidden=true;};const rate=known=>{const old=schedule[key]||{streak:0};const days=known?[1,3,7,14][Math.min(old.streak,3)]:0;schedule[key]={streak:known?old.streak+1:0,due:Date.now()+days*86400000};writeLearningStorage('vocab-schedule',schedule);index++;render();};card.querySelector('#practiceAgainSoon').onclick=()=>rate(false);card.querySelector('#practiceKnown').onclick=()=>rate(true);};render();
 }
 
 function addStudyAudioControls(audio, transcriptText='') {
