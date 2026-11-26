@@ -65,6 +65,15 @@ body.authenticated .logout-button{display:block}
 .study-tool-card{padding:16px;margin:12px 0;border:1px solid #dce7df;border-radius:14px;background:#fffefa}
 .study-audio-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .study-audio-controls button,.study-audio-controls select{width:auto;margin:0;padding:7px 10px;font-size:14px}
+.reference-favorite-slot{display:inline-flex;align-items:center;justify-content:center;min-width:44px}
+.masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
+.masdar-table{width:100%;min-width:650px;border-collapse:collapse;background:#fff}
+.masdar-table th,.masdar-table td{padding:11px 9px;border-bottom:1px solid #e3eae4;text-align:right;vertical-align:middle;line-height:1.8}
+.masdar-table th{background:#edf5ef;color:#234f40;white-space:nowrap}
+.masdar-table td[lang="fa"]{font-family:'Vazirmatn','Noto Naskh Arabic',Tahoma,sans-serif;font-size:18px}
+body[data-theme="night"] .masdar-table{background:#202f2a;color:#e8f0ec}
+body[data-theme="night"] .masdar-table th{background:#263b33;color:#f0d99f}
+body[data-theme="night"] .masdar-table td{border-color:#465a50}
 .study-flashcard{padding:26px 18px;text-align:center;border:1px solid #d7e4d8;border-radius:18px;background:linear-gradient(145deg,#f5fbf5,#fff9e9);}
 body[data-theme="night"] .study-tool-card,body[data-theme="night"] .study-flashcard{background:#202f2a;color:#e8f0ec;border-color:#465a50}
 body[data-student-text-size="large"] #studentDashboard p,body[data-student-text-size="large"] #studentDashboard li,body[data-student-text-size="large"] #studentDashboard label,body[data-student-text-size="large"] #studentDashboard button,body[data-student-text-size="large"] #studentDashboard summary,body[data-student-text-size="large"] #studentDashboard a,body[data-student-text-size="large"] #studentDashboard input,body[data-student-text-size="large"] #studentDashboard small{font-size:calc(16px * var(--ctlp-student-text-scale,1))!important}
@@ -671,6 +680,11 @@ const SUPABASE_URL = 'https://ywffwyxnmigjgtywbpil.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3ZmZ3eXhubWlnamd0eXdicGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NjgxMDEsImV4cCI6MjEwOTM0NDEwMX0.dU9AUEEE78zbrzPlDNGpBrSDYcw03ry7stUlAE7FX90';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+if (location.protocol === 'https:' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(() => {});
+  }, { once: true });
+}
 window.__ctlpSupabaseReferenceInsert = async payload => await supabase.from('persian_reference_entries').insert(payload);
 window.__ctlpSupabaseReferenceUpdate = async (id,payload) => await supabase.from('persian_reference_entries').update(payload).eq('id',id);
 window.__ctlpRefreshReferenceAdmin = () => loadPersianReferenceAdmin();
@@ -830,6 +844,7 @@ function showGuestDashboard() {
 }
 
 let pendingFavoriteNavigation = null;
+let pendingReferenceTerm = null;
 
 function studentFavoritesStorageKey() {
   return `ctlp-favorites-${activeStudentId || 'guest'}`;
@@ -1082,6 +1097,12 @@ async function appendLessonQuickQuiz(container, lessonId, sourceText='') {
 }
 
 async function openStudentFavorite(favorite) {
+  if (favorite.kind === 'reference') {
+    pendingReferenceTerm = favorite.term;
+    await returnToDashboard();
+    await openPersianReference(favorite.entryType || 'vocab');
+    return;
+  }
   if (favorite.kind === 'conversation' && favorite.lessonId === 'persian-01') {
     showPersianConversationLesson01();
     return;
@@ -1124,7 +1145,7 @@ function showStudentFavorites() {
     card.appendChild(title);
     if (favorite.location) { const location = document.createElement('p'); location.textContent = favorite.location; card.appendChild(location); }
     const open = document.createElement('button');
-    open.type = 'button'; open.textContent = favorite.kind === 'resource' ? 'فائل کھولیں' : 'سبق کھولیں';
+    open.type = 'button'; open.textContent = favorite.kind === 'resource' ? 'فائل کھولیں' : favorite.kind === 'reference' ? 'لغت / مصدر کھولیں' : 'سبق کھولیں';
     open.onclick = () => openStudentFavorite(favorite);
     const remove = document.createElement('button');
     remove.type = 'button'; remove.textContent = '★ فہرست سے ہٹائیں'; remove.style.background = '#7a3333';
@@ -1217,9 +1238,14 @@ async function searchStudentLessons() {
     for (const r of rows) {
       const card=document.createElement('div'); card.className='card student-search-result'; card.style.padding='12px';
       const title=document.createElement('strong'); title.textContent=r.term;
-      const detail=document.createElement('p'); detail.textContent=type==='masdar'?`${r.translation||''} | بنِ ماضی: ${r.past_stem||'—'} | بنِ مضارع: ${r.present_stem||'—'}`:`${r.translation||''} | تلفظ: ${r.pronunciation||'—'}`;
-      const open=document.createElement('button'); open.type='button'; open.textContent='فہرست میں کھولیں'; open.onclick=()=>openPersianReference(type);
-      card.append(title,detail,open); results.appendChild(card);
+      card.appendChild(title);
+      if(type==='masdar'){
+        const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0;';
+        [['اردو معنی',r.translation||'—'],['بنِ ماضی',r.past_stem||'—'],['بنِ مضارع',r.present_stem||'—']].forEach(([label,value])=>{const cell=document.createElement('div');cell.style.cssText='padding:8px;border:1px solid #dce7df;border-radius:8px;';const caption=document.createElement('small');caption.textContent=label;const content=document.createElement('div');content.textContent=value;if(label!=='اردو معنی'){content.lang='fa';content.dir='rtl';}cell.append(caption,content);grid.appendChild(cell);});card.appendChild(grid);
+      }else{const detail=document.createElement('p');detail.textContent=`${r.translation||''} | تلفظ: ${r.pronunciation||'—'}`;card.appendChild(detail);}
+      card.appendChild(createStudentFavoriteButton({key:referenceFavoriteKey(type,r),kind:'reference',entryType:type,term:r.term,title:r.term,location:type==='masdar'?'فارسی مصادر':'فارسی لغت'}));
+      const open=document.createElement('button'); open.type='button'; open.textContent='فہرست میں کھولیں'; open.onclick=()=>{pendingReferenceTerm=r.term;openPersianReference(type);};
+      card.appendChild(open); results.appendChild(card);
     }
   }
   const matchingModules=(modules||[]).filter(m=>(m.title||'').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
@@ -1957,25 +1983,28 @@ async function openPersianReference(type) {
     }
     const render = () => {
       const q = normalizePersianReferenceSearch(search.value);
-      if (type === 'vocab' && !q) {
-        results.innerHTML = `<p>لغت میں ${rows.length.toLocaleString()} اندراجات موجود ہیں۔ تلاش کے خانے میں فارسی لفظ، اردو معنی یا Roman تلفظ لکھیں۔</p>`;
-        return;
-      }
       const filtered = rows.filter(r => r.entry_type === type && (!q || [r.term,r.translation,r.past_stem,r.present_stem,r.pronunciation].some(v => normalizePersianReferenceSearch(v).includes(q))));
       if (!filtered.length) { results.innerHTML = '<p>کوئی لفظ نہیں ملا۔</p>'; return; }
       const visible = filtered.slice(0,100);
-      const resultNote = filtered.length > visible.length ? `<p>کل ${filtered.length.toLocaleString()} نتائج؛ پہلے ${visible.length} دکھائے جا رہے ہیں۔ بہتر تلاش کے لیے پورا لفظ لکھیں۔</p>` : `<p>${filtered.length.toLocaleString()} نتائج ملے۔</p>`;
-      results.innerHTML = resultNote + visible.map(r => type === 'vocab'
-        ? `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><p style="margin:4px 0;">${escapeReferenceHtml(r.translation||'')}</p><i>${escapeReferenceHtml(r.pronunciation||'')}</i></article>`
-        : `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><p>ترجمہ: ${escapeReferenceHtml(r.translation||'')}</p><p>بنِ ماضی: <b lang="fa">${escapeReferenceHtml(r.past_stem||'')}</b></p><p>بنِ مضارع: <b lang="fa">${escapeReferenceHtml(r.present_stem||'')}</b></p></article>`).join('');
+      const resultNote = !q && type === 'vocab'
+        ? `<p>لغت میں ${rows.length.toLocaleString()} اندراجات ہیں۔ تلاش کریں یا پہلے ${visible.length} الفاظ میں سے پسندیدہ منتخب کریں۔</p>`
+        : filtered.length > visible.length ? `<p>کل ${filtered.length.toLocaleString()} نتائج؛ پہلے ${visible.length} دکھائے جا رہے ہیں۔ بہتر تلاش کے لیے پورا لفظ لکھیں۔</p>` : `<p>${filtered.length.toLocaleString()} نتائج ملے۔</p>`;
+      if(type==='masdar'){
+        const table=`<div class="masdar-table-scroll"><table class="masdar-table" dir="rtl"><thead><tr><th>مصدر</th><th>اردو معنی</th><th>بنِ ماضی</th><th>بنِ مضارع</th><th>پسندیدہ</th></tr></thead><tbody>${visible.map((r,i)=>`<tr><td lang="fa" dir="rtl">${escapeReferenceHtml(r.term)}</td><td>${escapeReferenceHtml(r.translation||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.past_stem||'—')}</td><td lang="fa" dir="rtl">${escapeReferenceHtml(r.present_stem||'—')}</td><td><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></td></tr>`).join('')}</tbody></table></div>`;
+        results.innerHTML=resultNote+table;
+      }else{
+        results.innerHTML = resultNote + visible.map((r,i) => `<article class="card" style="padding:13px;box-shadow:none;border:1px solid #dce7df;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><h3 lang="fa" dir="rtl" style="margin:0 0 5px;">${escapeReferenceHtml(r.term)}</h3><span class="reference-favorite-slot" data-reference-favorite-slot="${i}"></span></div><p style="margin:4px 0;">${escapeReferenceHtml(r.translation||'')}</p><i>${escapeReferenceHtml(r.pronunciation||'')}</i></article>`).join('');
+      }
+      results.querySelectorAll('[data-reference-favorite-slot]').forEach((slot,i)=>{const row=visible[i];slot.appendChild(createStudentFavoriteButton({key:referenceFavoriteKey(type,row),kind:'reference',entryType:type,term:row.term,title:row.term,location:type==='masdar'?'فارسی مصادر':'فارسی لغت'}));});
     };
-    search.value=''; search.oninput=render; search.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();render();}}; searchButton.onclick=render; render();
+    search.value=pendingReferenceTerm||''; pendingReferenceTerm=null; search.oninput=render; search.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();render();}}; searchButton.onclick=render; render();
   } catch (e) { results.innerHTML = `<p style="color:#b42318;">فہرست لوڈ نہیں ہو سکی: ${escapeReferenceHtml(e.message)}. براہ کرم منتظم سے رابطہ کریں۔</p>`; }
   view.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function normalizePersianReferenceSearch(value) {
   return String(value ?? '').normalize('NFC').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').toLocaleLowerCase().trim();
 }
+function referenceFavoriteKey(type,row) { return `reference:${type}:${[row.term,row.translation,row.past_stem,row.present_stem,row.pronunciation].map(normalizePersianReferenceSearch).join('|')}`; }
 function escapeReferenceHtml(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
 async function loadPersianReferenceAdmin() {
