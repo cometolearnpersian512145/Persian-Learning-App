@@ -68,6 +68,10 @@ body.authenticated .logout-button{display:block}
 .reference-favorite-slot{display:inline-flex;align-items:center;justify-content:center;min-width:44px}
 .student-pronunciation-button{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin:0 3px;padding:0;border:1px solid #cfe0d4;border-radius:11px;background:#edf7ef;color:#176b50;font-size:21px;cursor:pointer}
 .student-pronunciation-button[aria-pressed="true"]{background:#d7ebdd;outline:2px solid #81b48c}
+.lesson-step-navigation{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+.lesson-step-navigation button{flex:1 1 135px;width:auto;min-height:44px;margin:0;padding:10px 12px;border-radius:11px;background:#176b50;color:#fff;font-weight:700}
+.lesson-step-navigation button:disabled{background:#dce5de!important;color:#78877d!important;cursor:not-allowed;opacity:1}
+body[data-theme="night"] .lesson-step-navigation button:disabled{background:#34443d!important;color:#aab8b0!important}
 .masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
 .masdar-table{width:100%;min-width:720px;border-collapse:collapse;background:#fff}
 .masdar-table th,.masdar-table td{padding:11px 9px;border-bottom:1px solid #e3eae4;text-align:right;vertical-align:middle;line-height:1.8}
@@ -2585,6 +2589,7 @@ async function showMyPaymentRequests() {
 // CONVERSATION COURSE: MEENA BOOK FOLDERS, LESSONS, MEDIA AND PURCHASES
 async function showConversationCourse(dashboard, courseId, courseName) {
   dashboard.innerHTML = `
+    <button id="meenaBackDashboardTop" type="button" style="width:auto;margin:0 0 14px;padding:10px 16px;background:#eaf3ed;color:#245542;border:1px solid #d2e1d5;">← ڈیش بورڈ</button>
     <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
       <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
       <h3>${escapePaymentText(courseName || 'فارسی گفتگو')}</h3>
@@ -2620,6 +2625,7 @@ async function showConversationCourse(dashboard, courseId, courseName) {
   const bundleDownloadStatus = dashboard.querySelector('#meenaBundleDownloadStatus');
 
   dashboard.querySelector('#meenaBackDashboard').onclick = returnToDashboard;
+  dashboard.querySelector('#meenaBackDashboardTop').onclick = returnToDashboard;
 
   let guestCatalog = null, modules = null, moduleError = null;
   if (guestModeActive) {
@@ -2828,6 +2834,35 @@ async function showConversationCourse(dashboard, courseId, courseName) {
       lessonContent.style.display = 'none';
       lessonsPanel.style.display = 'block';
     };
+    const bookLessons = lessonsByBook.get(module.id) || [];
+    const lessonIndex = bookLessons.findIndex(item => item.id === lesson.id);
+    const lessonNavigation = document.createElement('div');
+    lessonNavigation.className = 'lesson-step-navigation';
+    const previousLessonButton = document.createElement('button');
+    previousLessonButton.type = 'button';
+    previousLessonButton.textContent = '→ پچھلا سبق';
+    previousLessonButton.disabled = lessonIndex <= 0;
+    previousLessonButton.onclick = () => {
+      if (lessonIndex > 0) {
+        const previousLesson = bookLessons[lessonIndex - 1];
+        if (!!previousLesson.is_free || bookOwned) renderLessonContent(module, previousLesson);
+        else showPaymentForm({ accessType: 'chapter', targetId: module.id, priceKey: meta.priceKey, targetTitle: module.title + ' — مکمل کتاب' });
+      }
+    };
+    const nextLessonButton = document.createElement('button');
+    nextLessonButton.type = 'button';
+    nextLessonButton.textContent = 'اگلا سبق ←';
+    nextLessonButton.disabled = lessonIndex < 0 || lessonIndex >= bookLessons.length - 1;
+    nextLessonButton.onclick = () => {
+      if (lessonIndex >= 0 && lessonIndex < bookLessons.length - 1) {
+        const nextLesson = bookLessons[lessonIndex + 1];
+        const nextIsAccessible = !!nextLesson.is_free || bookOwned;
+        if (nextIsAccessible) renderLessonContent(module, nextLesson);
+        else showPaymentForm({ accessType: 'chapter', targetId: module.id, priceKey: meta.priceKey, targetTitle: module.title + ' — مکمل کتاب' });
+      }
+    };
+    lessonNavigation.append(previousLessonButton, nextLessonButton);
+    lessonContent.querySelector('.card').prepend(lessonNavigation);
     const resources = lessonContent.querySelector('#meenaLessonResources');
     let lessonContentData = null;
     if (guestModeActive) {
@@ -2961,6 +2996,7 @@ async function showStudentCourse(courseId, courseName) {
   }
   
   dashboard.innerHTML = `
+    <button id="backToStudentDashboardTop" type="button" style="width:auto;margin:0 0 14px;padding:10px 16px;background:#eaf3ed;color:#245542;border:1px solid #d2e1d5;">← ڈیش بورڈ</button>
     <div style="background:#172B4D;color:white;padding:24px;border-radius:16px;margin-bottom:20px;">
       <h2 style="color:#F4D58D;">آؤ فارسی سیکھیں</h2>
       <h3>${courseName}</h3>
@@ -3001,6 +3037,7 @@ async function showStudentCourse(courseId, courseName) {
   `;
 
 document.getElementById('backToStudentDashboard').onclick = returnToDashboard;
+  document.getElementById('backToStudentDashboardTop').onclick = returnToDashboard;
   const moduleList = document.getElementById('studentModuleList');
   const courseMessage = document.getElementById('studentCourseMessage');
   const folderChooser = document.getElementById('grammarFolderChooser');
@@ -3486,6 +3523,8 @@ openButton.onclick = async () => {
     return;
   }
 
+  lessonArea.querySelectorAll('.lessonContent').forEach(item => item.remove());
+
   saveLastOpenedLesson({courseId,courseName,moduleId:module.id,lessonId:lesson.id,title:`درس ${lesson.lesson_order}: ${lesson.title}`});
 
   if (!lessonInfo) {
@@ -3500,6 +3539,36 @@ openButton.onclick = async () => {
   content.className = 'lessonContent';
   content.style.cssText =
     'margin-top:15px;padding:15px;background:#f4f6f9;border-radius:12px;display:flex;flex-direction:column;';
+
+  const lessonIndex = lessons.findIndex(item => item.id === lesson.id);
+  const lessonNavigation = document.createElement('div');
+  lessonNavigation.className = 'lesson-step-navigation';
+  const previousLessonButton = document.createElement('button');
+  previousLessonButton.type = 'button';
+  previousLessonButton.textContent = '→ پچھلا درس';
+  previousLessonButton.disabled = lessonIndex <= 0;
+  previousLessonButton.onclick = () => {
+    if (lessonIndex > 0) {
+      const target = [...lessonArea.children].find(item => item.dataset.lessonId === lessons[lessonIndex - 1].id);
+      target?.querySelector('.student-open-lesson')?.click();
+    }
+  };
+  const nextLessonButton = document.createElement('button');
+  nextLessonButton.type = 'button';
+  nextLessonButton.textContent = 'اگلا درس ←';
+  nextLessonButton.disabled = lessonIndex < 0 || lessonIndex >= lessons.length - 1;
+  nextLessonButton.onclick = () => {
+    if (lessonIndex >= 0 && lessonIndex < lessons.length - 1) {
+      const target = [...lessonArea.children].find(item => item.dataset.lessonId === lessons[lessonIndex + 1].id);
+      target?.querySelector('.student-open-lesson')?.click();
+    }
+  };
+  const backToLessonList = document.createElement('button');
+  backToLessonList.type = 'button';
+  backToLessonList.textContent = '← اسباق کی فہرست';
+  backToLessonList.onclick = () => { content.remove(); lessonCard.scrollIntoView({behavior:'smooth',block:'center'}); };
+  lessonNavigation.append(backToLessonList, previousLessonButton, nextLessonButton);
+  content.appendChild(lessonNavigation);
 
   const image = document.createElement('img');
   image.style.cssText =
