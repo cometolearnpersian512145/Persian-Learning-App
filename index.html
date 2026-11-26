@@ -72,6 +72,8 @@ body.authenticated .logout-button{display:block}
 .lesson-step-navigation button{flex:1 1 135px;width:auto;min-height:44px;margin:0;padding:10px 12px;border-radius:11px;background:#176b50;color:#fff;font-weight:700}
 .lesson-step-navigation button:disabled{background:#dce5de!important;color:#78877d!important;cursor:not-allowed;opacity:1}
 body[data-theme="night"] .lesson-step-navigation button:disabled{background:#34443d!important;color:#aab8b0!important}
+.lesson-page-navigation{display:flex;gap:8px;width:100%;margin:8px 0}
+.lesson-page-navigation button{flex:1;width:auto;margin:0}
 .masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
 .masdar-table{width:100%;min-width:720px;border-collapse:collapse;background:#fff}
 .masdar-table th,.masdar-table td{padding:11px 9px;border-bottom:1px solid #e3eae4;text-align:right;vertical-align:middle;line-height:1.8}
@@ -3633,6 +3635,10 @@ openButton.onclick = async () => {
   content.appendChild(image);
   content.appendChild(pageText);
   content.appendChild(downloadPage);
+  const pageNavigation = document.createElement('div');
+  pageNavigation.className = 'lesson-page-navigation';
+  pageNavigation.append(next, prev);
+  content.appendChild(pageNavigation);
 
   lessonCard.appendChild(content);
 
