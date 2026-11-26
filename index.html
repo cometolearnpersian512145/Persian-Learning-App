@@ -1178,6 +1178,21 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
   const whatsappLink = (messageText, label = 'WhatsApp پر رابطہ کریں') =>
     `<a href="${whatsappUrl(messageText)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:10px;padding:9px 13px;background:#16834a;color:white;border-radius:8px;text-decoration:none;">${label}</a>`;
 
+  // Known default prices for Persian Grammar chapters and the complete PDF book.
+  // Admin-configured payment_pricing values always take priority.
+  function getDefaultPaymentPrice(currency) {
+    if (!priceKey && accessType === 'chapter' && Number.isInteger(Number(chapterNumber)) && Number(chapterNumber) >= 1 && Number(chapterNumber) <= 6) {
+      return currency === 'pkr' ? 2500 : currency === 'inr' ? 1500 : currency === 'usd' ? 30 : null;
+    }
+    if (!priceKey && accessType === 'full_book') {
+      return currency === 'pkr' ? 5000 : currency === 'inr' ? 3000 : currency === 'usd' ? 50 : null;
+    }
+    if (priceKey === 'conversation_bundle') {
+      return currency === 'pkr' || currency === 'inr' ? 3000 : currency === 'usd' ? 30 : null;
+    }
+    return null;
+  }
+
   function updatePaymentMethods() {
     const countryCode = countrySelect.value;
     const selectedCountry = countryOptions.find(item => item.code === countryCode);
@@ -1188,7 +1203,7 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
       const priceField = priceKey ? `${priceKey}_price_pkr` : accessType === 'course' ? 'course_price_pkr' : accessType === 'full_book' ? 'book_price_pkr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_pkr` : 'lesson_price_pkr';
       currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
         ? pricing[priceField]
-        : (priceKey === 'conversation_bundle' ? 3000 : null);
+        : getDefaultPaymentPrice('pkr');
       currentCurrency = 'PKR';
       showPakistanDetails();
     } else if (countryCode === 'IN') {
@@ -1197,14 +1212,14 @@ async function showPaymentForm({ accessType, targetId, targetTitle, chapterNumbe
       const priceField = priceKey ? `${priceKey}_price_inr` : accessType === 'course' ? 'course_price_inr' : accessType === 'full_book' ? 'book_price_inr' : accessType === 'chapter' ? `chapter${chapterNumber}_price_inr` : 'lesson_price_inr';
       currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
         ? pricing[priceField]
-        : (priceKey === 'conversation_bundle' ? 3000 : null);
+        : getDefaultPaymentPrice('inr');
       currentCurrency = 'INR';
     } else {
       methodSelect.innerHTML = '<option value="International Bank Transfer">International Bank Transfer</option><option value="Western Union">Western Union</option>';
       const priceField = priceKey ? `${priceKey}_price_usd` : accessType === 'course' ? 'course_price_usd' : accessType === 'full_book' ? 'book_price_usd' : accessType === 'chapter' ? `chapter${chapterNumber}_price_usd` : 'lesson_price_usd';
       currentPrice = pricing && pricing[priceField] !== null && pricing[priceField] !== undefined && pricing[priceField] !== ''
         ? pricing[priceField]
-        : (priceKey === 'conversation_bundle' ? 30 : null);
+        : getDefaultPaymentPrice('usd');
       currentCurrency = 'USD';
       showInternationalDetails(countryName);
     }
