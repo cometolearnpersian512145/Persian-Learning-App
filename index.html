@@ -1516,13 +1516,25 @@ function updateStudentCalendarClock() {
   }).format(now);
   document.getElementById('studentGregorianDate').textContent = new Intl.DateTimeFormat('ur-PK', dateOptions).format(now);
   document.getElementById('studentIranianDate').textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', dateOptions).format(now);
-  let islamicDate;
-  try {
-    islamicDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic-umalqura', dateOptions).format(now);
-  } catch (_) {
-    islamicDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic', dateOptions).format(now);
+  const islamicDateNode = document.getElementById('studentIslamicDate');
+  if (islamicDateNode) islamicDateNode.textContent = formatStudentIslamicDate(now, timeZone);
+}
+
+function formatStudentIslamicDate(date, timeZone) {
+  const calendars = ['islamic-umalqura', 'islamic-civil', 'islamic'];
+  for (const calendar of calendars) {
+    try {
+      const formatter = new Intl.DateTimeFormat(`ur-PK-u-ca-${calendar}-nu-latn`, {
+        timeZone, day: 'numeric', month: 'long', year: 'numeric'
+      });
+      const parts = formatter.formatToParts(date);
+      const day = parts.find(part => part.type === 'day')?.value;
+      const month = parts.find(part => part.type === 'month')?.value;
+      const year = parts.find(part => part.type === 'year')?.value;
+      if (day && month && year) return `${day} ${month} ${year}`;
+    } catch (_) {}
   }
-  document.getElementById('studentIslamicDate').textContent = islamicDate;
+  return 'اسلامی تاریخ دستیاب نہیں';
 }
 
 async function searchStudentLessons() {
