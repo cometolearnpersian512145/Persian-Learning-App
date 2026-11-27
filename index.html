@@ -75,6 +75,7 @@ body[data-theme="night"] .lesson-step-navigation button:disabled{background:#344
 .lesson-page-navigation{display:flex;gap:8px;width:100%;margin:8px 0}
 .lesson-page-navigation button{flex:1;width:auto;margin:0}
 #studentDashboard.book-library-open>:not(#persianBookLibraryView){display:none!important}
+#studentDashboard.word-gallery-open>:not(#persianWordGalleryView){display:none!important}
 .persian-library-category{width:100%;margin:8px 0;padding:16px;text-align:right;background:#f3f8f3;color:#17483d;border:1px solid #d7e5d9;border-radius:13px;font-weight:700}
 .persian-library-book{margin:12px 0;padding:15px;border:1px solid #dce7df;border-radius:13px;background:#fff}
 .persian-book-pdf-preview{display:block;width:100%;height:440px;margin:12px 0;border:1px solid #dce7df;border-radius:10px;background:#f4f6f4}
@@ -901,6 +902,81 @@ async function createPersianBookFolder() {
   await loadPersianBooksAdmin();
 }
 
+const PERSIAN_WORD_GALLERY_BUCKET='persian-word-gallery';
+async function showPersianWordGallery(dashboard) {
+  let view=dashboard.querySelector('#persianWordGalleryView');
+  if(!view){
+    view=document.createElement('section');view.id='persianWordGalleryView';view.className='card';view.style.cssText='padding:18px;border:1px solid #dce7df;';
+    view.innerHTML='<button type="button" class="word-gallery-back" style="width:auto;background:#52645b;">← واپس ڈیش بورڈ</button><h2>📷 فارسی الفاظ تصویروں اور آواز کے ساتھ</h2><p>روزانہ فارسی اور اردو الفاظ دیکھیں اور آڈیو سنیں۔</p><div class="word-gallery-list"></div><p class="word-gallery-message" aria-live="polite"></p>';
+    dashboard.appendChild(view);view.querySelector('.word-gallery-back').onclick=()=>{dashboard.classList.remove('word-gallery-open');view.hidden=true;};
+  }
+  view.hidden=false;dashboard.classList.add('word-gallery-open');
+  const host=view.querySelector('.word-gallery-list');const message=view.querySelector('.word-gallery-message');
+  host.innerHTML='';message.textContent='تصویری الفاظ لوڈ ہو رہے ہیں...';
+  const {data,error}=await supabase.from('persian_word_cards').select('id,title,image_path,audio_path,created_at').eq('is_published',true).order('created_at',{ascending:false});
+  if(error){message.textContent='تصویری الفاظ حاصل نہیں ہو سکے۔ پہلے ساتھ دی گئی gallery SQL فائل Supabase میں چلائیں۔';return;}
+  message.textContent='';
+  if(!data?.length){message.textContent='ابھی کوئی تصویری لفظ شامل نہیں کیا گیا۔';return;}
+  for(const item of data){
+    const card=document.createElement('article');card.className='persian-library-book';
+    const title=document.createElement('h3');title.textContent=item.title;
+    card.appendChild(title);
+    try{
+      const imageSigned=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).createSignedUrl(item.image_path,3600);if(imageSigned.error)throw imageSigned.error;
+      const image=document.createElement('img');image.src=imageSigned.data.signedUrl;image.alt=item.title;image.loading='lazy';image.style.cssText='display:block;width:100%;max-width:760px;height:auto;margin:10px auto;border-radius:12px;';card.appendChild(image);
+      if(item.audio_path){const audioSigned=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).createSignedUrl(item.audio_path,3600);if(audioSigned.error)throw audioSigned.error;const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.src=audioSigned.data.signedUrl;audio.style.width='100%';card.appendChild(audio);}else{const noAudio=document.createElement('p');noAudio.textContent='اس تصویر کے ساتھ آڈیو ابھی شامل نہیں کی گئی۔';card.appendChild(noAudio);}
+    }catch(error){const problem=document.createElement('p');problem.textContent='تصویر یا آڈیو نہیں کھل سکی: '+error.message;card.appendChild(problem);}
+    host.appendChild(card);
+  }
+}
+
+async function loadPersianWordGalleryAdmin() {
+  const host=document.getElementById('persianWordGalleryAdminList');const message=document.getElementById('persianWordGalleryAdminMessage');if(!host||!message)return;
+  host.textContent='تصویری الفاظ لوڈ ہو رہے ہیں...';
+  const {data,error}=await supabase.from('persian_word_cards').select('id,title,image_path,audio_path,is_published,created_at').order('created_at',{ascending:false});
+  if(error){host.textContent='Gallery کا ڈیٹا نہیں ملا۔ ساتھ دی گئی SQL فائل کو Supabase SQL Editor میں چلائیں۔';return;}
+  host.innerHTML='';if(!data?.length){host.textContent='ابھی کوئی تصویر اپ لوڈ نہیں ہوئی۔';return;}
+  for(const item of data){
+    const card=document.createElement('article');card.className='card';card.style.cssText='padding:14px;margin:10px 0;';
+    const title=document.createElement('h4');title.textContent=item.title;
+    const image=document.createElement('img');image.alt=item.title;image.style.cssText='display:block;max-width:260px;width:100%;height:auto;border-radius:8px;';
+    const status=document.createElement('p');status.textContent=`${item.is_published?'طلبہ کو دکھائی جا رہی ہے':'طلبہ سے چھپی ہوئی'} — ${item.audio_path?'آڈیو شامل ہے':'آڈیو شامل نہیں'}`;
+    const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+    const toggle=document.createElement('button');toggle.type='button';toggle.textContent=item.is_published?'طلبہ سے چھپائیں':'طلبہ کو دکھائیں';toggle.onclick=async()=>{const result=await supabase.from('persian_word_cards').update({is_published:!item.is_published}).eq('id',item.id);if(result.error){message.textContent='Visibility تبدیل نہیں ہوئی: '+result.error.message;return;}await loadPersianWordGalleryAdmin();};
+    const remove=document.createElement('button');remove.type='button';remove.textContent='تصویر اور آڈیو حذف کریں';remove.style.background='#b42318';remove.onclick=async()=>{if(!confirm(`کیا آپ واقعی “${item.title}” حذف کرنا چاہتے ہیں؟`))return;const paths=[item.image_path,item.audio_path].filter(Boolean);const removed=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).remove(paths);if(removed.error){message.textContent='فائلیں حذف نہیں ہوئیں: '+removed.error.message;return;}const result=await supabase.from('persian_word_cards').delete().eq('id',item.id);if(result.error){message.textContent='فائلیں حذف ہوئیں مگر ریکارڈ نہیں ہٹا: '+result.error.message;return;}await loadPersianWordGalleryAdmin();};
+    actions.append(toggle,remove);card.append(title,status,actions);
+    try{const imageSigned=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).createSignedUrl(item.image_path,3600);if(imageSigned.error)throw imageSigned.error;image.src=imageSigned.data.signedUrl;card.insertBefore(image,status);if(item.audio_path){const audioSigned=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).createSignedUrl(item.audio_path,3600);if(audioSigned.error)throw audioSigned.error;const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.src=audioSigned.data.signedUrl;audio.style.width='100%';card.appendChild(audio);}}catch(error){status.textContent+=' — Preview نہیں کھل سکا: '+error.message;}
+    host.appendChild(card);
+  }
+}
+
+async function uploadPersianWordCard(event) {
+  event?.preventDefault();const form=document.getElementById('persianWordCardForm');const message=document.getElementById('persianWordGalleryAdminMessage');const button=document.getElementById('uploadPersianWordCardBtn');
+  const title=document.getElementById('persianWordCardTitle').value.trim();const imageFile=document.getElementById('persianWordCardImage').files?.[0];const audioFile=document.getElementById('persianWordCardAudio').files?.[0];
+  message.setAttribute('role','status');
+  if(!title||!imageFile){message.textContent='عنوان اور تصویری فائل منتخب کریں۔';return;}
+  const imageExt=(imageFile.name.split('.').pop()||'').toLowerCase();
+  const imageMimeByExt={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+  const imageMime=imageFile.type||imageMimeByExt[imageExt];
+  if(!imageMimeByExt[imageExt]||!imageMime.startsWith('image/')){message.textContent='JPG، PNG یا WebP تصویر منتخب کریں۔';return;}
+  if(imageFile.size>15*1024*1024){message.textContent='تصویر 15 MB سے چھوٹی ہونی چاہیے۔';return;}
+  const audioExt=audioFile?(audioFile.name.split('.').pop()||'').toLowerCase():'';
+  const audioMimeByExt={mp3:'audio/mpeg',m4a:'audio/mp4',mp4:'audio/mp4',aac:'audio/aac',wav:'audio/wav',ogg:'audio/ogg',webm:'audio/webm'};
+  const audioMime=audioFile?(audioFile.type||audioMimeByExt[audioExt]):'';
+  if(audioFile&&(!audioMimeByExt[audioExt]||!audioMime.startsWith('audio/'))){message.textContent='MP3، M4A، WAV، OGG یا WebM آڈیو استعمال کریں۔';return;}
+  if(audioFile&&audioFile.size>35*1024*1024){message.textContent='آڈیو 35 MB سے چھوٹی ہونی چاہیے۔';return;}
+  button.disabled=true;button.textContent='اپ لوڈ ہو رہا ہے...';message.textContent='تصویر اور آڈیو اپ لوڈ ہو رہی ہیں، براہِ کرم انتظار کریں...';await new Promise(resolve=>requestAnimationFrame(resolve));
+  const id=crypto.randomUUID();const safeImageExt=imageExt.replace(/[^a-z0-9]/g,'')||'jpg';const imagePath=`images/${id}.${safeImageExt}`;let audioPath=null;
+  try{
+    const imageUpload=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).upload(imagePath,imageFile,{upsert:false,contentType:imageMime});if(imageUpload.error)throw imageUpload.error;
+    if(audioFile){const safeAudioExt=audioExt.replace(/[^a-z0-9]/g,'')||'mp3';audioPath=`audio/${id}.${safeAudioExt}`;const audioUpload=await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).upload(audioPath,audioFile,{upsert:false,contentType:audioMime});if(audioUpload.error){await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).remove([imagePath]);throw audioUpload.error;}}
+    const inserted=await supabase.from('persian_word_cards').insert({id,title,image_path:imagePath,audio_path:audioPath,is_published:document.getElementById('persianWordCardPublished').checked});
+    if(inserted.error){await supabase.storage.from(PERSIAN_WORD_GALLERY_BUCKET).remove([imagePath,...(audioPath?[audioPath]:[])]);throw inserted.error;}
+    form.reset();document.getElementById('persianWordCardPublished').checked=true;message.textContent='تصویر اور اس کے ساتھ آڈیو کامیابی سے شامل ہو گئی۔';await loadPersianWordGalleryAdmin();
+  }catch(error){message.textContent='اپ لوڈ مکمل نہیں ہوئی: '+(error?.message||String(error));}
+  finally{button.disabled=false;button.textContent='تصویر اور آڈیو شامل کریں';}
+}
+
 function showGuestDashboard() {
   guestModeActive = true;
   activeStudentId = null;
@@ -941,6 +1017,7 @@ function showGuestDashboard() {
     </div>
     <button id="guestFavoritesBtn" class="dashboard-favorites-button" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
     <button id="guestPersianBooksBtn" class="dashboard-favorites-button" type="button" style="background:#eaf4ed!important;color:#17483d!important;border-color:#cbdacf!important;">📚 فارسی کتابیں — PDF لائبریری</button>
+    <button id="guestPersianWordGalleryBtn" class="dashboard-favorites-button" type="button" style="background:#eaf4ed!important;color:#17483d!important;border-color:#cbdacf!important;">🖼️ تصویری فارسی الفاظ اور آڈیو</button>
     <section class="student-dashboard-classes">
       <div class="student-dashboard-section-heading"><span>🎓</span><div><h3>Live Classes</h3><p>اپنی فارسی کلاس کے لیے رجسٹریشن کریں</p></div></div>
       <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
@@ -964,6 +1041,7 @@ function showGuestDashboard() {
   dashboard.querySelector('#guestMasdarBtn').onclick = () => openPersianReference('masdar');
   dashboard.querySelector('#guestFavoritesBtn').onclick = showStudentFavorites;
   dashboard.querySelector('#guestPersianBooksBtn').onclick = () => showPersianBooksLibrary(dashboard);
+  dashboard.querySelector('#guestPersianWordGalleryBtn').onclick = () => showPersianWordGallery(dashboard);
   dashboard.querySelector('#persianReferenceBack').onclick = returnToDashboard;
   dashboard.querySelector('#guestClassRegistrationBtn').onclick = showClassRegistrationForm;
   dashboard.querySelector('#guestRedeemToggle').onclick = () => {
@@ -2461,6 +2539,7 @@ if (adminProfile.role === 'admin') {
     <button id="persianVocabBtn" type="button" style="margin:0;min-height:54px;background:#345b75;">📖 فارسی لغت</button>
     <button id="persianMasdarBtn" type="button" style="margin:0;min-height:54px;background:#76522b;">📝 فارسی مصادر</button>
     <button id="persianBooksBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 فارسی کتابیں</button>
+    <button id="persianWordGalleryBtn" type="button" style="margin:0;min-height:54px;background:#a04b68;">🖼️ تصویری الفاظ اور آڈیو</button>
   </div>
 
   <section id="persianCourseChooser" hidden>
@@ -2561,6 +2640,7 @@ dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', sh
 dashboard.querySelector('#persianVocabBtn').addEventListener('click', () => openPersianReference('vocab'));
 dashboard.querySelector('#persianMasdarBtn').addEventListener('click', () => openPersianReference('masdar'));
 dashboard.querySelector('#persianBooksBtn').addEventListener('click', () => showPersianBooksLibrary(dashboard));
+dashboard.querySelector('#persianWordGalleryBtn').addEventListener('click', () => showPersianWordGallery(dashboard));
 dashboard.querySelector('#persianReferenceBack').addEventListener('click', () => {
   dashboard.querySelector('#persianReferenceView').hidden = true;
   dashboard.querySelectorAll('main > #studentDashboard > section, main > #studentDashboard > h2, main > #studentDashboard > h3, main > #studentDashboard > p, main > #studentDashboard > hr, main > #studentDashboard > div').forEach(el => { if (el.id !== 'persianReferenceView') el.hidden = false; });
@@ -5094,6 +5174,8 @@ window.__ctlpShowPersianBooksLibrary = showPersianBooksLibrary;
 window.__ctlpLoadPersianBooksAdmin = loadPersianBooksAdmin;
 window.__ctlpSavePersianBookAdmin = savePersianBookAdmin;
 window.__ctlpCreatePersianBookFolder = createPersianBookFolder;
+window.__ctlpLoadPersianWordGalleryAdmin = loadPersianWordGalleryAdmin;
+window.__ctlpUploadPersianWordCard = uploadPersianWordCard;
 </script>
   <!--  PANEL -->
 <section id="adminPanel" style="display:none; padding:20px;">
@@ -5124,6 +5206,22 @@ window.__ctlpCreatePersianBookFolder = createPersianBookFolder;
       <p id="persianBooksAdminMessage" aria-live="polite"></p>
       <button id="refreshPersianBooksAdminBtn" type="button" style="background:#52645b;">کتابوں کی فہرست تازہ کریں</button>
       <div id="persianBooksAdminList"></div>
+    </div>
+  </div>
+  <div class="card" id="persianWordGalleryAdminSection" style="margin:14px 0;">
+    <button id="togglePersianWordGalleryAdmin" type="button" aria-expanded="false" style="width:100%;text-align:right;background:#a04b68;">🖼️ تصویری فارسی الفاظ اور آڈیو — فولڈر کھولیں</button>
+    <div id="persianWordGalleryAdminContent" hidden style="padding-top:14px;">
+      <p>ہر پوسٹ کے لیے تصویر لازمی اور آڈیو اختیاری ہے۔ تصویر اور آڈیو طلبہ کے لیے مفت دستیاب ہوں گے۔</p>
+      <form id="persianWordCardForm">
+        <label class="form-field">پوسٹ / لفظ کا عنوان <input id="persianWordCardTitle" type="text" maxlength="180" required placeholder="مثلاً آج کے فارسی الفاظ"></label>
+        <label class="form-field">الفاظ کی تصویر <input id="persianWordCardImage" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" required></label>
+        <label class="form-field">ساتھ کی آڈیو (اختیاری) <input id="persianWordCardAudio" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.webm"></label>
+        <label style="display:block;margin:10px 0;"><input id="persianWordCardPublished" type="checkbox" checked> اسے طلبہ کو دکھائیں</label>
+        <button id="uploadPersianWordCardBtn" type="button" onclick="window.__ctlpUploadPersianWordCard(event)">تصویر اور آڈیو شامل کریں</button>
+      </form>
+      <p id="persianWordGalleryAdminMessage" aria-live="polite"></p>
+      <button id="refreshPersianWordGalleryAdminBtn" type="button" style="background:#52645b;">فہرست تازہ کریں</button>
+      <div id="persianWordGalleryAdminList"></div>
     </div>
   </div>
   <div class="card" id="guestRequestsAdminSection">
@@ -5565,6 +5663,15 @@ document.getElementById('refreshReferenceAdminBtn')?.addEventListener('click',()
     "طالب علم کا ڈیش بورڈ": "Student Dashboard",
     "خوش آمدید! آپ کامیابی سے Login ہو گئے ہیں۔": "Welcome! You have logged in successfully.",
     "📚 میرے کورسز": "📚 My Courses",
+    "🖼️ تصویری فارسی الفاظ اور آڈیو": "🖼️ Persian Word Images & Audio",
+    "🖼️ تصویری الفاظ اور آڈیو": "🖼️ Word Images & Audio",
+    "📷 فارسی الفاظ تصویروں اور آواز کے ساتھ": "📷 Persian Words with Images and Audio",
+    "روزانہ فارسی اور اردو الفاظ دیکھیں اور آڈیو سنیں۔": "View daily Persian and Urdu words and listen to their audio.",
+    "نئے کتابوں کا فولڈر بنائیں": "Create a New Book Folder",
+    "تصویر اور آڈیو شامل کریں": "Add Image and Audio",
+    "تصویر اور آڈیو حذف کریں": "Delete Image and Audio",
+    "الفاظ کی تصویر": "Word Image",
+    "ساتھ کی آڈیو (اختیاری)": "Audio (Optional)",
     "فارسی قواعد اور بنیادی گرامر سیکھیں۔": "Learn Persian rules and basic grammar.",
     "روزمرہ گفتگو اور مکالمے سیکھیں۔": "Learn everyday conversation and dialogues.",
     "کورس کھولیں": "Open Course",
@@ -5774,6 +5881,14 @@ document.getElementById('persianBookFile')?.addEventListener('change',event=>{
 });
 document.getElementById('refreshPersianBooksAdminBtn')?.addEventListener('click',()=>window.__ctlpLoadPersianBooksAdmin());
 document.getElementById('createPersianBookFolderBtn')?.addEventListener('click',()=>window.__ctlpCreatePersianBookFolder());
+document.getElementById('togglePersianWordGalleryAdmin')?.addEventListener('click',async event=>{
+  const content=document.getElementById('persianWordGalleryAdminContent');const opening=content.hidden;content.hidden=!opening;
+  event.currentTarget.setAttribute('aria-expanded',String(opening));
+  event.currentTarget.textContent=opening?'📂 تصویری فارسی الفاظ اور آڈیو — فولڈر بند کریں':'🖼️ تصویری فارسی الفاظ اور آڈیو — فولڈر کھولیں';
+  if(opening)await window.__ctlpLoadPersianWordGalleryAdmin();
+});
+document.getElementById('persianWordCardForm')?.addEventListener('submit',event=>event.preventDefault());
+document.getElementById('refreshPersianWordGalleryAdminBtn')?.addEventListener('click',()=>window.__ctlpLoadPersianWordGalleryAdmin());
 </script>
 
 </body>
