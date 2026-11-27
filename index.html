@@ -264,6 +264,29 @@ main:has(#studentDashboard){max-width:960px!important}
 .dashboard-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:10px!important}
 .dashboard-tool-button{min-height:75px;padding:14px!important;border-radius:15px!important;background:#fff!important;border:1px solid #e1e9e2!important;text-align:right;box-shadow:0 4px 12px #123d3508}
 .dashboard-tool-button strong{color:#31584b}
+.student-main-folder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 20px}
+.student-folder-tile{width:100%!important;min-width:0;min-height:136px;margin:0!important;padding:13px 8px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #ffffff36!important;border-radius:22px!important;color:#fff!important;text-align:center!important;box-shadow:0 8px 19px #102f2a20,inset 0 1px 0 #ffffff30;transition:transform .18s,box-shadow .18s}
+.student-folder-tile:active,.dashboard-color-tile:active{transform:translateY(1px) scale(.98);box-shadow:0 3px 9px #102f2a24}
+.student-folder-icon{width:52px;height:52px;display:grid;place-items:center;flex:none;border-radius:50%;background:#ffffff28;border:1px solid #ffffff32;color:#fff;font-size:25px;line-height:1}
+.student-folder-title{font-size:15px;font-weight:800;line-height:1.6;color:#fff}
+.student-folder-note{font-size:11px;line-height:1.5;color:#ffffffdf}
+.student-folder-tile:nth-child(7n+1),.dashboard-course-button:nth-child(2n+1){background:linear-gradient(145deg,#229267,#116344)!important}
+.student-folder-tile:nth-child(7n+2),.dashboard-course-button:nth-child(2n){background:linear-gradient(145deg,#3f66bb,#263e83)!important}
+.student-folder-tile:nth-child(7n+3),.dashboard-tool-button:nth-child(2n+1){background:linear-gradient(145deg,#168d83,#08665f)!important}
+.student-folder-tile:nth-child(7n+4),.dashboard-tool-button:nth-child(2n){background:linear-gradient(145deg,#8752ad,#60337f)!important}
+.student-folder-tile:nth-child(7n+5){background:linear-gradient(145deg,#b34368,#872b50)!important}
+.student-folder-tile:nth-child(7n+6){background:linear-gradient(145deg,#d78a21,#a85e13)!important}
+.student-folder-tile:nth-child(7n+7){background:linear-gradient(145deg,#0b7772,#075651)!important}
+.dashboard-color-tile{position:relative;min-width:0;min-height:126px;margin:0!important;padding:14px 8px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:9px;border:1px solid #ffffff36!important;border-radius:21px!important;color:#fff!important;text-align:center!important;box-shadow:0 7px 16px #102f2a16,inset 0 1px 0 #ffffff30;transition:transform .18s,box-shadow .18s}
+.dashboard-color-tile::before{content:attr(data-tile-icon);width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#ffffff28;border:1px solid #ffffff32;font-size:23px;line-height:1}
+.dashboard-color-tile strong{margin:0!important;color:#fff!important;font-size:16px!important;font-weight:800;line-height:1.6}
+.dashboard-color-tile span{color:#ffffffea!important;font-size:11px;line-height:1.55}
+.dashboard-course-button:nth-child(2n+1),.dashboard-course-button:nth-child(2n),.dashboard-tool-button:nth-child(2n+1),.dashboard-tool-button:nth-child(2n){background-clip:padding-box}
+.dashboard-tools-grid .dashboard-tool-button:nth-child(2n+1){background:linear-gradient(145deg,#168d83,#08665f)!important}
+.dashboard-tools-grid .dashboard-tool-button:nth-child(2n){background:linear-gradient(145deg,#d78a21,#a85e13)!important}
+.dashboard-library-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.dashboard-library-tile{min-height:98px;margin:0!important;padding:10px 6px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:16px!important;border:1px solid #dce7df!important;background:#f4f8f4!important;color:#17483d!important;text-align:center!important;font-size:13px!important;font-weight:700!important;line-height:1.5}
+.dashboard-library-tile::before{content:attr(data-tile-icon);font-size:23px;line-height:1}
 .dashboard-favorites-button{margin:15px 0 5px!important;padding:14px!important;border-radius:14px!important;background:#fff8e8!important;color:#705719!important;border:1px solid #ead9a9!important;font-weight:700}
 .student-dashboard-classes{margin-top:20px;padding:5px 16px 17px;border:1px solid #dce9e0;border-radius:18px;background:linear-gradient(145deg,#fbfefa,#f1f7f1)}
 .student-dashboard-classes>p{color:#65776e;line-height:1.8}
@@ -282,15 +305,30 @@ body[data-theme="night"] .student-dashboard-classes{background:#1b2c27;border-co
 body[data-theme="night"] .student-dashboard-classes>p{color:#c0cec6!important}
 body[data-theme="night"] .dashboard-favorites-button{background:#443b20!important;color:#ffedb6!important;border-color:#78673a!important}
 body[data-theme="night"] .dashboard-unlock-panel{background:#302b1e!important;border-color:#76683d!important}
+body[data-theme="night"] .dashboard-course-grid .dashboard-course-button:nth-child(2n+1){background:linear-gradient(145deg,#229267,#116344)!important}
+body[data-theme="night"] .dashboard-course-grid .dashboard-course-button:nth-child(2n){background:linear-gradient(145deg,#3f66bb,#263e83)!important}
 @media(max-width:560px){
   main:has(#studentDashboard){padding:10px!important}
   .student-dashboard-shell{padding:12px!important;border-radius:19px!important}
   .student-dashboard-hero{padding:25px 14px 22px;border-radius:17px}
   .student-dashboard-emblem{width:62px;height:62px;border-radius:19px}
-  .dashboard-course-grid,.dashboard-tools-grid{grid-template-columns:1fr!important}
-  .dashboard-course-button{min-height:88px}
+  .dashboard-course-grid,.dashboard-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .dashboard-course-button,.dashboard-tool-button{min-height:112px!important;padding:12px 7px!important}
+  .dashboard-color-tile strong{font-size:14px!important}
+  .dashboard-color-tile span{font-size:10px}
+  .dashboard-library-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .dashboard-library-tile{font-size:11px!important;padding:9px 4px!important}
+  .student-main-folder-grid{gap:9px}
+  .student-folder-tile{min-height:124px;padding:11px 5px!important;border-radius:18px!important}
+  .student-folder-icon{width:45px;height:45px;font-size:22px}
+  .student-folder-title{font-size:13px;line-height:1.5}
+  .student-folder-note{font-size:10px}
   .dashboard-quick-actions{gap:6px!important}
   .dashboard-quick-actions button{font-size:13px!important;padding:9px 5px!important}
+}
+@media(max-width:390px){
+  .student-main-folder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dashboard-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 
@@ -1102,16 +1140,18 @@ function showGuestDashboard() {
     </div>
     <div class="student-dashboard-section-heading"><span>📚</span><div><h3>فارسی کورسز</h3><p>اپنا مطلوبہ کورس منتخب کریں</p></div></div>
     <div class="reg-course-grid dashboard-course-grid">
-      <button id="guestGrammarBtn" class="reg-course-button dashboard-course-button" type="button"><strong>فارسی گرامر</strong><span>مفت تعارف اور دستیاب اسباق</span></button>
-      <button id="guestConversationBtn" class="reg-course-button dashboard-course-button" type="button"><strong>فارسی گفتگو</strong><span>مینا کی کتابیں اور گفتگو کے اسباق</span></button>
+      <button id="guestGrammarBtn" class="reg-course-button dashboard-course-button dashboard-color-tile" data-tile-icon="📘" type="button"><strong>فارسی گرامر</strong><span>مفت تعارف اور دستیاب اسباق</span></button>
+      <button id="guestConversationBtn" class="reg-course-button dashboard-course-button dashboard-color-tile" data-tile-icon="🗣️" type="button"><strong>فارسی گفتگو</strong><span>مینا کی کتابیں اور گفتگو کے اسباق</span></button>
     </div>
     <div class="reg-course-grid dashboard-tools-grid">
-      <button id="guestVocabBtn" class="reg-course-button dashboard-tool-button" type="button"><strong>📖 فارسی لغت</strong><span>فارسی اور اردو معنی تلاش کریں</span></button>
-      <button id="guestMasdarBtn" class="reg-course-button dashboard-tool-button" type="button"><strong>📝 فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
+      <button id="guestVocabBtn" class="reg-course-button dashboard-tool-button dashboard-color-tile" data-tile-icon="📖" type="button"><strong>فارسی لغت</strong><span>فارسی اور اردو معنی تلاش کریں</span></button>
+      <button id="guestMasdarBtn" class="reg-course-button dashboard-tool-button dashboard-color-tile" data-tile-icon="📝" type="button"><strong>فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
     </div>
-    <button id="guestFavoritesBtn" class="dashboard-favorites-button" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
-    <button id="guestPersianBooksBtn" class="dashboard-favorites-button" type="button" style="background:#eaf4ed!important;color:#17483d!important;border-color:#cbdacf!important;">📚 فارسی کتابیں — PDF لائبریری</button>
-    <button id="guestPersianWordGalleryBtn" class="dashboard-favorites-button" type="button" style="background:#eaf4ed!important;color:#17483d!important;border-color:#cbdacf!important;">🖼️ تصویری فارسی الفاظ اور آڈیو</button>
+    <div class="dashboard-library-grid">
+      <button id="guestFavoritesBtn" class="dashboard-library-tile" data-tile-icon="⭐" type="button">پسندیدہ اسباق</button>
+      <button id="guestPersianBooksBtn" class="dashboard-library-tile" data-tile-icon="📚" type="button">فارسی PDF کتابیں</button>
+      <button id="guestPersianWordGalleryBtn" class="dashboard-library-tile" data-tile-icon="🖼️" type="button">تصویری الفاظ اور آڈیو</button>
+    </div>
     <section class="student-dashboard-classes">
       <div class="student-dashboard-section-heading"><span>🎓</span><div><h3>Live Classes</h3><p>اپنی فارسی کلاس کے لیے رجسٹریشن کریں</p></div></div>
       <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
@@ -2657,14 +2697,14 @@ if (adminProfile.role === 'admin') {
   <hr>
 
   <h3>👤 طالب علم کے اہم بٹن</h3>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 18px;">
-    <button id="profileBtn" type="button" style="margin:0;min-height:54px;">👤 My Profile / میرا پروفائل</button>
-    <button id="persianLanguageCourseBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 Persian Language Course</button>
-    <button id="persianConversationLibraryBtn" type="button" style="margin:0;min-height:54px;background:#a04b68;">🗣️ فارسی بول چال</button>
-    <button id="persianVocabBtn" type="button" style="margin:0;min-height:54px;background:#345b75;">📖 فارسی لغت</button>
-    <button id="persianMasdarBtn" type="button" style="margin:0;min-height:54px;background:#76522b;">📝 فارسی مصادر</button>
-    <button id="persianBooksBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 فارسی کتابیں</button>
-    <button id="persianWordGalleryBtn" type="button" style="margin:0;min-height:54px;background:#a04b68;">🖼️ تصویری الفاظ اور آڈیو</button>
+  <div class="student-main-folder-grid">
+    <button id="profileBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">👤</span><span class="student-folder-title">میرا پروفائل</span><span class="student-folder-note">اکاؤنٹ کی معلومات</span></button>
+    <button id="persianLanguageCourseBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">📘</span><span class="student-folder-title">فارسی کورس</span><span class="student-folder-note">گرامر اور اسباق</span></button>
+    <button id="persianConversationLibraryBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">🗣️</span><span class="student-folder-title">فارسی بول چال</span><span class="student-folder-note">مکالمے اور آڈیو</span></button>
+    <button id="persianVocabBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">📖</span><span class="student-folder-title">فارسی لغت</span><span class="student-folder-note">لفظ اور معنی</span></button>
+    <button id="persianMasdarBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">🔁</span><span class="student-folder-title">فارسی مصادر</span><span class="student-folder-note">بن ماضی اور مضارع</span></button>
+    <button id="persianBooksBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">📚</span><span class="student-folder-title">فارسی کتابیں</span><span class="student-folder-note">PDF کتابوں کی لائبریری</span></button>
+    <button id="persianWordGalleryBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">🖼️</span><span class="student-folder-title">تصویری الفاظ</span><span class="student-folder-note">تصاویر اور آڈیو</span></button>
   </div>
 
   <section id="persianCourseChooser" hidden>
