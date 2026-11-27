@@ -39,13 +39,14 @@ body.authenticated .logout-button{display:block}
 .reg-student-button.active{background:#176b50;color:white}
 .reg-view-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .reg-view-heading button{width:auto;padding:9px 13px}
-.student-calendar{background:linear-gradient(140deg,#075f5b,#0c7772);color:#fff;border:1px solid #ffffff2b;border-radius:20px;padding:18px 16px;margin:0 0 20px;text-align:center;box-shadow:0 8px 24px #073b3330}
-.student-calendar-weekday{font-size:15px;opacity:.9;margin:0 0 2px}
-.student-calendar-clock{font-size:clamp(32px,9vw,48px);font-variant-numeric:tabular-nums;letter-spacing:2px;line-height:1.3;margin:0 0 14px}
-.student-calendar-dates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.student-calendar-date{background:#ffffff18;border:1px solid #ffffff30;border-radius:12px;padding:9px 5px;min-width:0}
-.student-calendar-date-label{display:block;font-size:12px;opacity:.85;margin-bottom:5px}
-.student-calendar-date-value{display:block;font-size:14px;line-height:1.6;font-weight:600}
+.student-calendar{background:linear-gradient(140deg,#075f5b,#0c7772);color:#fff;border:1px solid #ffffff2b;border-radius:16px;padding:12px;margin:0 0 20px;box-shadow:0 8px 24px #073b3330}
+.student-calendar-strip{display:flex;align-items:center;gap:14px;min-width:0;overflow-x:auto;white-space:nowrap;direction:rtl;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.student-calendar-strip::-webkit-scrollbar{display:none}
+.student-calendar-weekday{flex:none;font-size:14px;opacity:.92;margin:0}
+.student-calendar-clock{flex:none;font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:.3px;line-height:1.4;margin:0}
+.student-calendar-date{display:inline-flex;align-items:baseline;gap:5px;flex:none;padding-inline-start:12px;border-inline-start:1px solid #ffffff55}
+.student-calendar-date-label{display:inline;font-size:11px;opacity:.85;margin:0}
+.student-calendar-date-value{display:inline;font-size:13px;line-height:1.5;font-weight:700}
 .student-search{margin:0 0 20px}
 .student-search-form{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #dce7df;border-radius:18px;padding:8px 10px 8px 14px;box-shadow:0 3px 12px #0000000b}
 .student-search-form input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;margin:0;padding:10px 4px;background:transparent;font-size:16px}
@@ -2509,12 +2510,12 @@ if (adminProfile.role === 'admin') {
 
  dashboard.innerHTML = `
   <section class="student-calendar" aria-label="وقت اور تاریخ">
-    <p id="studentCalendarWeekday" class="student-calendar-weekday"></p>
-    <p id="studentCalendarClock" class="student-calendar-clock" aria-live="off"></p>
-    <div class="student-calendar-dates">
-      <div class="student-calendar-date"><span class="student-calendar-date-label">اسلامی</span><span id="studentIslamicDate" class="student-calendar-date-value"></span></div>
-      <div class="student-calendar-date"><span class="student-calendar-date-label">عیسوی</span><span id="studentGregorianDate" class="student-calendar-date-value"></span></div>
-      <div class="student-calendar-date"><span class="student-calendar-date-label">ایرانی</span><span id="studentIranianDate" class="student-calendar-date-value" lang="fa" dir="rtl"></span></div>
+    <div class="student-calendar-strip" aria-label="مقامی وقت اور اسلامی، عیسوی اور ایرانی تاریخ">
+      <span id="studentCalendarWeekday" class="student-calendar-weekday"></span>
+      <span id="studentCalendarClock" class="student-calendar-clock" aria-live="off"></span>
+      <span class="student-calendar-date"><span class="student-calendar-date-label">اسلامی</span><span id="studentIslamicDate" class="student-calendar-date-value"></span></span>
+      <span class="student-calendar-date"><span class="student-calendar-date-label">عیسوی</span><span id="studentGregorianDate" class="student-calendar-date-value"></span></span>
+      <span class="student-calendar-date"><span class="student-calendar-date-label">ایرانی</span><span id="studentIranianDate" class="student-calendar-date-value" lang="fa" dir="rtl"></span></span>
     </div>
   </section>
   <section class="student-search" aria-label="سبق تلاش کریں">
