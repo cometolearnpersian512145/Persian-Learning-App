@@ -43,7 +43,7 @@ body.authenticated .logout-button{display:block}
 .student-calendar-strip{display:flex;align-items:center;gap:14px;min-width:0;overflow-x:auto;white-space:nowrap;direction:rtl;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .student-calendar-strip::-webkit-scrollbar{display:none}
 .student-calendar-weekday{flex:none;font-size:14px;opacity:.92;margin:0}
-.student-calendar-clock{flex:none;font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:.3px;line-height:1.4;margin:0}
+.student-calendar-clock{flex:none;direction:ltr;unicode-bidi:isolate;text-align:left;font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:.3px;line-height:1.4;margin:0}
 .student-calendar-date{display:inline-flex;align-items:baseline;gap:5px;flex:none;padding-inline-start:12px;border-inline-start:1px solid #ffffff55}
 .student-calendar-date-label{display:inline;font-size:11px;opacity:.85;margin:0}
 .student-calendar-date-value{display:inline;font-size:13px;line-height:1.5;font-weight:700}
@@ -989,6 +989,15 @@ function showGuestDashboard() {
   dashboard.className = 'card student-dashboard-shell';
   dashboard.style.maxWidth = '900px';
   dashboard.innerHTML = `
+    <section class="student-calendar" aria-label="وقت اور تاریخ">
+      <div class="student-calendar-strip" aria-label="مقامی وقت اور اسلامی، عیسوی اور ایرانی تاریخ">
+        <span id="studentCalendarWeekday" class="student-calendar-weekday"></span>
+        <span id="studentCalendarClock" class="student-calendar-clock" aria-live="off"></span>
+        <span class="student-calendar-date"><span class="student-calendar-date-label">اسلامی</span><span id="studentIslamicDate" class="student-calendar-date-value"></span></span>
+        <span class="student-calendar-date"><span class="student-calendar-date-label">عیسوی</span><span id="studentGregorianDate" class="student-calendar-date-value"></span></span>
+        <span class="student-calendar-date"><span class="student-calendar-date-label">ایرانی</span><span id="studentIranianDate" class="student-calendar-date-value" lang="fa" dir="rtl"></span></span>
+      </div>
+    </section>
     <div class="student-dashboard-hero">
       <div class="student-dashboard-emblem" aria-hidden="true">فارسی</div>
       <p class="student-dashboard-eyebrow">مرکز آموزش زبان فارسی</p>
@@ -1033,6 +1042,9 @@ function showGuestDashboard() {
     <div class="card student-dashboard-contact"><h3>📞 ہم سے رابطہ</h3><p>WhatsApp: 00923049788712</p><a href="https://wa.me/923049788712" target="_blank" rel="noopener noreferrer">WhatsApp پر رابطہ کریں</a></div>
   `;
   document.querySelector('main').prepend(dashboard);
+  updateStudentCalendarClock();
+  if (studentClockInterval) clearInterval(studentClockInterval);
+  studentClockInterval = setInterval(updateStudentCalendarClock, 1000);
   ensureStudentUtilityControls();
   dashboard.querySelector('#guestLangUr').onclick = () => document.getElementById('langUr')?.click();
   dashboard.querySelector('#guestLangEn').onclick = () => document.getElementById('langEn')?.click();
@@ -1410,9 +1422,11 @@ function updateStudentCalendarClock() {
   const now = new Date();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Karachi';
   const dateOptions = { timeZone, day: 'numeric', month: 'long', year: 'numeric' };
-  clock.textContent = new Intl.DateTimeFormat('en-PK', {
-    timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-  }).format(now);
+  const timeParts = new Intl.DateTimeFormat('en-PK', {
+    timeZone, hour: '2-digit', minute: '2-digit', hour12: true
+  }).formatToParts(now);
+  const timePart = type => timeParts.find(part => part.type === type)?.value || '';
+  clock.textContent = `${timePart('hour')}:${timePart('minute')} ${timePart('dayPeriod').toLowerCase()}`;
   document.getElementById('studentCalendarWeekday').textContent = new Intl.DateTimeFormat('ur-PK', {
     timeZone, weekday: 'long'
   }).format(now);
