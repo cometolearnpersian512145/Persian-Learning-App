@@ -833,6 +833,86 @@ async function showPersianBooksLibrary(dashboard) {
     };
     categories.appendChild(button);
   });
+  const existingPdfsButton=document.createElement('button');
+  existingPdfsButton.type='button';
+  existingPdfsButton.className='persian-library-category';
+  existingPdfsButton.textContent='📄 ایپ کے موجودہ PDF اسباق';
+  existingPdfsButton.onclick=async()=>{
+    categories.hidden=true; folder.hidden=false; booksHost.innerHTML='';
+    view.querySelector('.persian-library-folder-title').textContent='ایپ کے موجودہ PDF اسباق';
+    message.textContent='دستیاب PDF فائلیں تلاش کی جا رہی ہیں...';
+    try{
+      const grants=await getCurrentAccessRows();
+      const courseIds=[
+        {id:'bba71536-3e37-4827-8f6e-f9e8d89aaff3',name:'فارسی گرامر'},
+        {id:'947a9182-8328-4506-b2b0-50ada2b709fa',name:'فارسی بول چال'}
+      ];
+      const grantedCourses=new Set((grants||[]).filter(row=>row.access_type==='course').map(row=>row.target_id));
+      const grantedChapters=new Set((grants||[]).filter(row=>row.access_type==='chapter').map(row=>row.target_id));
+      const grantedLessons=new Set((grants||[]).filter(row=>row.access_type==='lesson').map(row=>row.target_id));
+      const pdfItems=[];
+      if((grants||[]).some(row=>row.access_type==='full_book'))pdfItems.push({course:{name:'فارسی گرامر'},module:{title:'مکمل فارسی گرامر'},lesson:{title:'Complete Persian Tens Book'},item:{title:'Complete Persian Tens Book',storage_path:'Complete Persian Tens Book (Final Update 02 ).pdf',bucket:'paid-book-pdfs'}});
+      for(const course of courseIds){
+        let catalog=null, modules=[], lessons=[];
+        if(guestModeActive){catalog=await getGuestCourseCatalog(course.id);modules=catalog.modules||[];lessons=catalog.lessons||[];}
+        else{
+          const modResult=await supabase.from('modules').select('id,title,module_order').eq('course_id',course.id).order('module_order');
+          if(modResult.error)throw modResult.error;
+          modules=modResult.data||[];
+          const ids=modules.map(item=>item.id);
+          if(!ids.length)continue;
+          const lessonResult=await supabase.from('lessons').select('id,module_id,title,lesson_order,is_free,is_published,pdf_url').in('module_id',ids).eq('is_published',true).order('lesson_order');
+          if(lessonResult.error)throw lessonResult.error;
+          lessons=lessonResult.data||[];
+        }
+        const moduleMap=new Map(modules.map(item=>[item.id,item]));
+        for(const lesson of lessons){
+          const module=moduleMap.get(lesson.module_id);
+          const lessonAllowed=!!lesson.is_free||grantedCourses.has(course.id)||grantedChapters.has(lesson.module_id)||grantedLessons.has(lesson.id);
+          if(!lessonAllowed)continue;
+          let contentLesson=lesson, resources=[];
+          try{
+            if(guestModeActive){const content=await getGuestLessonContent(lesson.id);contentLesson=content.lesson||lesson;resources=content.resources||[];}
+            else{
+              const resourceResult=await supabase.from('lesson_resources').select('resource_type,title,storage_path,external_url').eq('lesson_id',lesson.id).eq('resource_type','pdf');
+              if(resourceResult.error)throw resourceResult.error;
+              resources=resourceResult.data||[];
+            }
+          }catch(_){continue;}
+          const pdfs=resources.filter(item=>item.resource_type==='pdf');
+          if(!pdfs.length&&contentLesson.pdf_url)pdfs.push({resource_type:'pdf',title:'PDF',external_url:contentLesson.pdf_url});
+          for(const item of pdfs)pdfItems.push({course,module,lesson,item});
+        }
+        if(course.id==='947a9182-8328-4506-b2b0-50ada2b709fa'){
+          const meenaFiles=[
+            {title:'Meena 01 Conversation Book PDF',path:'Meena 01 Conversation Book PDF.pdf',moduleTitle:'Meena 01'},
+            {title:'Meena 02 Conversation Book PDF',path:'Meena 02 Conversation Book PDF.pdf',moduleTitle:'Meena 02'},
+            {title:'Meena 03 Conversation Book PDF',path:'Meena 03 Conversation Book PDF.pdf',moduleTitle:'Meena 03'}
+          ];
+          for(const file of meenaFiles){const module=modules.find(item=>item.title===file.moduleTitle);if(module&&(grantedCourses.has(course.id)||grantedChapters.has(module.id)))pdfItems.push({course,module,lesson:{title:file.title},item:{title:file.title,storage_path:file.path,bucket:'Meena Conversation Books PDF'}});}
+        }
+      }
+      message.textContent='';
+      if(!pdfItems.length){booksHost.textContent='فی الحال آپ کے لیے کوئی PDF دستیاب نہیں۔ Paid سبق کی PDF اس وقت دکھے گی جب اس کورس یا سبق کی رسائی منظور ہو۔';return;}
+      for(const entry of pdfItems){
+        const {course,module,lesson,item}=entry;
+        const card=document.createElement('article');card.className='persian-library-book';
+        const title=document.createElement('h4');title.textContent=`${item.title||'سبق کی PDF'} — ${lesson.title||'سبق'} (${module?.title||course.name})`;card.appendChild(title);
+        const status=document.createElement('p');status.textContent='PDF تیار ہو رہی ہے...';card.appendChild(status);booksHost.appendChild(card);
+        try{
+          let url=item.external_url||'';
+          if(item.storage_path)url=await createStudentSignedUrl(item.bucket||'meena-lesson-files',item.storage_path,3600,lesson.id);
+          else if(url.startsWith('storage://'))url=await createStudentSignedUrl('meena-lesson-files',url.slice('storage://'.length),3600,lesson.id);
+          if(!url)throw new Error('PDF کا لنک موجود نہیں۔');
+          const preview=document.createElement('iframe');preview.className='persian-book-pdf-preview';preview.title=`${lesson.title||'سبق'} PDF preview`;preview.loading='lazy';preview.src=`${url}#page=1&toolbar=0&navpanes=0`;
+          const open=document.createElement('a');open.href=url;open.target='_blank';open.rel='noopener noreferrer';open.textContent='📖 PDF دیکھیں';open.style.cssText='display:inline-block;margin:6px 12px 6px 0;font-weight:700;';
+          const download=document.createElement('a');download.href=url;download.target='_blank';download.rel='noopener noreferrer';download.download=`${lesson.title||'lesson'}.pdf`;download.textContent='⬇ PDF ڈاؤن لوڈ کریں';download.style.cssText='display:inline-block;margin:6px;font-weight:700;';
+          status.remove();card.append(preview,open,download);
+        }catch(error){status.textContent='PDF نہیں کھل سکی: '+(error?.message||String(error));}
+      }
+    }catch(error){message.textContent='PDF فہرست حاصل نہیں ہو سکی: '+(error?.message||String(error));}
+  };
+  categories.appendChild(existingPdfsButton);
   view.querySelector('.book-library-categories-back').onclick=()=>{folder.hidden=true;categories.hidden=false;message.textContent='';};
 }
 
