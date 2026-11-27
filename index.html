@@ -77,6 +77,8 @@ body[data-theme="night"] .lesson-step-navigation button:disabled{background:#344
 #studentDashboard.book-library-open>:not(#persianBookLibraryView){display:none!important}
 .persian-library-category{width:100%;margin:8px 0;padding:16px;text-align:right;background:#f3f8f3;color:#17483d;border:1px solid #d7e5d9;border-radius:13px;font-weight:700}
 .persian-library-book{margin:12px 0;padding:15px;border:1px solid #dce7df;border-radius:13px;background:#fff}
+.persian-book-pdf-preview{display:block;width:100%;height:440px;margin:12px 0;border:1px solid #dce7df;border-radius:10px;background:#f4f6f4}
+@media(max-width:600px){.persian-book-pdf-preview{height:360px}}
 body[data-theme="night"] .persian-library-category,body[data-theme="night"] .persian-library-book{background:#202f2a;color:#e8f0ec;border-color:#465a50}
 .masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
 .masdar-table{width:100%;min-width:720px;border-collapse:collapse;background:#fff}
@@ -822,9 +824,14 @@ function showPersianBooksLibrary(dashboard) {
           let url;
           if(guestModeActive&&book.is_free){const result=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).createSignedUrl(book.storage_path,3600);if(result.error)throw result.error;url=result.data.signedUrl;}
           else url=await createStudentSignedUrl(PERSIAN_BOOK_LIBRARY_BUCKET,book.storage_path,3600,book.id);
+          const preview=document.createElement('iframe');
+          preview.className='persian-book-pdf-preview';
+          preview.title=`${book.title} — PDF کا پہلا صفحہ`;
+          preview.loading='lazy';
+          preview.src=`${url}#page=1&toolbar=0&navpanes=0`;
           const viewLink=document.createElement('a');viewLink.href=url;viewLink.target='_blank';viewLink.rel='noopener noreferrer';viewLink.textContent='📖 PDF دیکھیں';viewLink.style.cssText='display:inline-block;margin:6px 12px 6px 0;font-weight:700;';
           const downloadLink=document.createElement('a');const downloadUrl=new URL(url);downloadUrl.searchParams.set('download',`${book.title}.pdf`);downloadLink.href=downloadUrl.toString();downloadLink.download=`${book.title}.pdf`;downloadLink.textContent='⬇ PDF ڈاؤن لوڈ کریں';downloadLink.style.cssText='display:inline-block;margin:6px;font-weight:700;';
-          status.remove();card.append(viewLink,downloadLink);
+          status.remove();card.append(preview,viewLink,downloadLink);
         }catch(e){status.textContent='PDF کا لنک نہیں بن سکا۔ اگر آپ Guest ہیں تو Supabase کے guest signed-link function میں اس نئے book folder کی اجازت بھی درکار ہو سکتی ہے۔';}
       }
     };
