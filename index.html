@@ -855,7 +855,7 @@ async function loadPersianBooksAdmin() {
 }
 
 async function savePersianBookAdmin(event) {
-  event.preventDefault();
+  event?.preventDefault();
   const form=document.getElementById('persianBookUploadForm');
   const message=document.getElementById('persianBooksAdminMessage');
   const submit=document.getElementById('uploadPersianBookBtn');
@@ -866,16 +866,19 @@ async function savePersianBookAdmin(event) {
   if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){message.textContent='صرف PDF فائل اپ لوڈ کریں۔';return;}
   if(file.size>50*1024*1024){message.textContent='فائل 50 MB سے چھوٹی ہونی چاہیے۔';return;}
   submit.disabled=true;message.textContent='PDF اپ لوڈ ہو رہی ہے...';
-  const id=crypto.randomUUID();
-  const safeName=file.name.replace(/[^\p{L}\p{N}._-]+/gu,'_');
-  const path=`${id}/${safeName}`;
-  const uploaded=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).upload(path,file,{upsert:false,contentType:'application/pdf'});
-  if(uploaded.error){message.textContent='PDF اپ لوڈ نہیں ہوئی: '+uploaded.error.message;submit.disabled=false;return;}
-  const row={id,category,title,storage_path:path,is_free:document.getElementById('persianBookIsFree').checked,is_published:document.getElementById('persianBookIsPublished').checked};
-  const inserted=await supabase.from('persian_library_books').insert(row);
-  if(inserted.error){await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).remove([path]);message.textContent='کتاب محفوظ نہیں ہوئی: '+inserted.error.message;submit.disabled=false;return;}
-  form.reset();document.getElementById('persianBookIsFree').checked=true;document.getElementById('persianBookIsPublished').checked=true;
-  message.textContent='PDF کتاب کامیابی سے شامل ہو گئی۔';submit.disabled=false;await loadPersianBooksAdmin();
+  try{
+    const id=crypto.randomUUID();
+    const safeName=file.name.replace(/[^\p{L}\p{N}._-]+/gu,'_');
+    const path=`${id}/${safeName}`;
+    const uploaded=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).upload(path,file,{upsert:false,contentType:'application/pdf'});
+    if(uploaded.error)throw uploaded.error;
+    const row={id,category,title,storage_path:path,is_free:document.getElementById('persianBookIsFree').checked,is_published:document.getElementById('persianBookIsPublished').checked};
+    const inserted=await supabase.from('persian_library_books').insert(row);
+    if(inserted.error){await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).remove([path]);throw inserted.error;}
+    form.reset();document.getElementById('persianBookIsFree').checked=true;document.getElementById('persianBookIsPublished').checked=true;
+    message.textContent='PDF کتاب کامیابی سے شامل ہو گئی۔';await loadPersianBooksAdmin();
+  }catch(error){message.textContent='اپ لوڈ مکمل نہیں ہوئی: '+(error?.message||String(error));}
+  finally{submit.disabled=false;}
 }
 
 function showGuestDashboard() {
@@ -5091,7 +5094,7 @@ document.getElementById('refreshGuestAdminBtn')?.addEventListener('click', loadG
         <label class="form-field">PDF فائل <input id="persianBookFile" type="file" accept="application/pdf,.pdf" required></label>
         <label style="display:block;margin:10px 0;"><input id="persianBookIsFree" type="checkbox" checked> یہ کتاب مفت ہے</label>
         <label style="display:block;margin:10px 0;"><input id="persianBookIsPublished" type="checkbox" checked> اسے طلبہ کو دکھائیں</label>
-        <button id="uploadPersianBookBtn" type="submit">PDF کتاب اپ لوڈ کریں</button>
+        <button id="uploadPersianBookBtn" type="button">PDF کتاب اپ لوڈ کریں</button>
       </form>
       <p id="persianBooksAdminMessage" aria-live="polite"></p>
       <button id="refreshPersianBooksAdminBtn" type="button" style="background:#52645b;">کتابوں کی فہرست تازہ کریں</button>
@@ -5738,7 +5741,8 @@ document.getElementById('togglePersianBooksAdmin')?.addEventListener('click', as
   event.currentTarget.textContent=opening?'📂 فارسی PDF کتابوں کا انتظام — فولڈر بند کریں':'📚 فارسی PDF کتابوں کا انتظام — فولڈر کھولیں';
   if(opening)await loadPersianBooksAdmin();
 });
-document.getElementById('persianBookUploadForm')?.addEventListener('submit',savePersianBookAdmin);
+document.getElementById('persianBookUploadForm')?.addEventListener('submit',event=>{event.preventDefault();});
+document.getElementById('uploadPersianBookBtn')?.addEventListener('click',savePersianBookAdmin);
 document.getElementById('refreshPersianBooksAdminBtn')?.addEventListener('click',loadPersianBooksAdmin);
 </script>
 
