@@ -74,6 +74,10 @@ body.authenticated .logout-button{display:block}
 body[data-theme="night"] .lesson-step-navigation button:disabled{background:#34443d!important;color:#aab8b0!important}
 .lesson-page-navigation{display:flex;gap:8px;width:100%;margin:8px 0}
 .lesson-page-navigation button{flex:1;width:auto;margin:0}
+#studentDashboard.book-library-open>:not(#persianBookLibraryView){display:none!important}
+.persian-library-category{width:100%;margin:8px 0;padding:16px;text-align:right;background:#f3f8f3;color:#17483d;border:1px solid #d7e5d9;border-radius:13px;font-weight:700}
+.persian-library-book{margin:12px 0;padding:15px;border:1px solid #dce7df;border-radius:13px;background:#fff}
+body[data-theme="night"] .persian-library-category,body[data-theme="night"] .persian-library-book{background:#202f2a;color:#e8f0ec;border-color:#465a50}
 .masdar-table-scroll{width:100%;overflow-x:auto;margin:12px 0;border:1px solid #dce7df;border-radius:12px}
 .masdar-table{width:100%;min-width:720px;border-collapse:collapse;background:#fff}
 .masdar-table th,.masdar-table td{padding:11px 9px;border-bottom:1px solid #e3eae4;text-align:right;vertical-align:middle;line-height:1.8}
@@ -768,6 +772,112 @@ async function returnToDashboard() {
   return showGuestDashboard();
 }
 
+const PERSIAN_BOOK_LIBRARY_BUCKET = 'persian-library-books';
+const PERSIAN_BOOK_LIBRARY_CATEGORIES = [
+  'Persian Course (Amozish e Zaban e Farsi Be Farsi)',
+  'Persian Course (Kitaab E Parsa)',
+  'Persian Course (Meena Conversation Book)',
+  'Persian Course (Aou Farsi Sekhain Grammar Book)',
+  'Free Persian Book'
+];
+
+function showPersianBooksLibrary(dashboard) {
+  let view = dashboard.querySelector('#persianBookLibraryView');
+  if (!view) {
+    view = document.createElement('section');
+    view.id = 'persianBookLibraryView';
+    view.className = 'card';
+    view.style.cssText = 'padding:18px;border:1px solid #dce7df;';
+    view.innerHTML = '<button type="button" class="book-library-back" style="width:auto;background:#52645b;">← واپس ڈیش بورڈ</button><h2>📚 فارسی کتابیں</h2><p>اپنی پسند کی کتابوں کا فولڈر کھولیں۔</p><div class="persian-library-categories"></div><div class="persian-library-folder" hidden><button type="button" class="book-library-categories-back" style="width:auto;background:#52645b;">← کتابوں کے فولڈرز</button><h3 class="persian-library-folder-title"></h3><div class="persian-library-books"></div></div><p class="persian-library-message" aria-live="polite"></p>';
+    dashboard.appendChild(view);
+    view.querySelector('.book-library-back').onclick = () => { dashboard.classList.remove('book-library-open'); view.hidden = true; };
+  }
+  view.hidden = false;
+  dashboard.classList.add('book-library-open');
+  const categories = view.querySelector('.persian-library-categories');
+  const folder = view.querySelector('.persian-library-folder');
+  const booksHost = view.querySelector('.persian-library-books');
+  const message = view.querySelector('.persian-library-message');
+  categories.hidden = false; folder.hidden = true; message.textContent = '';
+  categories.innerHTML = '';
+  const categoryRows = PERSIAN_BOOK_LIBRARY_CATEGORIES.map((name, index) => ({id:index+1,name}));
+  categoryRows.forEach(category => {
+    const button=document.createElement('button'); button.type='button'; button.className='persian-library-category'; button.textContent=`📁 ${category.name}`;
+    button.onclick=async()=>{
+      categories.hidden=true; folder.hidden=false; booksHost.innerHTML=''; message.textContent='کتابیں لوڈ ہو رہی ہیں...';
+      view.querySelector('.persian-library-folder-title').textContent=category.name;
+      const {data,error}=await supabase.from('persian_library_books').select('id,category,title,storage_path,is_free,is_published').eq('category',category.id).eq('is_published',true).order('title');
+      if(error){message.textContent='کتابیں حاصل نہیں ہو سکیں۔ پہلے Supabase میں کتابوں کے فولڈر کا سیٹ اپ مکمل کریں۔';return;}
+      message.textContent='';
+      if(!data?.length){booksHost.textContent='اس فولڈر میں ابھی کوئی کتاب شامل نہیں کی گئی۔';return;}
+      let grants=[]; try{grants=await getCurrentAccessRows();}catch(_){grants=[];}
+      for(const book of data){
+        const card=document.createElement('article');card.className='persian-library-book';
+        const title=document.createElement('h4');title.textContent=book.title;card.appendChild(title);
+        const isUnlocked=book.is_free||(grants||[]).some(row=>row.access_type==='lesson'&&row.target_id===book.id);
+        const badge=document.createElement('p');badge.textContent=book.is_free?'🟢 مفت کتاب — دیکھیں اور ڈاؤن لوڈ کریں':(isUnlocked?'🟢 Paid کتاب — رسائی منظور شدہ':'🔒 Paid کتاب');card.appendChild(badge);
+        if(!isUnlocked){const buy=document.createElement('button');buy.type='button';buy.textContent='یہ کتاب حاصل کرنے کی درخواست دیں';buy.onclick=()=>showPaymentForm({accessType:'lesson',targetId:book.id,targetTitle:book.title});card.appendChild(buy);booksHost.appendChild(card);continue;}
+        const status=document.createElement('small');status.textContent='فائل کا محفوظ لنک تیار ہو رہا ہے...';card.appendChild(status);booksHost.appendChild(card);
+        try{
+          let url;
+          if(guestModeActive&&book.is_free){const result=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).createSignedUrl(book.storage_path,3600);if(result.error)throw result.error;url=result.data.signedUrl;}
+          else url=await createStudentSignedUrl(PERSIAN_BOOK_LIBRARY_BUCKET,book.storage_path,3600,book.id);
+          const viewLink=document.createElement('a');viewLink.href=url;viewLink.target='_blank';viewLink.rel='noopener noreferrer';viewLink.textContent='📖 PDF دیکھیں';viewLink.style.cssText='display:inline-block;margin:6px 12px 6px 0;font-weight:700;';
+          const downloadLink=document.createElement('a');const downloadUrl=new URL(url);downloadUrl.searchParams.set('download',`${book.title}.pdf`);downloadLink.href=downloadUrl.toString();downloadLink.download=`${book.title}.pdf`;downloadLink.textContent='⬇ PDF ڈاؤن لوڈ کریں';downloadLink.style.cssText='display:inline-block;margin:6px;font-weight:700;';
+          status.remove();card.append(viewLink,downloadLink);
+        }catch(e){status.textContent='PDF کا لنک نہیں بن سکا۔ اگر آپ Guest ہیں تو Supabase کے guest signed-link function میں اس نئے book folder کی اجازت بھی درکار ہو سکتی ہے۔';}
+      }
+    };
+    categories.appendChild(button);
+  });
+  view.querySelector('.book-library-categories-back').onclick=()=>{folder.hidden=true;categories.hidden=false;message.textContent='';};
+}
+
+async function loadPersianBooksAdmin() {
+  const host=document.getElementById('persianBooksAdminList');
+  const message=document.getElementById('persianBooksAdminMessage');
+  if(!host||!message)return;
+  host.innerHTML='کتابوں کی فہرست لوڈ ہو رہی ہے...';
+  const {data,error}=await supabase.from('persian_library_books').select('id,category,title,storage_path,is_free,is_published').order('category').order('title');
+  if(error){host.textContent='کتابوں کا سیٹ اپ مکمل نہیں ہوا۔ ساتھ دی گئی SQL فائل کو Supabase SQL Editor میں چلائیں۔';return;}
+  host.innerHTML='';
+  if(!data?.length){host.textContent='ابھی کوئی PDF کتاب اپ لوڈ نہیں ہوئی۔';return;}
+  for(const book of data){
+    const card=document.createElement('article');card.className='card';card.style.cssText='padding:14px;margin:10px 0;';
+    const title=document.createElement('h4');title.textContent=book.title;card.appendChild(title);
+    const meta=document.createElement('p');meta.textContent=`${PERSIAN_BOOK_LIBRARY_CATEGORIES[book.category-1]||'فارسی کتاب'} — ${book.is_free?'مفت':'Paid'} — ${book.is_published?'طلبہ کو دکھائی دے رہی ہے':'طلبہ سے چھپی ہوئی'}`;card.appendChild(meta);
+    const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+    const toggleAccess=document.createElement('button');toggleAccess.type='button';toggleAccess.textContent=book.is_free?'Paid کریں':'مفت کریں';toggleAccess.onclick=async()=>{const result=await supabase.from('persian_library_books').update({is_free:!book.is_free}).eq('id',book.id);if(result.error){message.textContent='حیثیت تبدیل نہیں ہوئی: '+result.error.message;return;}loadPersianBooksAdmin();};
+    const togglePublish=document.createElement('button');togglePublish.type='button';togglePublish.textContent=book.is_published?'طلبہ سے چھپائیں':'طلبہ کو دکھائیں';togglePublish.style.background='#52645b';togglePublish.onclick=async()=>{const result=await supabase.from('persian_library_books').update({is_published:!book.is_published}).eq('id',book.id);if(result.error){message.textContent='Visibility تبدیل نہیں ہوئی: '+result.error.message;return;}loadPersianBooksAdmin();};
+    const remove=document.createElement('button');remove.type='button';remove.textContent='کتاب حذف کریں';remove.style.background='#b42318';remove.onclick=async()=>{if(!confirm(`کیا آپ واقعی “${book.title}” PDF حذف کرنا چاہتے ہیں؟`))return;const fileResult=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).remove([book.storage_path]);if(fileResult.error){message.textContent='PDF فائل حذف نہیں ہوئی: '+fileResult.error.message;return;}const rowResult=await supabase.from('persian_library_books').delete().eq('id',book.id);if(rowResult.error){message.textContent='فائل حذف ہوئی مگر ریکارڈ نہیں ہٹا: '+rowResult.error.message;return;}loadPersianBooksAdmin();};
+    actions.append(toggleAccess,togglePublish,remove);card.appendChild(actions);host.appendChild(card);
+  }
+}
+
+async function savePersianBookAdmin(event) {
+  event.preventDefault();
+  const form=document.getElementById('persianBookUploadForm');
+  const message=document.getElementById('persianBooksAdminMessage');
+  const submit=document.getElementById('uploadPersianBookBtn');
+  const category=Number(document.getElementById('persianBookCategory').value);
+  const title=document.getElementById('persianBookTitle').value.trim();
+  const file=document.getElementById('persianBookFile').files?.[0];
+  if(!category||!title||!file){message.textContent='فولڈر، کتاب کا نام اور PDF فائل منتخب کریں۔';return;}
+  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){message.textContent='صرف PDF فائل اپ لوڈ کریں۔';return;}
+  if(file.size>50*1024*1024){message.textContent='فائل 50 MB سے چھوٹی ہونی چاہیے۔';return;}
+  submit.disabled=true;message.textContent='PDF اپ لوڈ ہو رہی ہے...';
+  const id=crypto.randomUUID();
+  const safeName=file.name.replace(/[^\p{L}\p{N}._-]+/gu,'_');
+  const path=`${id}/${safeName}`;
+  const uploaded=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).upload(path,file,{upsert:false,contentType:'application/pdf'});
+  if(uploaded.error){message.textContent='PDF اپ لوڈ نہیں ہوئی: '+uploaded.error.message;submit.disabled=false;return;}
+  const row={id,category,title,storage_path:path,is_free:document.getElementById('persianBookIsFree').checked,is_published:document.getElementById('persianBookIsPublished').checked};
+  const inserted=await supabase.from('persian_library_books').insert(row);
+  if(inserted.error){await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).remove([path]);message.textContent='کتاب محفوظ نہیں ہوئی: '+inserted.error.message;submit.disabled=false;return;}
+  form.reset();document.getElementById('persianBookIsFree').checked=true;document.getElementById('persianBookIsPublished').checked=true;
+  message.textContent='PDF کتاب کامیابی سے شامل ہو گئی۔';submit.disabled=false;await loadPersianBooksAdmin();
+}
+
 function showGuestDashboard() {
   guestModeActive = true;
   activeStudentId = null;
@@ -807,6 +917,7 @@ function showGuestDashboard() {
       <button id="guestMasdarBtn" class="reg-course-button dashboard-tool-button" type="button"><strong>📝 فارسی مصادر</strong><span>مصادر اور گردان کی معلومات</span></button>
     </div>
     <button id="guestFavoritesBtn" class="dashboard-favorites-button" type="button">⭐ میرے پسندیدہ اسباق اور فائلیں</button>
+    <button id="guestPersianBooksBtn" class="dashboard-favorites-button" type="button" style="background:#eaf4ed!important;color:#17483d!important;border-color:#cbdacf!important;">📚 فارسی کتابیں — PDF لائبریری</button>
     <section class="student-dashboard-classes">
       <div class="student-dashboard-section-heading"><span>🎓</span><div><h3>Live Classes</h3><p>اپنی فارسی کلاس کے لیے رجسٹریشن کریں</p></div></div>
       <p>آن لائن گروپ، انفرادی یا کراچی فزیکل کلاس کے لیے درخواست دیں۔</p>
@@ -829,6 +940,7 @@ function showGuestDashboard() {
   dashboard.querySelector('#guestVocabBtn').onclick = () => openPersianReference('vocab');
   dashboard.querySelector('#guestMasdarBtn').onclick = () => openPersianReference('masdar');
   dashboard.querySelector('#guestFavoritesBtn').onclick = showStudentFavorites;
+  dashboard.querySelector('#guestPersianBooksBtn').onclick = () => showPersianBooksLibrary(dashboard);
   dashboard.querySelector('#persianReferenceBack').onclick = returnToDashboard;
   dashboard.querySelector('#guestClassRegistrationBtn').onclick = showClassRegistrationForm;
   dashboard.querySelector('#guestRedeemToggle').onclick = () => {
@@ -2325,6 +2437,7 @@ if (adminProfile.role === 'admin') {
     <button id="persianConversationLibraryBtn" type="button" style="margin:0;min-height:54px;background:#a04b68;">🗣️ فارسی بول چال</button>
     <button id="persianVocabBtn" type="button" style="margin:0;min-height:54px;background:#345b75;">📖 فارسی لغت</button>
     <button id="persianMasdarBtn" type="button" style="margin:0;min-height:54px;background:#76522b;">📝 فارسی مصادر</button>
+    <button id="persianBooksBtn" type="button" style="margin:0;min-height:54px;background:#176b50;">📚 فارسی کتابیں</button>
   </div>
 
   <section id="persianCourseChooser" hidden>
@@ -2424,6 +2537,7 @@ dashboard.querySelector('#classRegistrationBtn').addEventListener('click', showC
 dashboard.querySelector('#myClassRegistrationsBtn').addEventListener('click', showMyClassRegistrations);
 dashboard.querySelector('#persianVocabBtn').addEventListener('click', () => openPersianReference('vocab'));
 dashboard.querySelector('#persianMasdarBtn').addEventListener('click', () => openPersianReference('masdar'));
+dashboard.querySelector('#persianBooksBtn').addEventListener('click', () => showPersianBooksLibrary(dashboard));
 dashboard.querySelector('#persianReferenceBack').addEventListener('click', () => {
   dashboard.querySelector('#persianReferenceView').hidden = true;
   dashboard.querySelectorAll('main > #studentDashboard > section, main > #studentDashboard > h2, main > #studentDashboard > h3, main > #studentDashboard > p, main > #studentDashboard > hr, main > #studentDashboard > div').forEach(el => { if (el.id !== 'persianReferenceView') el.hidden = false; });
@@ -4958,6 +5072,32 @@ document.getElementById('refreshGuestAdminBtn')?.addEventListener('click', loadG
   <h2>آؤ فارسی سیکھیں</h2>
   <h3>Admin Panel</h3>
   <p>خوش آمدید، آپ ایپ کے منتظم ہیں۔</p>
+  <div class="card" id="persianBooksAdminSection" style="margin:14px 0;">
+    <button id="togglePersianBooksAdmin" type="button" aria-expanded="false" style="width:100%;text-align:right;background:#176b50;">📚 فارسی PDF کتابوں کا انتظام — فولڈر کھولیں</button>
+    <div id="persianBooksAdminContent" hidden style="padding-top:14px;">
+      <p>اپنی PDF کتابیں پانچ فولڈرز میں شامل کریں۔ مفت/ Paid اور طلبہ کو دکھانے کی حالت بھی یہاں تبدیل ہو سکتی ہے۔ زیادہ سے زیادہ فائل سائز 50 MB ہے۔</p>
+      <form id="persianBookUploadForm">
+        <label class="form-field">کتاب کا فولڈر
+          <select id="persianBookCategory" required>
+            <option value="">فولڈر منتخب کریں</option>
+            <option value="1">Persian Course (Amozish e Zaban e Farsi Be Farsi)</option>
+            <option value="2">Persian Course (Kitaab E Parsa)</option>
+            <option value="3">Persian Course (Meena Conversation Book)</option>
+            <option value="4">Persian Course (Aou Farsi Sekhain Grammar Book)</option>
+            <option value="5">Free Persian Book</option>
+          </select>
+        </label>
+        <label class="form-field">کتاب کا نام <input id="persianBookTitle" type="text" maxlength="180" required placeholder="PDF کتاب کا نام"></label>
+        <label class="form-field">PDF فائل <input id="persianBookFile" type="file" accept="application/pdf,.pdf" required></label>
+        <label style="display:block;margin:10px 0;"><input id="persianBookIsFree" type="checkbox" checked> یہ کتاب مفت ہے</label>
+        <label style="display:block;margin:10px 0;"><input id="persianBookIsPublished" type="checkbox" checked> اسے طلبہ کو دکھائیں</label>
+        <button id="uploadPersianBookBtn" type="submit">PDF کتاب اپ لوڈ کریں</button>
+      </form>
+      <p id="persianBooksAdminMessage" aria-live="polite"></p>
+      <button id="refreshPersianBooksAdminBtn" type="button" style="background:#52645b;">کتابوں کی فہرست تازہ کریں</button>
+      <div id="persianBooksAdminList"></div>
+    </div>
+  </div>
   <div class="card" id="guestRequestsAdminSection">
     <h3>Guest طلبہ کی درخواستیں</h3>
     <p>بغیر اکاؤنٹ کلاس رجسٹریشن اور ادائیگی کی درخواستوں کا انتظام۔ ادائیگی منظور کرنے پر ایک مرتبہ استعمال ہونے والا Unlock Code جاری ہوگا۔</p>
@@ -5588,6 +5728,18 @@ document.getElementById('refreshReferenceAdminBtn')?.addEventListener('click',()
   currentLanguage = savedLanguage;
   refreshAll();
 })();
+</script>
+
+<script>
+document.getElementById('togglePersianBooksAdmin')?.addEventListener('click', async event => {
+  const content=document.getElementById('persianBooksAdminContent');
+  const opening=content.hidden;content.hidden=!opening;
+  event.currentTarget.setAttribute('aria-expanded',String(opening));
+  event.currentTarget.textContent=opening?'📂 فارسی PDF کتابوں کا انتظام — فولڈر بند کریں':'📚 فارسی PDF کتابوں کا انتظام — فولڈر کھولیں';
+  if(opening)await loadPersianBooksAdmin();
+});
+document.getElementById('persianBookUploadForm')?.addEventListener('submit',savePersianBookAdmin);
+document.getElementById('refreshPersianBooksAdminBtn')?.addEventListener('click',loadPersianBooksAdmin);
 </script>
 
 </body>
