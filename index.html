@@ -859,13 +859,16 @@ async function savePersianBookAdmin(event) {
   const form=document.getElementById('persianBookUploadForm');
   const message=document.getElementById('persianBooksAdminMessage');
   const submit=document.getElementById('uploadPersianBookBtn');
+  message.setAttribute('role','status');
+  message.textContent='اپ لوڈ کی تیاری ہو رہی ہے...';
   const category=Number(document.getElementById('persianBookCategory').value);
   const title=document.getElementById('persianBookTitle').value.trim();
   const file=document.getElementById('persianBookFile').files?.[0];
   if(!category||!title||!file){message.textContent='فولڈر، کتاب کا نام اور PDF فائل منتخب کریں۔';return;}
   if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){message.textContent='صرف PDF فائل اپ لوڈ کریں۔';return;}
   if(file.size>50*1024*1024){message.textContent='فائل 50 MB سے چھوٹی ہونی چاہیے۔';return;}
-  submit.disabled=true;message.textContent='PDF اپ لوڈ ہو رہی ہے...';
+  submit.disabled=true;submit.textContent='اپ لوڈ ہو رہی ہے...';message.textContent=`${file.name} اپ لوڈ ہو رہی ہے، براہِ کرم انتظار کریں...`;
+  await new Promise(resolve=>requestAnimationFrame(resolve));
   try{
     const id=crypto.randomUUID();
     const safeName=file.name.replace(/[^\p{L}\p{N}._-]+/gu,'_');
@@ -878,7 +881,7 @@ async function savePersianBookAdmin(event) {
     form.reset();document.getElementById('persianBookIsFree').checked=true;document.getElementById('persianBookIsPublished').checked=true;
     message.textContent='PDF کتاب کامیابی سے شامل ہو گئی۔';await loadPersianBooksAdmin();
   }catch(error){message.textContent='اپ لوڈ مکمل نہیں ہوئی: '+(error?.message||String(error));}
-  finally{submit.disabled=false;}
+  finally{submit.disabled=false;submit.textContent='PDF کتاب اپ لوڈ کریں';}
 }
 
 function showGuestDashboard() {
@@ -5069,6 +5072,10 @@ document.getElementById('refreshGuestAdminBtn')?.addEventListener('click', loadG
     await handleLogin(session.user);
   }
 })();
+// Expose only the book-library actions needed by the classic admin-panel script.
+window.__ctlpShowPersianBooksLibrary = showPersianBooksLibrary;
+window.__ctlpLoadPersianBooksAdmin = loadPersianBooksAdmin;
+window.__ctlpSavePersianBookAdmin = savePersianBookAdmin;
 </script>
   <!--  PANEL -->
 <section id="adminPanel" style="display:none; padding:20px;">
@@ -5094,7 +5101,7 @@ document.getElementById('refreshGuestAdminBtn')?.addEventListener('click', loadG
         <label class="form-field">PDF فائل <input id="persianBookFile" type="file" accept="application/pdf,.pdf" required></label>
         <label style="display:block;margin:10px 0;"><input id="persianBookIsFree" type="checkbox" checked> یہ کتاب مفت ہے</label>
         <label style="display:block;margin:10px 0;"><input id="persianBookIsPublished" type="checkbox" checked> اسے طلبہ کو دکھائیں</label>
-        <button id="uploadPersianBookBtn" type="button">PDF کتاب اپ لوڈ کریں</button>
+        <button id="uploadPersianBookBtn" type="button" onclick="window.__ctlpSavePersianBookAdmin(event)">PDF کتاب اپ لوڈ کریں</button>
       </form>
       <p id="persianBooksAdminMessage" aria-live="polite"></p>
       <button id="refreshPersianBooksAdminBtn" type="button" style="background:#52645b;">کتابوں کی فہرست تازہ کریں</button>
@@ -5739,11 +5746,15 @@ document.getElementById('togglePersianBooksAdmin')?.addEventListener('click', as
   const opening=content.hidden;content.hidden=!opening;
   event.currentTarget.setAttribute('aria-expanded',String(opening));
   event.currentTarget.textContent=opening?'📂 فارسی PDF کتابوں کا انتظام — فولڈر بند کریں':'📚 فارسی PDF کتابوں کا انتظام — فولڈر کھولیں';
-  if(opening)await loadPersianBooksAdmin();
+  if(opening)await window.__ctlpLoadPersianBooksAdmin();
 });
 document.getElementById('persianBookUploadForm')?.addEventListener('submit',event=>{event.preventDefault();});
-document.getElementById('uploadPersianBookBtn')?.addEventListener('click',savePersianBookAdmin);
-document.getElementById('refreshPersianBooksAdminBtn')?.addEventListener('click',loadPersianBooksAdmin);
+document.getElementById('persianBookFile')?.addEventListener('change',event=>{
+  const file=event.currentTarget.files?.[0];
+  const message=document.getElementById('persianBooksAdminMessage');
+  if(message&&file)message.textContent=`فائل منتخب ہو گئی: ${file.name} — اب PDF کتاب اپ لوڈ کریں۔`;
+});
+document.getElementById('refreshPersianBooksAdminBtn')?.addEventListener('click',()=>window.__ctlpLoadPersianBooksAdmin());
 </script>
 
 </body>
