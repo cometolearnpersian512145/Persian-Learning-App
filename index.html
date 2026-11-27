@@ -871,8 +871,8 @@ async function savePersianBookAdmin(event) {
   await new Promise(resolve=>requestAnimationFrame(resolve));
   try{
     const id=crypto.randomUUID();
-    const safeName=file.name.replace(/[^\p{L}\p{N}._-]+/gu,'_');
-    const path=`${id}/${safeName}`;
+    // Keep Storage object keys ASCII-only; the book title remains in the database/UI.
+    const path=`pdf-${id}.pdf`;
     const uploaded=await supabase.storage.from(PERSIAN_BOOK_LIBRARY_BUCKET).upload(path,file,{upsert:false,contentType:'application/pdf'});
     if(uploaded.error)throw uploaded.error;
     const row={id,category,title,storage_path:path,is_free:document.getElementById('persianBookIsFree').checked,is_published:document.getElementById('persianBookIsPublished').checked};
