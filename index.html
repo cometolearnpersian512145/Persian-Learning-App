@@ -2709,7 +2709,30 @@ if (adminProfile.role === 'admin') {
     <button id="persianMasdarBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">🔁</span><span class="student-folder-title">فارسی مصادر</span><span class="student-folder-note">بن ماضی اور مضارع</span></button>
     <button id="persianBooksBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">📚</span><span class="student-folder-title">فارسی کتابیں</span><span class="student-folder-note">PDF کتابوں کی لائبریری</span></button>
     <button id="persianWordGalleryBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">🖼️</span><span class="student-folder-title">تصویری الفاظ</span><span class="student-folder-note">تصاویر اور آڈیو</span></button>
+    <button id="studentShareAppBtn" class="student-folder-tile" type="button"><span class="student-folder-icon">📤</span><span class="student-folder-title">ایپ شیئر کریں</span><span class="student-folder-note">دوستوں اور ساتھیوں تک پہنچائیں</span></button>
+    <button id="studentFeedbackToggle" class="student-folder-tile" type="button" aria-expanded="false" aria-controls="studentFeedbackPanel"><span class="student-folder-icon">💬</span><span class="student-folder-title">اپنی رائے دیں</span><span class="student-folder-note">مشورہ یا مسئلہ بتائیں</span></button>
   </div>
+
+  <section id="studentFeedbackPanel" class="card" hidden style="padding:16px;box-shadow:none;border:1px solid #dce7df;">
+    <h3>💬 اپنی قیمتی رائے، مشورہ یا مسئلہ لکھیں</h3>
+    <p>آپ کا پیغام WhatsApp یا Gmail میں تیار ہوگا۔ بھیجنے کے لیے وہاں Send دبائیں۔</p>
+    <label for="studentFeedbackType">رائے کی قسم</label>
+    <select id="studentFeedbackType" style="width:100%;padding:12px;border:1px solid #dce7df;border-radius:10px;margin:6px 0 12px;">
+      <option value="مشورہ">مشورہ</option>
+      <option value="نئی تجویز">نئی تجویز</option>
+      <option value="مسئلہ / مشکل">مسئلہ / مشکل</option>
+    </select>
+    <label for="studentFeedbackName">نام (اختیاری)</label>
+    <input id="studentFeedbackName" type="text" maxlength="80" autocomplete="name" placeholder="اپنا نام لکھیں (اختیاری)" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #dce7df;border-radius:10px;margin:6px 0 12px;">
+    <label for="studentFeedbackMessage">آپ کا پیغام</label>
+    <textarea id="studentFeedbackMessage" rows="5" maxlength="2000" required placeholder="اپنا مشورہ یا مسئلہ یہاں لکھیں..." style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #dce7df;border-radius:10px;margin:6px 0 12px;"></textarea>
+    <div class="academy-contact-links">
+      <button id="studentFeedbackWhatsApp" type="button" style="background:#16834a;color:white;">WhatsApp پر بھیجیں</button>
+      <button id="studentFeedbackEmail" type="button" style="background:#b42318;color:white;">Gmail سے بھیجیں</button>
+    </div>
+    <button id="studentFeedbackClose" type="button" style="background:#64746b;">بند کریں</button>
+    <p id="studentFeedbackStatus" role="status" aria-live="polite"></p>
+  </section>
 
   <section id="persianCourseChooser" hidden>
     <h3>📚 Persian Language Course</h3>
@@ -2822,6 +2845,58 @@ dashboard.querySelector('#academyContactToggle').addEventListener('click', event
   panel.hidden = !isOpening;
   button.setAttribute('aria-expanded', String(isOpening));
   button.textContent = isOpening ? 'رابطے بند کریں' : 'ہم سے رابطہ';
+});
+dashboard.querySelector('#studentShareAppBtn').addEventListener('click', async () => {
+  const appUrl = `${window.location.origin}${window.location.pathname}`;
+  const shareData = {
+    title: 'Come To Learn Persian',
+    text: 'اردو میں فارسی سیکھنے کے لیے Come To Learn Persian ایپ ملاحظہ کریں:',
+    url: appUrl
+  };
+  if (navigator.share) {
+    try { await navigator.share(shareData); }
+    catch (error) { if (error?.name !== 'AbortError') alert('شیئر نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔'); }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(appUrl);
+    alert('ایپ کا لنک کاپی ہو گیا ہے۔ اب اسے WhatsApp یا کسی اور جگہ شیئر کر دیں۔');
+  } catch (_) {
+    window.prompt('ایپ کا لنک کاپی کر کے شیئر کریں:', appUrl);
+  }
+});
+dashboard.querySelector('#studentFeedbackToggle').addEventListener('click', event => {
+  const button = event.currentTarget;
+  const panel = dashboard.querySelector('#studentFeedbackPanel');
+  panel.hidden = !panel.hidden;
+  button.setAttribute('aria-expanded', String(!panel.hidden));
+  if (!panel.hidden) panel.scrollIntoView({behavior:'smooth', block:'center'});
+});
+dashboard.querySelector('#studentFeedbackClose').addEventListener('click', () => {
+  dashboard.querySelector('#studentFeedbackPanel').hidden = true;
+  dashboard.querySelector('#studentFeedbackToggle').setAttribute('aria-expanded', 'false');
+});
+function prepareStudentFeedbackMessage() {
+  const message = dashboard.querySelector('#studentFeedbackMessage').value.trim();
+  if (!message) {
+    dashboard.querySelector('#studentFeedbackMessage').focus();
+    dashboard.querySelector('#studentFeedbackStatus').textContent = 'براہ کرم اپنا پیغام لکھیں۔';
+    return null;
+  }
+  const type = dashboard.querySelector('#studentFeedbackType').value;
+  const name = dashboard.querySelector('#studentFeedbackName').value.trim();
+  return `Come To Learn Persian — طالب علم کی ${type}\n${name ? `نام: ${name}\n` : ''}\n${message}`;
+}
+dashboard.querySelector('#studentFeedbackWhatsApp').addEventListener('click', () => {
+  const message = prepareStudentFeedbackMessage();
+  if (!message) return;
+  window.location.href = `https://wa.me/923049788712?text=${encodeURIComponent(message)}`;
+});
+dashboard.querySelector('#studentFeedbackEmail').addEventListener('click', () => {
+  const message = prepareStudentFeedbackMessage();
+  if (!message) return;
+  const subject = 'Come To Learn Persian — طالب علم کی رائے';
+  window.location.href = `mailto:cometolearnpersian512145@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
 });
 // Show the student's latest reviewed payment decision on the dashboard.
 loadStudentPaymentNotice();
@@ -5791,6 +5866,25 @@ document.getElementById('refreshReferenceAdminBtn')?.addEventListener('click',()
     "سبق کھولیں": "Open lesson",
     "ہم سے رابطہ": "Contact Us",
     "رابطے بند کریں": "Close contacts",
+    "📤 ایپ شیئر کریں": "📤 Share the app",
+    "دوستوں اور ساتھیوں تک پہنچائیں": "Share it with friends and classmates",
+    "💬 اپنی رائے دیں": "💬 Send feedback",
+    "مشورہ یا مسئلہ بتائیں": "Send a suggestion or report a problem",
+    "💬 اپنی قیمتی رائے، مشورہ یا مسئلہ لکھیں": "💬 Share your feedback, suggestion, or problem",
+    "آپ کا پیغام WhatsApp یا Gmail میں تیار ہوگا۔ بھیجنے کے لیے وہاں Send دبائیں۔": "Your message will open in WhatsApp or Gmail. Tap Send there to submit it.",
+    "رائے کی قسم": "Feedback type",
+    "مشورہ": "Suggestion",
+    "نئی تجویز": "New idea",
+    "مسئلہ / مشکل": "Problem",
+    "نام (اختیاری)": "Name (optional)",
+    "اپنا نام لکھیں (اختیاری)": "Your name (optional)",
+    "آپ کا پیغام": "Your message",
+    "اپنا مشورہ یا مسئلہ یہاں لکھیں...": "Write your suggestion or problem here...",
+    "WhatsApp پر بھیجیں": "Send via WhatsApp",
+    "Gmail سے بھیجیں": "Send via Gmail",
+    "بند کریں": "Close",
+    "براہ کرم اپنا پیغام لکھیں۔": "Please write your message.",
+    "ایپ کا لنک کاپی ہو گیا ہے۔ اب اسے WhatsApp یا کسی اور جگہ شیئر کر دیں۔": "The app link has been copied. Share it on WhatsApp or anywhere you like.",
     "فارسی یا اردو میں لفظ تلاش کریں — معنی، گرامر، جملے": "Search a word in Persian or Urdu — meaning, grammar, sentences",
     "فارسی یا اردو میں تلاش کریں": "Search in Persian or Urdu",
     "فارسی یا اردو لفظ تلاش کریں...": "Search a Persian or Urdu word...",
